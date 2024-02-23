@@ -15,9 +15,9 @@
 # 2024 Feb 05 ------------------------------------------------------------------
 
 # check that I set paths to the scratch folder
-slt <- SLT$new(gbd_round = 'gbd2021')
-slt$print_dictionaries()
-slt$print_dynamic_fields()
+# slt <- SLT$new(gbd_round = 'gbd2021')
+# slt$print_dictionaries()
+# slt$print_dynamic_fields()
 # slt$print_dictionaries(item_name = "ROOTS")
 # slt$print_dictionaries(item_name = "sam") # expect error
 # slt$print_dictionaries(item_name = c("ROOTS", "gbd_round"))
@@ -123,6 +123,6 @@ slt$print_dynamic_fields()
 # slt$roundup_remove() # Great, this works as intended
 # test out datestamp
 # slt$mark_remove(date_version = "2024_02_13_cruddy_model", list(comment = "testing new stamp"))
-slt <- SLT$new(gbd_round = 'gbd2021')
 # slt$make_new_log(date_version = "2024_02_21_roundup_dates")
+slt <- SLT$new(gbd_round = 'gbd2021')
 slt$roundup_by_date(user_date = "2024/02/13", date_selector = "lte")

@@ -1587,13 +1587,19 @@ SLT <- R6::R6Class(
       #' @export
       #'
       #' @examples
-      roundup_by_date = function(user_date, date_selector){
+      roundup_by_date = function(user_date, date_selector, verbose = TRUE){
+
 
          # format inputs for assertion
          date_selector <- tolower(date_selector)
          # assert inputs
          private$assert_date_selector(date_selector)
          private$assert_user_date(user_date)
+
+         if(verbose){
+            message(paste0("Finding all folders with log creation dates that are", " '", date_selector, "' ", user_date), ". \n  ",
+                    "NOTE! Log creation dates are used as the file-system does not record creation times. \n")
+         }
 
          # format user_date to USA PST to align with cluster filesystem dates
          tzone = "America/Los_Angeles"
