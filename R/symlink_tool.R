@@ -30,6 +30,10 @@
 # - [x] public function for empty log (for first pipeline outputs)
 # - [ ] allow user to set root(s) at initialization
 # - [ ] clean up function args that only pass around private$DICT values - use private$DICT directly
+# TODO SB - 2024 Feb 23 - Other Roundups
+# - [x] by date
+# TODO SB - 2024 Feb 23 - Central log
+# - [ ] central log is updated after all marking operations
 
 
 
@@ -384,6 +388,48 @@ SLT <- R6::R6Class(
          } else {
             return(invisible(TRUE))
          }
+      },
+
+      assert_date_selector = function(date_selector){
+         # format and validate inputs
+         valid_date_selectors <- c("gt", "gte", "lt", "lte", "e")
+         date_selectors_decoded <- c("greater_than",
+                                     "greater_than_equal_to",
+                                     "less_than",
+                                     "less_than_equal_to",
+                                     "equal")
+         if(!date_selector %in% valid_date_selectors){
+            stop(
+               "Invalid date_selector. Must be one of (case-insensitive): \n  ",
+               toString(valid_date_selectors), "\n  ",
+               paste0("(", paste0(date_selectors_decoded, collapse = ", "), ")")
+            )
+         }
+      },
+
+      assert_user_date = function(user_date){
+         # user date should be formatted as YYYY MM DD with select delimiters between
+         valid_date_classes <- c("character", "POSIXct", "POSIXt")
+         if(!any(class(user_date) %in% valid_date_classes)){
+            stop("Invalid user_date. Must be one of: ", toString(valid_date_classes), "\n",
+                 "Received: ", class(user_date))
+         }
+         if(!grepl("^[0-9]{4}[-/_]{1}[0-9]{2}[-/_]{1}[0-9]{2}$", user_date)){
+            stop("Invalid user_date. Must be formatted as YYYY MM DD, with one of these delimiters [-/_] between.\n  ",
+                 "Example:  2020-01-01 or 2020_01_01 or 2020/01/01 \n  ",
+                 "Received: ", user_date)
+         }
+      },
+
+      assert_PST_date = function(date){
+         private$assert_user_date(user_date = date)
+         valid_tz = c("America/Los_Angeles", "US/Pacific", "PST8PDT")
+         if(!lubridate::tz(date) %in% valid_tz){
+            stop("Invalid timezone.\n",
+                 "Allowed:  ", toString(valid_tz), "\n",
+                 "Received: ", lubridate::tz(user_date))
+         }
+
       },
 
       is_an_error = function(x) {
@@ -1045,43 +1091,53 @@ SLT <- R6::R6Class(
 
       },
 
-      query_by_date = function(root, user_date, date_selector){
-         # browser()
+      query_by_date = function(root, user_date_parsed, date_selector){
+         private$assert_dir_exists(root)
+         private$assert_date_selector(date_selector)
+         private$assert_PST_date(user_date_parsed)
+
          # query all logs for their creation lines
          folder_dt   <- private$query_root_folder_types(root)
          log_list    <- private$query_all_logs(root)
          log_id_0_dt <- private$query_log_id_0(log_list)
 
-         # parse creation date, handle some messaging first
+         # parse log creation dates, handle some messaging in case they're malformed
+         ts_raw          <- log_id_0_dt$timestamp
+         names(ts_raw)   <- ts_raw
+         suppressWarnings(
+            ts_parsed    <- lubridate::ymd_hms(log_id_0_dt$timestamp, tz ="America/Los_Angeles")
+         )
+         idx_failed_parse<- which(is.na(ts_parsed))
+         dt_failed_parse <- data.table::data.table(
+            dir_name_resolved      = folder_dt[idx_failed_parse]$dir_name_resolved,
+            timestamp_failed_parse = ts_raw[idx_failed_parse]
+         )
          tryCatch({
             lubridate::ymd_hms(log_id_0_dt$timestamp, tz ="America/Los_Angeles")
-         }, warning = function(w) message("Some logs failed creation-date parsing: ", w))
-
-         suppressWarnings(
-            log_id_0_dt[, timestamp_parsed  := lubridate::ymd_hms(log_id_0_dt$timestamp, tz ="America/Los_Angeles")]
+         }, warning = function(w) message("Some logs failed creation-date parsing (must be in yyyy_mm_dd format): \n  ",
+                                          paste(capture.output(dt_failed_parse), collapse = "\n"),
+                                          "\n")
          )
 
-         # parse user date
-         tryCatch({
-            date_parsed <- lubridate::ymd(user_date)
-         }, warning = function(w) stop("Failed to parse user_date - must provide in yyyy-mm-dd format"))
-         browser()
-
-         # TODO SB - 2024 Feb 21 - turn the list into a `switch()`?
-         #                         - figure out if filtering happens here or at user level
-         # TODO SB - 2024 Feb 21 - parse user `date_selector` in `lt/lte/e/gt/gte` format below
-         # TODO SB - 2024 Feb 21 - match the `date_version` to the `folder_dt` `dir_date_version`
-         #                         - return a table of `dir_date_version` `dir_name` and `dir_name_resolved`
-
+         # Strip time from date-time-stamp, retain timezone info
+         # Formatting for direct comparison against user_date
+         suppressWarnings(log_id_0_dt[, timestamp_parsed := lubridate::ymd_hms(timestamp, tz = "America/Los_Angeles")])
+         log_id_0_dt[, timestamp_parsed := format(timestamp_parsed, "%Y-%m-%d")]
+         log_id_0_dt[, timestamp_parsed := lubridate::ymd(timestamp_parsed, tz ="America/Los_Angeles")]
 
          # filter logs to all time-stamps less/greater than (or equal to) user date for later filtering
-         return(list(
-            less_than            = log_id_0_dt[timestamp_parsed <  date_parsed]
-            , less_than_equal    = log_id_0_dt[timestamp_parsed <= date_parsed]
-            , greater_than       = log_id_0_dt[timestamp_parsed >  date_parsed]
-            , greater_than_equal = log_id_0_dt[timestamp_parsed >= date_parsed]
-            , equal              = log_id_0_dt[timestamp_parsed == date_parsed]
-         ))
+         logs_by_date <- switch(
+            date_selector
+            , "lt"  = log_id_0_dt[timestamp_parsed <  user_date_parsed, ]
+            , "lte" = log_id_0_dt[timestamp_parsed <= user_date_parsed, ]
+            , "gt"  = log_id_0_dt[timestamp_parsed >  user_date_parsed, ]
+            , "gte" = log_id_0_dt[timestamp_parsed >= user_date_parsed, ]
+            , "e"   = log_id_0_dt[timestamp_parsed == user_date_parsed, ]
+         )
+
+         # Match date_version to folder_dt and return required columns
+         dv_by_date <- logs_by_date$date_version
+         return(folder_dt[dir_date_version %in% dv_by_date, .(dir_date_version, dir_name, dir_name_resolved)])
 
       },
 
@@ -1533,9 +1589,27 @@ SLT <- R6::R6Class(
       #' @examples
       roundup_by_date = function(user_date, date_selector){
 
-         for(root in private$DICT$ROOTS){
-            return(private$query_by_date(root, user_date, date_selector))
-         }
+         # format inputs for assertion
+         date_selector <- tolower(date_selector)
+         # assert inputs
+         private$assert_date_selector(date_selector)
+         private$assert_user_date(user_date)
+
+         # format user_date to USA PST to align with cluster filesystem dates
+         tzone = "America/Los_Angeles"
+         message("Formatting date with time-zone: ", tzone, "\n")
+         user_date_parsed <- lubridate::ymd(user_date, tz = tzone)
+
+         # for(root in private$DICT$ROOTS){
+         #    return(private$query_by_date(root, user_date_parsed, date_selector))
+         # }
+         message("Folders with symlinks will have duplicate rows by `date_version` (one row for each unique `dir_name`) - showing all for completeness.\n")
+         return(
+            lapply(private$DICT$ROOTS,
+                   private$query_by_date,
+                   user_date_parsed = user_date_parsed,
+                   date_selector    = date_selector)
+            )
 
       },
 
