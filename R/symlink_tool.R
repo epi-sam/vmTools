@@ -105,10 +105,20 @@ SLT <- R6::R6Class(
          # ),
 
          ## Static
-
-         log_fields_user = NULL, # e.g. c("comment") at time of writing
+         # In `initialize()`, defined as `setdiff(names(private$DICT$log_schema), private$DICT$log_fields_auto)`
+         # e.g. c("comment") at time of writing
+         log_fields_user = NULL,
 
          ## Logs
+
+         LOG_CENTRAL = list(
+            # FIXME SB - 2024 Feb 05 - REMOVE AFTER TESTING
+            # root = "/mnt/share/covariates/vaccines/reference",
+            # FIXME SB - 2024 Feb 05 - REMOVE AFTER TESTING
+            root  = "/mnt/share/homes/ssbyrne/scratch2/vc/slt",
+            fname = "log_symlinks_central.csv",
+            path  = NULL
+         ),
 
          log_name = "log_version_history.csv",
 
@@ -691,6 +701,7 @@ SLT <- R6::R6Class(
       # Write a log creation row IF the log is empty
       write_log_creation_entry = function(dt_log){
          if(is.na(private$DYNAMIC$LOG$date_version)) stop("date_version not set - check how you've initialized the date_version, if at all")
+         # This will not rewrite the first log line if only that row was deleted - that's misleading
          if(nrow(dt_log) == 0) {
             first_row <- data.table(
                log_id       = 0L,
@@ -701,7 +712,7 @@ SLT <- R6::R6Class(
                comment      = "log created"
 
             )
-            dt_log <- rbind(dt_log, first_row)
+            dt_log <- rbind(first_row, dt_log)
          }
          return(dt_log)
       },
@@ -713,10 +724,51 @@ SLT <- R6::R6Class(
             private$write_new_log(fpath, log_schema)
          } else {
             dt_log <- private$read_log(fpath, log_schema)
+            # Safely write first 'create' row if it doesn't exist
             dt_log <- private$write_log_creation_entry(dt_log)
             data.table::fwrite(dt_log, fpath)
          }
       },
+
+      # This differs from an output version log since the first entry DOES NOT
+      # have a date_version by definition - we'll define it as "CENTRAL_LOG" for
+      # clarity
+      write_expected_central_log = function(fpath, log_schema = private$DICT$log_schema){
+         private$assert_scalar(fpath)
+         if(!file.exists(fpath)) {
+            private$write_new_central_log(fpath, log_schema)
+         } else {
+            dt_log <- private$read_log(fpath, log_schema)
+            # Safely write first 'create' row if it doesn't exist
+            dt_log <- private$write_central_log_creation_entry(dt_log)
+            data.table::fwrite(dt_log, fpath)
+         }
+      },
+
+      write_new_central_log = function(fpath, log_schema = private$DICT$log_schema){
+         dt_log <- private$make_schema_dt(log_schema)
+         # Safely write first 'create' row if it doesn't exist
+         dt_log <- private$write_central_log_creation_entry(dt_log)
+         data.table::fwrite(dt_log, fpath)
+      },
+
+      write_central_log_creation_entry = function(dt_log){
+         # This will not rewrite the first log line if only that row was deleted - that's misleading
+         if(nrow(dt_log) == 0) {
+            first_row <- data.table(
+               log_id       = 0L,
+               timestamp    = private$make_current_timestamp(),
+               user         = Sys.info()[["user"]],
+               date_version = "CENTRAL_LOG",
+               action       = "create",
+               comment      = "log created"
+
+            )
+            dt_log <- rbind(first_row, dt_log)
+         }
+         return(dt_log)
+      },
+
 
       # safely correct a null log, if found (all dim == 0)
       correct_null_log = function(dt_log){
@@ -1325,8 +1377,14 @@ SLT <- R6::R6Class(
 
          ## User should not interact with these
          ## ROOTS
-         private$DICT$ROOTS <- lapply(private$DICT$ROOTS, function(x) file.path(x, gbd_round))
-         private$DICT$log_fields_user <- setdiff(names(private$DICT$log_schema), private$DICT$log_fields_auto)
+         private$DICT$ROOTS            <- lapply(private$DICT$ROOTS, function(root) file.path(root, gbd_round))
+         private$DICT$log_fields_user  <- setdiff(names(private$DICT$log_schema), private$DICT$log_fields_auto)
+         ## Central Log
+         private$DICT$LOG_CENTRAL$path <- file.path(private$DICT$LOG_CENTRAL$root,
+                                                    private$DICT$LOG_CENTRAL$fname)
+         # Make sure this exists any time the class is initialized
+         private$write_expected_central_log(fpath      = private$DICT$LOG_CENTRAL$path,
+                                            log_schema = private$DICT$log_schema)
       },
 
       # FIXME SB - 2024 Feb 05 - remove when dev is done
