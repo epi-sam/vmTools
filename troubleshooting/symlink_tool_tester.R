@@ -124,5 +124,17 @@
 # test out datestamp
 # slt$mark_remove(date_version = "2024_02_13_cruddy_model", list(comment = "testing new stamp"))
 # slt$make_new_log(date_version = "2024_02_21_roundup_dates")
-slt <- SLT$new(gbd_round = 'gbd2021')
-slt$roundup_by_date(user_date = "2024/02/13", date_selector = "lte")
+# slt <- SLT$new(gbd_round = 'gbd2021')
+# slt$roundup_by_date(user_date = "2024/02/13", date_selector = "lte")
+
+# 2024 Feb 23 ------------------------------------------------------------------
+
+slt <- SLT$new(gbd_round = 'gbd2021') # OK, new log instantiation is good...
+# Try out central log
+# Does it update?
+slt$mark_best(date_version = "67890", user_entry = list(comment = "testing mark_best in central log"))
+slt$mark_keep(date_version = "67890", user_entry = list(comment = "testing mark_keep in central log"))
+slt$mark_remove(date_version = "67890", user_entry = list(comment = "testing mark_remove in central log"))
+slt <- SLT$new(gbd_round = 'gbd2021') # OK, new log instantiation is good...
+slt$reports()
+slt$unmark(date_version = "67890", user_entry = list(comment = "testing unmark in central log"))

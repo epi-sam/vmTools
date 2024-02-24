@@ -442,6 +442,10 @@ SLT <- R6::R6Class(
 
       },
 
+
+
+      # Utils ------------------------------------------------------------------
+
       is_an_error = function(x) {
          #' Determine if an object is an error
          #'
@@ -450,6 +454,10 @@ SLT <- R6::R6Class(
          #' @return [lgl] TRUE / FALSE
 
          (inherits(x, "simpleError") | inherits(x, "try-error"))
+      },
+
+      filter_null_list = function(my_list){
+         my_list <- my_list[!unlist(lapply(my_list, is.null))]
       },
 
 
@@ -730,46 +738,6 @@ SLT <- R6::R6Class(
          }
       },
 
-      # This differs from an output version log since the first entry DOES NOT
-      # have a date_version by definition - we'll define it as "CENTRAL_LOG" for
-      # clarity
-      write_expected_central_log = function(fpath, log_schema = private$DICT$log_schema){
-         private$assert_scalar(fpath)
-         if(!file.exists(fpath)) {
-            private$write_new_central_log(fpath, log_schema)
-         } else {
-            dt_log <- private$read_log(fpath, log_schema)
-            # Safely write first 'create' row if it doesn't exist
-            dt_log <- private$write_central_log_creation_entry(dt_log)
-            data.table::fwrite(dt_log, fpath)
-         }
-      },
-
-      write_new_central_log = function(fpath, log_schema = private$DICT$log_schema){
-         dt_log <- private$make_schema_dt(log_schema)
-         # Safely write first 'create' row if it doesn't exist
-         dt_log <- private$write_central_log_creation_entry(dt_log)
-         data.table::fwrite(dt_log, fpath)
-      },
-
-      write_central_log_creation_entry = function(dt_log){
-         # This will not rewrite the first log line if only that row was deleted - that's misleading
-         if(nrow(dt_log) == 0) {
-            first_row <- data.table(
-               log_id       = 0L,
-               timestamp    = private$make_current_timestamp(),
-               user         = Sys.info()[["user"]],
-               date_version = "CENTRAL_LOG",
-               action       = "create",
-               comment      = "log created"
-
-            )
-            dt_log <- rbind(first_row, dt_log)
-         }
-         return(dt_log)
-      },
-
-
       # safely correct a null log, if found (all dim == 0)
       correct_null_log = function(dt_log){
          if(all(dim(dt_log) == 0)){
@@ -832,6 +800,84 @@ SLT <- R6::R6Class(
          log_dt_new <- rbind(dt_log, log_entry)
 
          message("---- writing log to ", fpath)
+         data.table::fwrite(log_dt_new, fpath)
+      },
+
+
+      ### Central Log ----------------------------------------------------------
+
+      # This differs from a date_version log since the first entry DOES NOT
+      # have a date_version by definition - we'll define it as "CENTRAL_LOG" for
+      # clarity, and write an append process to match
+      write_expected_central_log = function(fpath, log_schema = private$DICT$log_schema){
+         private$assert_scalar(fpath)
+         if(!file.exists(fpath)) {
+            private$write_new_central_log(fpath, log_schema)
+         } else {
+            dt_log <- private$read_log(fpath, log_schema)
+            # Safely write first 'create' row if it doesn't exist
+            dt_log <- private$write_central_log_creation_entry(dt_log)
+            data.table::fwrite(dt_log, fpath)
+         }
+      },
+
+      write_new_central_log = function(fpath, log_schema = private$DICT$log_schema){
+         dt_log <- private$make_schema_dt(log_schema)
+         # Safely write first 'create' row if it doesn't exist
+         dt_log <- private$write_central_log_creation_entry(dt_log)
+         data.table::fwrite(dt_log, fpath)
+      },
+
+      write_central_log_creation_entry = function(dt_log){
+         # This will not rewrite the first log line if only that row was deleted - that's misleading
+         if(nrow(dt_log) == 0) {
+            first_row <- data.table(
+               log_id       = 0L,
+               timestamp    = private$make_current_timestamp(),
+               user         = Sys.info()[["user"]],
+               date_version = "CENTRAL_LOG",
+               action       = "create",
+               comment      = "log created"
+
+            )
+            dt_log <- rbind(first_row, dt_log)
+         }
+         return(dt_log)
+      },
+
+      append_to_central_log = function(user_entry) {
+
+         # validate inputs
+         private$assert_named_list(user_entry)
+         # private$assert_scalar(version_path)
+
+         # needs to read a log to bump the log_id number
+         # fpath    <- file.path(version_path, private$DICT$log_name)
+         fpath    <- private$DICT$LOG_CENTRAL$path
+         private$write_expected_central_log(fpath, log_schema = private$DICT$log_schema)
+         dt_log   <- private$read_log(fpath)
+         private$assert_schema_vs_user_entry(user_entry)
+
+         # Safely write first 'create' row if it doesn't exist
+         dt_log <- private$write_central_log_creation_entry(dt_log)
+
+         last_row <- tail(dt_log, 1)
+
+         log_entry <- data.table::data.table(
+            log_id       = last_row$log_id + 1,
+            timestamp    = private$make_current_timestamp(),
+            user         = Sys.info()[["user"]],
+            date_version = private$DYNAMIC$LOG$date_version,
+            action       = private$DYNAMIC$LOG$action
+         )
+
+         for(varname in names(user_entry)){
+            log_entry[[varname]] <- user_entry[[varname]]
+         }
+
+         log_dt_new <- rbind(dt_log, log_entry)
+
+         message("---- writing central log to ", fpath)
          data.table::fwrite(log_dt_new, fpath)
       },
 
@@ -978,7 +1024,7 @@ SLT <- R6::R6Class(
          private$update_dynamic_fields(date_version = date_version)
       },
 
-      validate_post_mark = function(date_version){
+      validate_post_mark = function(date_version, user_entry){
          # validate inputs
          private$assert_scalar(date_version)
 
@@ -993,10 +1039,15 @@ SLT <- R6::R6Class(
                allow_fewer  = TRUE
             )
 
+
             # update tool_symlink report
             # - prints a discrepancy report if any active symlink logs have 'demote_*' as the last row's action
             private$report_all_logs_tool_symlink(root)
          }
+
+         # There is only one central log per instantiation of the tool
+         private$append_to_central_log(user_entry = user_entry)
+
       },
 
       ## Queries ---------------------------------------------------------------
@@ -1050,6 +1101,20 @@ SLT <- R6::R6Class(
          )
       },
 
+      safely_return_filtered_log_list = function(log_list){
+         if(length(log_list)){
+            # remove any NULLs, result of the tryCatch in try_query_log
+            return(private$filter_null_list(log_list))
+         } else {
+          # make empty schema
+            return(
+               list(
+                  no_logs_found = private$make_schema_dt(schema = private$DICT$log_schema)
+               )
+            )
+         }
+      },
+
       query_all_logs = function(root){
          # find all folders and their types
          folder_dt            <- private$query_root_folder_types(root)
@@ -1059,7 +1124,7 @@ SLT <- R6::R6Class(
          log_list             <- lapply(unique_version_paths, private$try_query_log)
          names(log_list)      <- unique_version_paths
          # remove any NULLs, result of the tryCatch in try_query_log
-         log_list             <- log_list[!unlist(lapply(log_list, is.null))]
+         log_list             <- private$safely_return_filtered_log_list(log_list)
          lapply(log_list, private$assert_data_schema, data_types = private$DICT$log_schema)
          return(log_list)
       },
@@ -1072,7 +1137,7 @@ SLT <- R6::R6Class(
          log_list             <- lapply(unique_version_paths, private$try_query_log)
          names(log_list)      <- unique_version_paths
          # remove any NULLs, result of the tryCatch in try_query_log
-         log_list             <- log_list[!unlist(lapply(log_list, is.null))]
+         log_list             <- private$safely_return_filtered_log_list(log_list)
          lapply(log_list, private$assert_data_schema, data_types = private$DICT$log_schema)
          return(log_list)
       },
@@ -1085,7 +1150,7 @@ SLT <- R6::R6Class(
          log_list             <- lapply(unique_version_paths, private$try_query_log)
          names(log_list)      <- unique_version_paths
          # remove any NULLs, result of the tryCatch in try_query_log
-         log_list             <- log_list[!unlist(lapply(log_list, is.null))]
+         log_list             <- private$safely_return_filtered_log_list(log_list)
          lapply(log_list, private$assert_data_schema, data_types = private$DICT$log_schema)
          return(log_list)
       },
@@ -1102,7 +1167,7 @@ SLT <- R6::R6Class(
          log_list                  <- lapply(unique_non_symlink_paths, private$try_query_log)
          names(log_list)           <- unique_non_symlink_paths
          # remove any NULLs, result of the tryCatch in try_query_log
-         log_list             <- log_list[!unlist(lapply(log_list, is.null))]
+         log_list             <- private$safely_return_filtered_log_list(log_list)
          lapply(log_list, private$assert_data_schema, data_types = private$DICT$log_schema)
          return(log_list)
       },
@@ -1249,15 +1314,22 @@ SLT <- R6::R6Class(
          varname_dir <- grep("^dir_name", names(path_dt), value = TRUE)
          if(length(varname_dir) != 1)            stop("path_dt must have exactly one column starting with 'dir_name'")
 
+         # FIXME SB - 2024 Feb 23 - OUTPUT A ZERO-ROW DATA TABLE IF THERE ARE NOT PATHS TO REPORT
+
          # add an all NA row to schema_dt
          schema_dt             <- private$make_schema_dt(private$DICT$log_schema)
-         nan_row               <- as.data.table(t(rep(NA, ncol(schema_dt))))
-         names(nan_row)        <- names(schema_dt)
-         schema_dt             <- rbind(schema_dt, nan_row)
-         report_dt             <- cbind(schema_dt, path_dt[ , ..varname_dir])
-         report_dt$discrepancy <- discrepancy_reason
-         # we'll eventually have a mix of resolved and unresolved paths
-         setnames(report_dt, varname_dir, "dir_name")
+         if(nrow(path_dt) > 0) {
+            nan_row               <- as.data.table(t(rep(NA, ncol(schema_dt))))
+            names(nan_row)        <- names(schema_dt)
+            schema_dt             <- rbind(schema_dt, nan_row)
+            report_dt             <- cbind(schema_dt, path_dt[ , ..varname_dir])
+            report_dt$discrepancy <- discrepancy_reason
+            # we'll eventually have a mix of resolved and unresolved paths, so set a consistent name for the final report
+            setnames(report_dt, varname_dir, "dir_name")
+         } else {
+            report_dt <- data.table::copy(schema_dt)
+            report_dt[, `:=`(dir_name = NA_character_, discrepancy = NA_character_)]
+         }
          return(report_dt)
       },
 
@@ -1280,11 +1352,11 @@ SLT <- R6::R6Class(
          dirs_tool_symlink_no_logs_dt       <- folder_dt[dir_name_resolved %in% tool_symlink_no_log, .N, by = .(dir_name_resolved)][N > 0]
          discrepant_dt_tool_symlink_no_logs <- private$make_report_schema_for_discrepant_paths(dirs_tool_symlink_no_logs_dt, "tool_symlink has no logs")
 
-         # Multiple symlinks to the same folder (dirname only)
-         dirs_multiple_symlinks_dt   <- folder_dt[is_symlink == TRUE, .N, by = dir_name_resolved][N > 1]
+         # Multiple symlinks to the same folder (dir_name only)
+         dirs_multiple_symlinks_dt   <- folder_dt[is_symlink == TRUE, .(dir_name, .N), by = dir_name_resolved][N > 1][, .(dir_name, N)]
          discrepant_dt_mult_symlinks <- private$make_report_schema_for_discrepant_paths(dirs_multiple_symlinks_dt, "multiple symlinks to the same folder")
 
-         # Non-tool symlinks (dirname only)
+         # Non-tool symlinks (dir_name only)
          dirs_non_tool_symlinks_dt       <- folder_dt[is_symlink == TRUE & is_tool_symlink == FALSE, .N, by = dir_name]
          discrepant_dt_non_tool_symlinks <- private$make_report_schema_for_discrepant_paths(dirs_non_tool_symlinks_dt, "non-tool symlinks in root folder")
 
@@ -1335,7 +1407,7 @@ SLT <- R6::R6Class(
          path_discrepancy_report <- file.path(root, "REPORT_DISCREPANCIES.csv")
 
          if(nrow(discrepancy_report_dt) == 0) {
-            message("No discrepancies found, removing REPORT_DISCREPANCIES.csv (if it exists now)")
+            message("No discrepancies found in ", root, ", removing REPORT_DISCREPANCIES.csv (if it exists now)")
             suppressWarnings(file.remove(path_discrepancy_report))
          } else {
             data.table::fwrite(discrepancy_report_dt, path_discrepancy_report)
@@ -1511,7 +1583,8 @@ SLT <- R6::R6Class(
 
          }
 
-         private$validate_post_mark(date_version = date_version)
+         private$validate_post_mark(date_version = date_version,
+                                    user_entry = user_entry)
       },
 
 
@@ -1551,7 +1624,8 @@ SLT <- R6::R6Class(
             )
          }
 
-         private$validate_post_mark(date_version = date_version)
+         private$validate_post_mark(date_version = date_version,
+                                    user_entry = user_entry)
       },
 
 
@@ -1593,7 +1667,8 @@ SLT <- R6::R6Class(
             )
          }
 
-         private$validate_post_mark(date_version = date_version)
+         private$validate_post_mark(date_version = date_version,
+                                    user_entry = user_entry)
 
       },
 
@@ -1614,7 +1689,8 @@ SLT <- R6::R6Class(
                                         date_version = date_version,
                                         user_entry   = user_entry)
          }
-         private$validate_post_mark(date_version = date_version)
+         private$validate_post_mark(date_version = date_version,
+                                    user_entry = user_entry)
 
       },
 
@@ -1687,6 +1763,7 @@ SLT <- R6::R6Class(
       #'
       #' @examples
       reports = function(){
+         browser()
 
          for(root in private$DICT$ROOTS){
             message("Writing last-row log reports for ", root)
