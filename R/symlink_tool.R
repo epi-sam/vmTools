@@ -1101,17 +1101,12 @@ SLT <- R6::R6Class(
          )
       },
 
-      safely_return_filtered_log_list = function(log_list){
-         if(length(log_list)){
-            # remove any NULLs, result of the tryCatch in try_query_log
-            return(private$filter_null_list(log_list))
+      # safely remove null logs, and account for zero-length logs if none are found for a date_version folder
+      filter_null_logs_safely = function(log_list){
+         if(!length(log_list) == 0){
+            return(log_list[!unlist(lapply(log_list, is.null))])
          } else {
-          # make empty schema
-            return(
-               list(
-                  no_logs_found = private$make_schema_dt(schema = private$DICT$log_schema)
-               )
-            )
+            return(list(no_logs_found = private$make_schema_dt(schema = private$DICT$log_schema)))
          }
       },
 
@@ -1124,7 +1119,7 @@ SLT <- R6::R6Class(
          log_list             <- lapply(unique_version_paths, private$try_query_log)
          names(log_list)      <- unique_version_paths
          # remove any NULLs, result of the tryCatch in try_query_log
-         log_list             <- private$safely_return_filtered_log_list(log_list)
+         log_list             <- private$filter_null_logs_safely(log_list)
          lapply(log_list, private$assert_data_schema, data_types = private$DICT$log_schema)
          return(log_list)
       },
@@ -1137,7 +1132,7 @@ SLT <- R6::R6Class(
          log_list             <- lapply(unique_version_paths, private$try_query_log)
          names(log_list)      <- unique_version_paths
          # remove any NULLs, result of the tryCatch in try_query_log
-         log_list             <- private$safely_return_filtered_log_list(log_list)
+         log_list             <- private$filter_null_logs_safely(log_list)
          lapply(log_list, private$assert_data_schema, data_types = private$DICT$log_schema)
          return(log_list)
       },
@@ -1150,7 +1145,7 @@ SLT <- R6::R6Class(
          log_list             <- lapply(unique_version_paths, private$try_query_log)
          names(log_list)      <- unique_version_paths
          # remove any NULLs, result of the tryCatch in try_query_log
-         log_list             <- private$safely_return_filtered_log_list(log_list)
+         log_list             <- private$filter_null_logs_safely(log_list)
          lapply(log_list, private$assert_data_schema, data_types = private$DICT$log_schema)
          return(log_list)
       },
@@ -1167,7 +1162,7 @@ SLT <- R6::R6Class(
          log_list                  <- lapply(unique_non_symlink_paths, private$try_query_log)
          names(log_list)           <- unique_non_symlink_paths
          # remove any NULLs, result of the tryCatch in try_query_log
-         log_list             <- private$safely_return_filtered_log_list(log_list)
+         log_list                  <- private$filter_null_logs_safely(log_list)
          lapply(log_list, private$assert_data_schema, data_types = private$DICT$log_schema)
          return(log_list)
       },

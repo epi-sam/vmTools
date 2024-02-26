@@ -129,12 +129,29 @@
 
 # 2024 Feb 23 ------------------------------------------------------------------
 
-slt <- SLT$new(gbd_round = 'gbd2021') # OK, new log instantiation is good...
+# slt <- SLT$new(gbd_round = 'gbd2021') # OK, new log instantiation is good...
 # Try out central log
 # Does it update?
-slt$mark_best(date_version = "67890", user_entry = list(comment = "testing mark_best in central log"))
-slt$mark_keep(date_version = "67890", user_entry = list(comment = "testing mark_keep in central log"))
-slt$mark_remove(date_version = "67890", user_entry = list(comment = "testing mark_remove in central log"))
-slt <- SLT$new(gbd_round = 'gbd2021') # OK, new log instantiation is good...
-slt$reports()
-slt$unmark(date_version = "67890", user_entry = list(comment = "testing unmark in central log"))
+# slt$mark_best(date_version = "67890", user_entry = list(comment = "testing mark_best in central log"))
+# slt$mark_keep(date_version = "67890", user_entry = list(comment = "testing mark_keep in central log"))
+# slt$mark_remove(date_version = "67890", user_entry = list(comment = "testing mark_remove in central log"))
+# slt <- SLT$new(gbd_round = 'gbd2021') # OK, new log instantiation is good...
+# slt$reports()
+# slt$unmark(date_version = "67890", user_entry = list(comment = "testing unmark in central log"))
+# slt$roundup_by_date(user_date = "2024/02/13", date_selector = "lte") # works as expected
+# slt$roundup_by_date(user_date = "2024/02/13", date_selector = "le") # gives desired error message
+
+# 2024 Feb 26 ------------------------------------------------------------------
+
+# debugging extra rows added to central log during `unmark`
+# slt <- SLT$new(gbd_round = 'gbd2021')
+# slt$unmark(date_version = "67890", user_entry = 'debugging extra demote_best rows added to central log')
+
+slt <- SLT$new(gbd_round = 'gbd2021')
+slt$mark_best(date_version = "67890", user_entry = list(comment ='debugging extra demote_best rows added to central log'))
+slt$mark_keep(date_version = "67890", user_entry = list(comment ='debugging extra demote_best rows added to central log'))
+slt$mark_remove(date_version = "67890", user_entry = list(comment ='debugging extra demote_best rows added to central log'))
+slt$unmark(date_version = "67890", user_entry = list(comment = 'debugging extra demote_best rows added to central log'))
+
+# this _should_ throw an error for not being a named list, currently it's not
+slt$unmark(date_version = "67890", user_entry = 'debugging extra demote_best rows added to central log')
