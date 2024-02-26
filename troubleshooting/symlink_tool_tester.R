@@ -152,6 +152,3 @@ slt$mark_best(date_version = "67890", user_entry = list(comment ='debugging extr
 slt$mark_keep(date_version = "67890", user_entry = list(comment ='debugging extra demote_best rows added to central log'))
 slt$mark_remove(date_version = "67890", user_entry = list(comment ='debugging extra demote_best rows added to central log'))
 slt$unmark(date_version = "67890", user_entry = list(comment = 'debugging extra demote_best rows added to central log'))
-
-# this _should_ throw an error for not being a named list, currently it's not
-slt$unmark(date_version = "67890", user_entry = 'debugging extra demote_best rows added to central log')

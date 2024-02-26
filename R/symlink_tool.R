@@ -33,8 +33,13 @@
 # TODO SB - 2024 Feb 23 - Other Roundups
 # - [x] by date
 # TODO SB - 2024 Feb 23 - Central log
-# - [ ] central log is updated after all marking operations
-
+# - [x] central log is updated after all marking operations
+# TODO SB - 2024 Feb 26 - THINK ABOUT
+# - [ ] central updates ONLY with the user-intended action, and does not show demotions, as the date_version logs do
+#       - this wasn't _intended_ behavior, but may or may not be desirable
+#       - could be nice to have "high level" view in central log, the fine-grained chain-of-custody in the date_version logs
+#       - this would show reveal if a symlink were deleted by hand, rather than with the tool, but leave the central log a bit more readable
+#       - this would also make the central log a bit more "high level" and less "fine-grained"
 
 
 # LATER stuff - v2.0
@@ -456,10 +461,6 @@ SLT <- R6::R6Class(
          (inherits(x, "simpleError") | inherits(x, "try-error"))
       },
 
-      filter_null_list = function(my_list){
-         my_list <- my_list[!unlist(lapply(my_list, is.null))]
-      },
-
 
 
       # Implementations --------------------------------------------------------
@@ -664,6 +665,11 @@ SLT <- R6::R6Class(
             system(paste("unlink", symlink_full))
 
             private$append_to_log(version_path = path_real, user_entry = user_entry)
+         } else {
+            # unset DYNAMIC log fields if there are no symlinks
+            # - prevents central log from accidentally collecting extra rows
+            # browser()
+            private$reset_dynamic_fields(field_types = "log")
          }
       },
 
@@ -849,10 +855,8 @@ SLT <- R6::R6Class(
 
          # validate inputs
          private$assert_named_list(user_entry)
-         # private$assert_scalar(version_path)
 
          # needs to read a log to bump the log_id number
-         # fpath    <- file.path(version_path, private$DICT$log_name)
          fpath    <- private$DICT$LOG_CENTRAL$path
          private$write_expected_central_log(fpath, log_schema = private$DICT$log_schema)
          dt_log   <- private$read_log(fpath)
@@ -863,22 +867,34 @@ SLT <- R6::R6Class(
 
          last_row <- tail(dt_log, 1)
 
-         log_entry <- data.table::data.table(
-            log_id       = last_row$log_id + 1,
-            timestamp    = private$make_current_timestamp(),
-            user         = Sys.info()[["user"]],
-            date_version = private$DYNAMIC$LOG$date_version,
-            action       = private$DYNAMIC$LOG$action
-         )
+         # We only want to append if there is a defined action
+         # We clear actions in `remove_one_symlink` if there are no symlinks to a folder
+         # - we don't want to fill up logs with junk rows
+         # - this is handled within `remove_one_symlink` for date_version logs
+         # - since the central log is folder-agnostic, we're handling it here instead
+         # - this is a bit messy, hence the long comment
 
-         for(varname in names(user_entry)){
-            log_entry[[varname]] <- user_entry[[varname]]
+         if(!is.na(private$DYNAMIC$LOG$action)){
+            log_entry <- data.table::data.table(
+               log_id       = last_row$log_id + 1,
+               timestamp    = private$make_current_timestamp(),
+               user         = Sys.info()[["user"]],
+               date_version = private$DYNAMIC$LOG$date_version,
+               action       = private$DYNAMIC$LOG$action
+            )
+
+            for(varname in names(user_entry)){
+               log_entry[[varname]] <- user_entry[[varname]]
+            }
+
+            log_dt_new <- rbind(dt_log, log_entry)
+
+            message("---- writing central log to ", fpath)
+            data.table::fwrite(log_dt_new, fpath)
+         } else {
+            message("---- no action defined, not writing to central log")
          }
 
-         log_dt_new <- rbind(dt_log, log_entry)
-
-         message("---- writing central log to ", fpath)
-         data.table::fwrite(log_dt_new, fpath)
       },
 
       ## Promote / Demote ------------------------------------------------------
@@ -1002,6 +1018,29 @@ SLT <- R6::R6Class(
          # Update dictionaries
          private$DYNAMIC$LOG$date_version <- date_version
          private$update_version_paths(date_version = date_version)
+      },
+
+      reset_dynamic_fields = function(field_types){
+
+         # validate inputs
+         valid_field_types <- c("log", "vers_paths")
+         if(!is.character(field_types)) stop("field_types must be character")
+         field_types <- tolower(field_types)
+         if(!all(field_types %in% valid_field_types)) stop("field_types must be one of: ", toString(valid_field_types))
+
+         if("log" %in% field_types){
+            private$DYNAMIC$LOG <- list(
+               date_version = NA_character_,
+               action       = NA_character_
+            )
+         }
+
+         if("vers_paths" %in% field_types){
+            private$DYNAMIC$VERS_PATHS = list(
+               to_model = NA_character_,
+               modeled  = NA_character_
+            )
+         }
       },
 
       validate_pre_mark = function(date_version, user_entry){
@@ -1684,6 +1723,8 @@ SLT <- R6::R6Class(
                                         date_version = date_version,
                                         user_entry   = user_entry)
          }
+
+         # browser()
          private$validate_post_mark(date_version = date_version,
                                     user_entry = user_entry)
 
@@ -1744,7 +1785,7 @@ SLT <- R6::R6Class(
                    private$query_by_date,
                    user_date_parsed = user_date_parsed,
                    date_selector    = date_selector)
-            )
+         )
 
       },
 
