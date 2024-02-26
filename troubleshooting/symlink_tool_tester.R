@@ -124,5 +124,21 @@
 # test out datestamp
 # slt$mark_remove(date_version = "2024_02_13_cruddy_model", list(comment = "testing new stamp"))
 # slt$make_new_log(date_version = "2024_02_21_roundup_dates")
+# slt <- SLT$new(gbd_round = 'gbd2021')
+# slt$roundup_by_date(user_date = "2024/02/13", date_selector = "lte") # works as expected
+# slt$roundup_by_date(user_date = "2024/02/13", date_selector = "le") # gives desired error message
+
+# 2024 Feb 26 ------------------------------------------------------------------
+
+# debugging extra rows added to central log during `unmark`
+# slt <- SLT$new(gbd_round = 'gbd2021')
+# slt$unmark(date_version = "67890", user_entry = 'debugging extra demote_best rows added to central log')
+
 slt <- SLT$new(gbd_round = 'gbd2021')
-slt$roundup_by_date(user_date = "2024/02/13", date_selector = "lte")
+slt$mark_best(date_version = "67890", user_entry = list(comment ='debugging extra demote_best rows added to central log'))
+slt$mark_keep(date_version = "67890", user_entry = list(comment ='debugging extra demote_best rows added to central log'))
+slt$mark_remove(date_version = "67890", user_entry = list(comment ='debugging extra demote_best rows added to central log'))
+slt$unmark(date_version = "67890", user_entry = list(comment = 'debugging extra demote_best rows added to central log'))
+
+# this _should_ throw an error for not being a named list, currently it's not
+slt$unmark(date_version = "67890", user_entry = 'debugging extra demote_best rows added to central log')
