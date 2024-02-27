@@ -668,7 +668,6 @@ SLT <- R6::R6Class(
          } else {
             # unset DYNAMIC log fields if there are no symlinks
             # - prevents central log from accidentally collecting extra rows
-            # browser()
             private$reset_dynamic_fields(field_types = "log")
          }
       },
@@ -1724,7 +1723,6 @@ SLT <- R6::R6Class(
                                         user_entry   = user_entry)
          }
 
-         # browser()
          private$validate_post_mark(date_version = date_version,
                                     user_entry = user_entry)
 
@@ -1799,7 +1797,6 @@ SLT <- R6::R6Class(
       #'
       #' @examples
       reports = function(){
-         browser()
 
          for(root in private$DICT$ROOTS){
             message("Writing last-row log reports for ", root)
