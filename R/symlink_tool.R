@@ -1061,13 +1061,15 @@ SLT <- R6::R6Class(
          return(log_list)
       },
 
-      query_all_logs_tool_symlink = function(root){
+      query_all_logs_tool_symlink = function(root, verbose = TRUE){
          # find all folders and their types
          folder_dt            <- private$query_root_folder_types(root)
          # query logs for active symlinks made by the tool
          unique_version_paths <- unique(folder_dt[is_tool_symlink == TRUE, dir_name_resolved])
-         # we want to see messages if expected logs are not found
-         log_list             <- lapply(unique_version_paths, private$try_query_log, verbose = FALSE)
+         # we SOMETIMES want to see messages if expected logs are not found
+         # since the tool_symlink report _also_ now wraps up the discrepancy
+         # report, that will handle this message so it's not repeated too often
+         log_list             <- lapply(unique_version_paths, private$try_query_log, verbose = verbose)
          names(log_list)      <- unique_version_paths
          # remove any NULLs, result of the tryCatch in try_query_log
          log_list             <- private$filter_null_logs_safely(log_list)
@@ -1202,7 +1204,7 @@ SLT <- R6::R6Class(
       # - It must provide a discrepancy report as well
       report_all_logs_tool_symlink = function(root){
          # query logs for active symlinks of any type
-         log_list <- private$query_all_logs_tool_symlink(root)
+         log_list <- private$query_all_logs_tool_symlink(root, verbose = FALSE)
          last_row_dt <- private$query_logs_last_row(log_list)
          data.table::fwrite(last_row_dt, file.path(root, "report_all_logs_tool_symlink.csv"))
 
@@ -1281,7 +1283,7 @@ SLT <- R6::R6Class(
          discrepant_dt_non_tool_symlinks <- private$make_report_schema_for_discrepant_paths(dirs_non_tool_symlinks_dt, "non-tool symlinks in root folder")
 
          # Active tool symlink logs with `demote_` as last row (these should have been 'promoted)
-         log_list_tool_symlinks    <- private$query_all_logs_tool_symlink(root)
+         log_list_tool_symlinks    <- private$query_all_logs_tool_symlink(root, verbose = TRUE)
          last_row_dt_tool_symlinks <- private$query_logs_last_row(log_list_tool_symlinks)
          discrepant_dt_demote      <- last_row_dt_tool_symlinks[action %like% "^demote_"]
          discrepant_dt_demote      <- private$add_discrepancy_to_dt(discrepant_dt_demote, "active-tool-symlink logs with final 'demote' line")
@@ -1388,7 +1390,6 @@ SLT <- R6::R6Class(
                symlink_type = "all",
                allow_fewer  = TRUE
             )
-
 
             # update tool_symlink report
             # - prints a discrepancy report if any active symlink logs have 'demote_*' as the last row's action
