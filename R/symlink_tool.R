@@ -1501,12 +1501,7 @@ SLT <- R6::R6Class(
                                             log_schema = private$DICT$log_schema)
       },
 
-      # FIXME SB - 2024 Feb 05 - remove when dev is done
-      # filler function to access private functions
-      test_fun = function(){
-
-      },
-
+      ## Show Internals --------------------------------------------------------
 
       #' Print the contents of all private dictionaries.
       #'
@@ -1546,38 +1541,7 @@ SLT <- R6::R6Class(
          print(print_list)
       },
 
-      #' Safely write an empty log file for first pipeline runs
-      #'
-      #' When you start a new pipeline run, make an empty log
-      #' - helpful if you let this tool manage all your versions
-      #' - you can roundup date_versions by creation date using the log's first entry
-      #' - the file system doesn't track directory creation dates (at time of writing)
-      #'
-      #' @return
-      #' @export
-      #'
-      #' @examples
-      make_new_log = function(date_version){
-
-         private$update_dynamic_fields(date_version = date_version)
-
-         # The read_log function will:
-         # - check if a log exists
-         # - write a new log with one "creation" row and date-stamp if not
-         #
-         # This is safer than blindly writing/overwriting an existing log
-         for(version_path in private$DYNAMIC$VERS_PATHS){
-            fpath_log <- file.path(version_path, private$DICT$log_name)
-            tryCatch(
-               {
-                  private$write_expected_log(fpath_log)
-               },
-               error = function(e) message("Error reading log: \n  ||---- ", e)
-            )
-         }
-
-      },
-
+      ## Marks and Symlinks ----------------------------------------------------
 
       #' Mark an output folder with a "best" symlink.
       #'
@@ -1737,6 +1701,9 @@ SLT <- R6::R6Class(
 
       },
 
+
+      ## Path Roundups ---------------------------------------------------------
+
       #' Find all `remove_` symlinks in all `roots`
       #'
       #' Return both the symlink and the resolved symlink (folder the symlink
@@ -1795,6 +1762,48 @@ SLT <- R6::R6Class(
          )
 
       },
+
+
+
+      ## Folder Creation -------------------------------------------------------
+
+      #' Safely write an empty log file for first pipeline runs
+      #'
+      #' When you start a new pipeline run, make an empty log
+      #' - helpful if you let this tool manage all your versions
+      #' - you can roundup date_versions by creation date using the log's first entry
+      #' - the file system doesn't track directory creation dates (at time of writing)
+      #'
+      #' @return
+      #' @export
+      #'
+      #' @examples
+      make_new_log = function(date_version){
+
+         private$update_dynamic_fields(date_version = date_version)
+
+         # The read_log function will:
+         # - check if a log exists
+         # - write a new log with one "creation" row and date-stamp if not
+         #
+         # This is safer than blindly writing/overwriting an existing log
+         for(version_path in private$DYNAMIC$VERS_PATHS){
+            fpath_log <- file.path(version_path, private$DICT$log_name)
+            tryCatch(
+               {
+                  private$write_expected_log(fpath_log)
+               },
+               error = function(e) message("Error reading log: \n  ||---- ", e)
+            )
+         }
+
+      },
+
+
+      ## Folder Removal --------------------------------------------------------
+
+
+      ## Reports ---------------------------------------------------------------
 
 
       #' Make all reports
