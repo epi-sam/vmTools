@@ -700,7 +700,7 @@ SLT <- R6::R6Class(
 
       ## Creation / Deletion ---------------------------------------------------
 
-      # Create a new real directory, not a symlink, to a versioned output folder
+      # Create a new real directory, not a symlink, to a versioned output folder, with new log
       # I want messages, not dir.create's default warning
       create_folder_with_log = function(vers_path){
 
@@ -708,8 +708,7 @@ SLT <- R6::R6Class(
 
          if(!dir_exists){
             dir.create(vers_path, recursive = TRUE)
-            fpath_log <- file.path(vers_path, private$DICT$log_name)
-            private$write_expected_log(fpath_log)
+            private$write_expected_log(fpath = file.path(vers_path, private$DICT$log_name))
          } else {
             message("Directory already exists: ", vers_path)
          }
@@ -1364,6 +1363,10 @@ SLT <- R6::R6Class(
          }
 
          # clear out any logging cruft from prior mark/create/delete operations
+         #
+         # I'm doing this pre-mark so user can print dynamic fields after any
+         # operation and see prior internal state of the tool - only reset if
+         # bootstrapping a new operation
          private$handler_reset_dynamic_fields(field_types = "log")
          private$handler_update_dynamic_fields(date_version = date_version)
       },
