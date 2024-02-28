@@ -147,8 +147,16 @@
 # slt <- SLT$new(gbd_round = 'gbd2021')
 # slt$unmark(date_version = "67890", user_entry = 'debugging extra demote_best rows added to central log')
 
+# slt <- SLT$new(gbd_round = 'gbd2021')
+# slt$mark_best(date_version = "67890", user_entry = list(comment ='debugging extra demote_best rows added to central log'))
+# slt$mark_keep(date_version = "67890", user_entry = list(comment ='debugging extra demote_best rows added to central log'))
+# slt$mark_remove(date_version = "67890", user_entry = list(comment ='debugging extra demote_best rows added to central log'))
+# slt$unmark(date_version = "67890", user_entry = list(comment = 'debugging extra demote_best rows added to central log'))
+
+# 2024 Feb 28 ------------------------------------------------------------------
+
+# testing folder removal
 slt <- SLT$new(gbd_round = 'gbd2021')
-slt$mark_best(date_version = "67890", user_entry = list(comment ='debugging extra demote_best rows added to central log'))
-slt$mark_keep(date_version = "67890", user_entry = list(comment ='debugging extra demote_best rows added to central log'))
-slt$mark_remove(date_version = "67890", user_entry = list(comment ='debugging extra demote_best rows added to central log'))
-slt$unmark(date_version = "67890", user_entry = list(comment = 'debugging extra demote_best rows added to central log'))
+slt$mark_remove(date_version = "20240228_delete_test", user_entry = list(comment = "testing folder removal"))
+slt$delete_date_version_folders(date_version = "20240228_delete_test", user_entry = list(comment = "testing folder removal"))
+

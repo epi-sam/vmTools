@@ -165,6 +165,7 @@ SLT <- R6::R6Class(
             , "demote_keep"
             , "promote_remove"
             , "demote_remove"
+            , "delete_remove_folder"
          ),
 
          symlink_types = c(
@@ -398,11 +399,11 @@ SLT <- R6::R6Class(
          if(!dir.exists(root)) stop("root does not exist: ", x)
       },
 
-      validate_dir_exists = function(x){
+      validate_dir_exists = function(x, verbose = TRUE){
          private$assert_scalar(x)
          root <- suppressWarnings(normalizePath(x))
          if(!dir.exists(root)) {
-            message("root does not exist: ", x)
+            if(verbose) message("root does not exist: ", x)
             return(invisible(FALSE))
          } else {
             return(invisible(TRUE))
@@ -543,7 +544,7 @@ SLT <- R6::R6Class(
       assert_n_symlinks = function(root, date_version, symlink_type = "all", n_sym = 1L, allow_fewer = TRUE){
 
          # validate inputs
-         private$validate_dir_exists(root)
+         private$validate_dir_exists(root, verbose = FALSE)
          private$assert_scalar(date_version)
          private$assert_scalar(n_sym)
          if(!is.integer(n_sym)) stop("n_sym must be an integer")
@@ -692,6 +693,54 @@ SLT <- R6::R6Class(
             )
          }
       },
+
+
+
+      ## Creation / Deletion ---------------------------------------------------
+
+      delete_remove_folder = function(root, date_version, user_entry){
+         private$assert_dir_exists(root)
+         private$assert_scalar(date_version)
+
+         folder_dt <- private$query_root_folder_types(root = root)
+
+         # Remove symlinks and base folders
+         # ensure the folder is marked `remove_`
+         # - the tool will not delete unmarked folders, that's the entire point of the tool
+         folder_dt_removes      <- folder_dt[is_tool_symlink == TRUE & grepl(private$DICT$symlink_rgx_extract$remove, dir_leaf), ]
+         deletion_symlink_exact <- paste0("remove_", date_version)
+         deletion_dir_name      <- folder_dt[dir_leaf == deletion_symlink_exact, dir_name]
+
+         if(!deletion_symlink_exact %in% folder_dt_removes$dir_leaf){
+            message(
+               "No `remove_` symlink found.\n",
+               "-- for: ", date_version, "\n",
+               "-- in root: ", root)
+            ret_val_deleted_TF <- NULL
+         } else {
+            dirnames_to_unlink <- folder_dt[dir_date_version == date_version, dir_name]
+            user_input <- utils::menu(
+               title = paste0("Do you want to delete the following folders?\n  ",
+                              paste(dirnames_to_unlink, collapse = "\n  "))
+               , choices = c("No", "Yes")
+            )
+            # Prompt user input to confirm deletion
+            if(user_input == 2){
+               private$DYNAMIC$LOG$action <- "delete_remove_folder"
+               for(dir_name in dirnames_to_unlink){
+                  message("Deleting ", dir_name)
+                  unlink(x = dir_name, recursive = TRUE, force = TRUE)
+               }
+            }
+
+            ret_val_deleted_TF <- ifelse(user_input == 2, TRUE, FALSE)
+         }
+
+
+      },
+
+
+
 
       ## Logs ------------------------------------------------------------------
 
@@ -882,6 +931,7 @@ SLT <- R6::R6Class(
          # TODO SB - 2024 Feb 28 - for coding roundtable
          # - this handoff is not really clear without this comment - think of how to improve it
 
+         message("Central log:")
          if(!is.na(private$DYNAMIC$LOG$action)){
             log_entry <- data.table::data.table(
                log_id       = last_row$log_id + 1,
@@ -897,10 +947,11 @@ SLT <- R6::R6Class(
 
             log_dt_new <- rbind(dt_log, log_entry)
 
-            message("---- writing central log to ", fpath)
+            message("-- Writing central log to ", fpath)
             data.table::fwrite(log_dt_new, fpath)
          } else {
-            message("---- no action defined, not writing to central log")
+            message("-- No action defined, not writing to central log.\n",
+                    "---- This is expected if no symlinks were found or user-input did not produce an action for: ", private$DYNAMIC$LOG$date_version)
          }
 
       },
@@ -1017,7 +1068,7 @@ SLT <- R6::R6Class(
          private$assert_scalar(date_version)
          private$DYNAMIC$VERS_PATHS <- file.path(private$DICT$ROOTS, date_version)
          if(!length(private$DYNAMIC$VERS_PATHS)) stop("No version paths found")
-         lapply(private$DYNAMIC$VERS_PATHS, private$validate_dir_exists)
+         lapply(private$DYNAMIC$VERS_PATHS, private$validate_dir_exists, verbose = FALSE)
       },
 
       # update all dynamic fields
@@ -1051,6 +1102,8 @@ SLT <- R6::R6Class(
          }
       },
 
+      # Handle pre-mark operation validations and updates
+      # - mostly all `mark`, `create` and `delete` public functions should invoke this
       validate_pre_mark = function(date_version, user_entry){
          # validate inputs
          private$assert_scalar(date_version)
@@ -1068,9 +1121,14 @@ SLT <- R6::R6Class(
                                       allow_fewer  = TRUE)
          }
 
+         # clear out any logging cruft from prior mark/create/delete operations
+         private$reset_dynamic_fields(field_types = "log")
          private$update_dynamic_fields(date_version = date_version)
       },
 
+      # Handle post-mark operation validations and updates
+      # - handle central log updates
+      # - mostly all `mark`, `create` and `delete` public functions should invoke this
       validate_post_mark = function(date_version, user_entry){
          # validate inputs
          private$assert_scalar(date_version)
@@ -1136,7 +1194,7 @@ SLT <- R6::R6Class(
       },
 
       # `try()` to find logs for all folders, read them if they exist, in a consistent format
-      try_query_log = function(version_path){
+      try_query_log = function(version_path, verbose = TRUE){
          tryCatch(
             {
                data.table::fread(
@@ -1144,7 +1202,7 @@ SLT <- R6::R6Class(
                   , colClasses = unlist(private$DICT$log_schema
                   ))
             },
-            error = function(e) message("No log found for folder with an active tool-symlink: ", version_path)
+            error = function(e) if(verbose) message("No log found for folder with an active tool-symlink: ", version_path)
          )
       },
 
@@ -1801,6 +1859,34 @@ SLT <- R6::R6Class(
 
 
       ## Folder Removal --------------------------------------------------------
+
+      #' Delete a `date_version` folder marked with a `remove_` symlink from _ALL ITS ROOTS_
+      #'
+      #' Removes the symlink(s) and the underlying folder(s), and updates central log if folders were removed.
+      #'
+      #' @return
+      #' @export
+      #'
+      #' @examples
+      delete_date_version_folders = function(date_version, user_entry){
+
+         private$validate_pre_mark(
+            date_version = date_version,
+            user_entry   = user_entry
+         )
+
+         ret_val_deleted_TF <- lapply(
+            private$DICT$ROOTS,
+            private$delete_remove_folder, date_version = date_version, user_entry = user_entry
+         )
+
+         ret_val_deleted_TF <- unlist(ret_val_deleted_TF)
+
+         if(any(ret_val_deleted_TF)) {
+            private$validate_post_mark(date_version = date_version,
+                                       user_entry = user_entry)
+         }
+      },
 
 
       ## Reports ---------------------------------------------------------------
