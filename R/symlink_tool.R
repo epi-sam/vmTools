@@ -19,7 +19,7 @@
 #     - [x] validate active symlinks have `promote` in last row
 #     - [x] validate others have `demote` in last row
 #         - [x] discrepancies imply tool bug or user manipulation
-#     - [x] Wrap report updater into `validate_post_mark`
+#     - [x] Wrap report updater into `handler_post_operation`
 # TODO SB - 2024 Feb 07 - write a tool for deletion and roundup of st-gpr models
 #  - [x] pull assert_data_schema (maybe abbreviated form) into the tool
 # TODO SB - 2024 Feb 06 - write a tool for deletion and roundup of st-gpr models
@@ -676,7 +676,7 @@ SLT <- R6::R6Class(
             # - `append_to_central_log()` is keyed to ignore adding rows with no defined action
             # TODO SB - 2024 Feb 28 - for coding roundtable
             # - this handoff is not really clear without this comment - think of how to improve it
-            private$reset_dynamic_fields(field_types = "log")
+            private$handler_reset_dynamic_fields(field_types = "log")
          }
       },
 
@@ -956,204 +956,7 @@ SLT <- R6::R6Class(
 
       },
 
-      ## Promote / Demote ------------------------------------------------------
 
-      # 'promote' and 'demote' are consistent terms to say 'carry out this action from the log schema'
-
-      demote_existing_symlinks = function(version_path, date_version, user_entry){
-         # find existing symlinks for a date_version
-         symlink_types <- private$DICT$symlink_types
-         names(symlink_types) <- symlink_types # names for lapply
-
-         root <- sub(date_version, "", version_path)
-
-         symlink_list <- lapply(symlink_types, function(x){
-            private$find_count_symlinks(root = root, date_version = date_version, symlink_type = x)
-         })
-
-         symlink      <- unlist(unname(purrr::map_depth(symlink_list, 1, "symlinks")))
-         symlink_type <- names(symlink)
-
-         if(length(symlink) > 1) {
-            stop("More than one symlink found for ", date_version, "in: ", root, "\n  ",
-                 paste(symlink, collapse = "\n  "))
-         }
-
-         if(length(symlink) > 0) {
-            message("-- Demoting existing symlink: ", symlink)
-            symlink                    <- private$extract_symlink(symlink)
-            symlink                    <- paste0(root, symlink)
-            private$DYNAMIC$LOG$action <- paste0("demote_", symlink_type)
-            private$append_to_log(version_path = version_path, user_entry = user_entry)
-            system(paste0("unlink ", symlink))
-         } else {
-            message("-- No existing symlinks found - moving on")
-         }
-
-
-      },
-
-      #> Best symlinks are trickier than others
-      #> - there can be only one per GBD round
-      #> - we're demoting a different version than we're promoting
-      #> - we need to specifically update the demoted verion's log
-      #> - we need to simultaneously demote and promote
-      demote_previous_best = function(version_path, date_version, user_entry){
-         private$assert_scalar(version_path)
-         private$assert_dir_exists(version_path)
-         path_best_sym <- private$make_symlink_path(version_path, "best")
-         private$DYNAMIC$LOG$action <- "demote_best"
-
-         # remove old symlink
-         if(dir.exists(path_best_sym)) {
-            # TODO SB - 2024 Feb 06 - Convert to `remove_one_symlink()` - requires arg updates
-            path_best_real <- private$resolve_symlink(path_best_sym)
-            date_version_to_remove <- basename(path_best_real)
-            message("-- Demoting from 'best': ", path_best_real)
-
-            # set version to the folder the log will be written to, then reset it after
-            private$DYNAMIC$LOG$date_version <- date_version_to_remove
-            private$append_to_log(version_path = path_best_real, user_entry = user_entry)
-            private$DYNAMIC$LOG$date_version <- date_version
-
-            system(paste0("unlink ", path_best_sym))
-         } else {
-            message("-- No 'best' symlink found - moving on: ", path_best_sym)
-         }
-      },
-
-      promote_best = function(version_path, date_version, user_entry){
-         private$assert_dir_exists(version_path)
-         path_best_sym <- private$make_symlink_path(version_path, "best")
-         path_best_new <- version_path
-         # Highlander - there can be only one (best)
-         private$demote_previous_best(version_path = version_path, date_version = date_version, user_entry = user_entry)
-         # make new symlink
-         message("-- Promoting to 'best': ", path_best_new)
-         private$DYNAMIC$LOG$action <- "promote_best"
-         private$append_to_log(version_path = path_best_new, user_entry = user_entry)
-         # force symlink to change in case the unlink is glitchy
-         system(paste0("ln -nsf ", path_best_new, " ", path_best_sym))
-      },
-
-      promote_keep = function(version_path, user_entry){
-         private$DYNAMIC$LOG$action <- "promote_keep"
-         path_keep_sym <- private$make_symlink_path(version_path = version_path, symlink_type = "keep")
-         message("-- Promoting to 'keep': ", path_keep_sym)
-         if(!dir.exists(path_keep_sym)){
-            private$append_to_log(version_path = version_path, user_entry = user_entry)
-            system(paste0("ln -s ", version_path, " ", path_keep_sym))
-         } else {
-            message("---- Keep symlink already exists - moving on: ", path_keep_sym)
-         }
-      },
-
-      promote_remove = function(version_path, user_entry){
-         private$DYNAMIC$LOG$action <- "promote_remove"
-         path_remove_sym <- private$make_symlink_path(version_path = version_path, symlink_type = "remove")
-         message("-- Promoting to 'remove': ", path_remove_sym)
-         if(!dir.exists(path_remove_sym)){
-            private$append_to_log(version_path = version_path, user_entry = user_entry)
-            system(paste0("ln -s ", version_path, " ", path_remove_sym))
-         } else {
-            message("---- Keep symlink already exists - moving on: ", path_remove_sym)
-         }
-
-      },
-
-      ## Bootup ----------------------------------------------------------------
-
-      # build versioned paths from roots, assert existence
-      update_version_paths = function(date_version){
-         private$assert_scalar(date_version)
-         private$DYNAMIC$VERS_PATHS <- file.path(private$DICT$ROOTS, date_version)
-         if(!length(private$DYNAMIC$VERS_PATHS)) stop("No version paths found")
-         lapply(private$DYNAMIC$VERS_PATHS, private$validate_dir_exists, verbose = FALSE)
-      },
-
-      # update all dynamic fields
-      update_dynamic_fields = function(date_version){
-         private$assert_scalar(date_version)
-         # Update dictionaries
-         private$DYNAMIC$LOG$date_version <- date_version
-         private$update_version_paths(date_version = date_version)
-      },
-
-      reset_dynamic_fields = function(field_types){
-
-         # validate inputs
-         valid_field_types <- c("log", "vers_paths")
-         if(!is.character(field_types)) stop("field_types must be character")
-         field_types <- tolower(field_types)
-         if(!all(field_types %in% valid_field_types)) stop("field_types must be one of: ", toString(valid_field_types))
-
-         if("log" %in% field_types){
-            private$DYNAMIC$LOG <- list(
-               date_version = NA_character_,
-               action       = NA_character_
-            )
-         }
-
-         if("vers_paths" %in% field_types){
-            private$DYNAMIC$VERS_PATHS = list(
-               to_model = NA_character_,
-               modeled  = NA_character_
-            )
-         }
-      },
-
-      # Handle pre-mark operation validations and updates
-      # - mostly all `mark`, `create` and `delete` public functions should invoke this
-      validate_pre_mark = function(date_version, user_entry){
-         # validate inputs
-         private$assert_scalar(date_version)
-         private$assert_named_list(user_entry)
-         private$assert_schema_vs_user_entry(user_entry)
-
-         # enforce one symlink per date_version
-         # we do this to ensure users haven't hand-made symlinks
-         # of the same form we expect to use with this tool
-         for(root in private$DICT$ROOTS){
-            private$assert_n_symlinks(root         = root,
-                                      date_version = date_version,
-                                      n_sym        = 1L,
-                                      symlink_type = "all",
-                                      allow_fewer  = TRUE)
-         }
-
-         # clear out any logging cruft from prior mark/create/delete operations
-         private$reset_dynamic_fields(field_types = "log")
-         private$update_dynamic_fields(date_version = date_version)
-      },
-
-      # Handle post-mark operation validations and updates
-      # - handle central log updates
-      # - mostly all `mark`, `create` and `delete` public functions should invoke this
-      validate_post_mark = function(date_version, user_entry){
-         # validate inputs
-         private$assert_scalar(date_version)
-
-         # enforce one symlink per date_version
-         # make sure we haven't screwed up if we update this tool
-         for(root in private$DICT$ROOTS){
-            private$assert_n_symlinks(
-               root         = root,
-               date_version = date_version,
-               n_sym        = 1L,
-               symlink_type = "all",
-               allow_fewer  = TRUE
-            )
-
-
-            # update tool_symlink report
-            # - prints a discrepancy report if any active symlink logs have 'demote_*' as the last row's action
-            private$report_all_logs_tool_symlink(root)
-         }
-
-         # There is only one central log per instantiation of the tool
-         private$append_to_central_log(user_entry = user_entry)
-
-      },
 
       ## Queries ---------------------------------------------------------------
 
@@ -1377,7 +1180,7 @@ SLT <- R6::R6Class(
       },
 
       # This runs each time a user runs a 'mark' function
-      # - Invoked by validate_post_mark
+      # - Invoked by `handler_post_operation`
       # - It must provide an updated report of the current state of the symlinks
       # - It must provide a discrepancy report as well
       report_all_logs_tool_symlink = function(root){
@@ -1518,8 +1321,221 @@ SLT <- R6::R6Class(
 
 
 
+   ## Handlers -----------------------------------------------------------------
 
-   # User functions -------------------------------------------------
+   # These functions handle the internal state of the tool in various ways
+   # - before marking and/or folder creation
+   # - after marking and/or folder deletion
+   # - managing the DYNAMIC field list
+
+   # Handle pre-mark operation validations and updates
+   # - mostly all `mark`, `create` and `delete` public functions should invoke this
+   handler_pre_operation = function(date_version, user_entry){
+      # validate inputs
+      private$assert_scalar(date_version)
+      private$assert_named_list(user_entry)
+      private$assert_schema_vs_user_entry(user_entry)
+
+      # enforce one symlink per date_version
+      # we do this to ensure users haven't hand-made symlinks
+      # of the same form we expect to use with this tool
+      for(root in private$DICT$ROOTS){
+         private$assert_n_symlinks(root         = root,
+                                   date_version = date_version,
+                                   n_sym        = 1L,
+                                   symlink_type = "all",
+                                   allow_fewer  = TRUE)
+      }
+
+      # clear out any logging cruft from prior mark/create/delete operations
+      private$handler_reset_dynamic_fields(field_types = "log")
+      private$handler_update_dynamic_fields(date_version = date_version)
+   },
+
+   # Handle post-mark operation validations and updates
+   # - handle central log updates
+   # - mostly all `mark`, `create` and `delete` public functions should invoke this
+   handler_post_operation = function(date_version, user_entry){
+      # validate inputs
+      private$assert_scalar(date_version)
+
+      # enforce one symlink per date_version
+      # make sure we haven't screwed up if we update this tool
+      for(root in private$DICT$ROOTS){
+         private$assert_n_symlinks(
+            root         = root,
+            date_version = date_version,
+            n_sym        = 1L,
+            symlink_type = "all",
+            allow_fewer  = TRUE
+         )
+
+
+         # update tool_symlink report
+         # - prints a discrepancy report if any active symlink logs have 'demote_*' as the last row's action
+         private$report_all_logs_tool_symlink(root)
+      }
+
+      # There is only one central log per instantiation of the tool
+      private$append_to_central_log(user_entry = user_entry)
+
+   },
+
+   # This section handles anything done:
+   # - at tool initialization
+   # - at tool reset (pre/post marking or folder creation/deletion)
+
+   # build versioned paths from roots, assert existence
+   handler_update_version_paths = function(date_version){
+      private$assert_scalar(date_version)
+      private$DYNAMIC$VERS_PATHS <- file.path(private$DICT$ROOTS, date_version)
+      if(!length(private$DYNAMIC$VERS_PATHS)) stop("No version paths found")
+      lapply(private$DYNAMIC$VERS_PATHS, private$validate_dir_exists, verbose = FALSE)
+   },
+
+   # update all dynamic fields
+   handler_update_dynamic_fields = function(date_version){
+      private$assert_scalar(date_version)
+      # Update dictionaries
+      private$DYNAMIC$LOG$date_version <- date_version
+      private$handler_update_version_paths(date_version = date_version)
+   },
+
+   handler_reset_dynamic_fields = function(field_types){
+
+      # validate inputs
+      valid_field_types <- c("log", "vers_paths")
+      if(!is.character(field_types)) stop("field_types must be character")
+      field_types <- tolower(field_types)
+      if(!all(field_types %in% valid_field_types)) stop("field_types must be one of: ", toString(valid_field_types))
+
+      if("log" %in% field_types){
+         private$DYNAMIC$LOG <- list(
+            date_version = NA_character_,
+            action       = NA_character_
+         )
+      }
+
+      if("vers_paths" %in% field_types){
+         private$DYNAMIC$VERS_PATHS = list(
+            to_model = NA_character_,
+            modeled  = NA_character_
+         )
+      }
+   },
+
+
+
+   ## Promote / Demote ------------------------------------------------------
+
+   # 'promote' and 'demote' are consistent terms to say 'carry out this action from the log schema'
+
+   demote_existing_symlinks = function(version_path, date_version, user_entry){
+      # find existing symlinks for a date_version
+      symlink_types <- private$DICT$symlink_types
+      names(symlink_types) <- symlink_types # names for lapply
+
+      root <- sub(date_version, "", version_path)
+
+      symlink_list <- lapply(symlink_types, function(x){
+         private$find_count_symlinks(root = root, date_version = date_version, symlink_type = x)
+      })
+
+      symlink      <- unlist(unname(purrr::map_depth(symlink_list, 1, "symlinks")))
+      symlink_type <- names(symlink)
+
+      if(length(symlink) > 1) {
+         stop("More than one symlink found for ", date_version, "in: ", root, "\n  ",
+              paste(symlink, collapse = "\n  "))
+      }
+
+      if(length(symlink) > 0) {
+         message("-- Demoting existing symlink: ", symlink)
+         symlink                    <- private$extract_symlink(symlink)
+         symlink                    <- paste0(root, symlink)
+         private$DYNAMIC$LOG$action <- paste0("demote_", symlink_type)
+         private$append_to_log(version_path = version_path, user_entry = user_entry)
+         system(paste0("unlink ", symlink))
+      } else {
+         message("-- No existing symlinks found - moving on")
+      }
+
+
+   },
+
+   #> Best symlinks are trickier than others
+   #> - there can be only one per GBD round
+   #> - we're demoting a different version than we're promoting
+   #> - we need to specifically update the demoted verion's log
+   #> - we need to simultaneously demote and promote
+   demote_previous_best = function(version_path, date_version, user_entry){
+      private$assert_scalar(version_path)
+      private$assert_dir_exists(version_path)
+      path_best_sym <- private$make_symlink_path(version_path, "best")
+      private$DYNAMIC$LOG$action <- "demote_best"
+
+      # remove old symlink
+      if(dir.exists(path_best_sym)) {
+         # TODO SB - 2024 Feb 06 - Convert to `remove_one_symlink()` - requires arg updates
+         path_best_real <- private$resolve_symlink(path_best_sym)
+         date_version_to_remove <- basename(path_best_real)
+         message("-- Demoting from 'best': ", path_best_real)
+
+         # set version to the folder the log will be written to, then reset it after
+         private$DYNAMIC$LOG$date_version <- date_version_to_remove
+         private$append_to_log(version_path = path_best_real, user_entry = user_entry)
+         private$DYNAMIC$LOG$date_version <- date_version
+
+         system(paste0("unlink ", path_best_sym))
+      } else {
+         message("-- No 'best' symlink found - moving on: ", path_best_sym)
+      }
+   },
+
+   promote_best = function(version_path, date_version, user_entry){
+      private$assert_dir_exists(version_path)
+      path_best_sym <- private$make_symlink_path(version_path, "best")
+      path_best_new <- version_path
+      # Highlander - there can be only one (best)
+      private$demote_previous_best(version_path = version_path, date_version = date_version, user_entry = user_entry)
+      # make new symlink
+      message("-- Promoting to 'best': ", path_best_new)
+      private$DYNAMIC$LOG$action <- "promote_best"
+      private$append_to_log(version_path = path_best_new, user_entry = user_entry)
+      # force symlink to change in case the unlink is glitchy
+      system(paste0("ln -nsf ", path_best_new, " ", path_best_sym))
+   },
+
+   promote_keep = function(version_path, user_entry){
+      private$DYNAMIC$LOG$action <- "promote_keep"
+      path_keep_sym <- private$make_symlink_path(version_path = version_path, symlink_type = "keep")
+      message("-- Promoting to 'keep': ", path_keep_sym)
+      if(!dir.exists(path_keep_sym)){
+         private$append_to_log(version_path = version_path, user_entry = user_entry)
+         system(paste0("ln -s ", version_path, " ", path_keep_sym))
+      } else {
+         message("---- Keep symlink already exists - moving on: ", path_keep_sym)
+      }
+   },
+
+   promote_remove = function(version_path, user_entry){
+      private$DYNAMIC$LOG$action <- "promote_remove"
+      path_remove_sym <- private$make_symlink_path(version_path = version_path, symlink_type = "remove")
+      message("-- Promoting to 'remove': ", path_remove_sym)
+      if(!dir.exists(path_remove_sym)){
+         private$append_to_log(version_path = version_path, user_entry = user_entry)
+         system(paste0("ln -s ", version_path, " ", path_remove_sym))
+      } else {
+         message("---- Keep symlink already exists - moving on: ", path_remove_sym)
+      }
+
+   },
+
+
+
+   # User functions ------------------------------------------------------------
+
+   # These function names should be pretty terse and user-friendly
 
    public = list(
 
@@ -1622,7 +1638,7 @@ SLT <- R6::R6Class(
          # 3. make a new best model symlink
          # 4. append to the log
 
-         private$validate_pre_mark(
+         private$handler_pre_operation(
             date_version = date_version,
             user_entry   = user_entry
          )
@@ -1647,7 +1663,7 @@ SLT <- R6::R6Class(
 
          }
 
-         private$validate_post_mark(date_version = date_version,
+         private$handler_post_operation(date_version = date_version,
                                     user_entry = user_entry)
       },
 
@@ -1667,7 +1683,7 @@ SLT <- R6::R6Class(
          # 1. make a new keep model symlink
          # 2. append to the log
 
-         private$validate_pre_mark(
+         private$handler_pre_operation(
             date_version = date_version,
             user_entry   = user_entry
          )
@@ -1688,7 +1704,7 @@ SLT <- R6::R6Class(
             )
          }
 
-         private$validate_post_mark(date_version = date_version,
+         private$handler_post_operation(date_version = date_version,
                                     user_entry = user_entry)
       },
 
@@ -1710,7 +1726,7 @@ SLT <- R6::R6Class(
       mark_remove = function(date_version, user_entry){
          # 1. make a new remove model symlink
          # 2. append to the log
-         private$validate_pre_mark(
+         private$handler_pre_operation(
             date_version = date_version,
             user_entry   = user_entry
          )
@@ -1731,7 +1747,7 @@ SLT <- R6::R6Class(
             )
          }
 
-         private$validate_post_mark(date_version = date_version,
+         private$handler_post_operation(date_version = date_version,
                                     user_entry = user_entry)
 
       },
@@ -1754,7 +1770,7 @@ SLT <- R6::R6Class(
                                         user_entry   = user_entry)
          }
 
-         private$validate_post_mark(date_version = date_version,
+         private$handler_post_operation(date_version = date_version,
                                     user_entry = user_entry)
 
       },
@@ -1838,7 +1854,7 @@ SLT <- R6::R6Class(
       #' @examples
       make_new_log = function(date_version){
 
-         private$update_dynamic_fields(date_version = date_version)
+         private$handler_update_dynamic_fields(date_version = date_version)
 
          # The read_log function will:
          # - check if a log exists
@@ -1858,7 +1874,8 @@ SLT <- R6::R6Class(
       },
 
 
-      ## Folder Removal --------------------------------------------------------
+
+      ## Folder Deletion -------------------------------------------------------
 
       #' Delete a `date_version` folder marked with a `remove_` symlink from _ALL ITS ROOTS_
       #'
@@ -1870,7 +1887,7 @@ SLT <- R6::R6Class(
       #' @examples
       delete_date_version_folders = function(date_version, user_entry){
 
-         private$validate_pre_mark(
+         private$handler_pre_operation(
             date_version = date_version,
             user_entry   = user_entry
          )
@@ -1883,7 +1900,7 @@ SLT <- R6::R6Class(
          ret_val_deleted_TF <- unlist(ret_val_deleted_TF)
 
          if(any(ret_val_deleted_TF)) {
-            private$validate_post_mark(date_version = date_version,
+            private$handler_post_operation(date_version = date_version,
                                        user_entry = user_entry)
          }
       },
