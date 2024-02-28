@@ -196,11 +196,13 @@ SLT <- R6::R6Class(
       # - if they seem buggy, call `print_dynamic_fields()` to see if they are updating as expected
       DYNAMIC = list(
 
+         # Field for logs - updated by tool, not user
          LOG = list(
             date_version = NA_character_,
             action       = NA_character_
          ),
 
+         # Paths built from roots and intermediate path structures
          VERS_PATHS = list(
             to_model = NA_character_,
             modeled  = NA_character_
@@ -698,6 +700,21 @@ SLT <- R6::R6Class(
 
       ## Creation / Deletion ---------------------------------------------------
 
+      # Create a new real directory, not a symlink, to a versioned output folder, with new log
+      # I want messages, not dir.create's default warning
+      create_folder_with_log = function(vers_path){
+
+         dir_exists <- private$validate_dir_exists(vers_path, verbose = FALSE)
+
+         if(!dir_exists){
+            dir.create(vers_path, recursive = TRUE)
+            private$write_expected_log(fpath = file.path(vers_path, private$DICT$log_name))
+         } else {
+            message("Directory already exists: ", vers_path)
+         }
+
+      },
+
       delete_remove_folder = function(root, date_version, user_entry){
          private$assert_dir_exists(root)
          private$assert_scalar(date_version)
@@ -1004,7 +1021,7 @@ SLT <- R6::R6Class(
                   , colClasses = unlist(private$DICT$log_schema
                   ))
             },
-            error = function(e) if(verbose) message("No log found for folder with an active tool-symlink: ", version_path)
+            error = function(e) if(verbose) message("No log found for folder: ", version_path)
          )
       },
 
@@ -1023,7 +1040,7 @@ SLT <- R6::R6Class(
          # only read unique dir_name_resolved
          unique_version_paths <- unique(folder_dt$dir_name_resolved)
          # read all logs _if_ they exist
-         log_list             <- lapply(unique_version_paths, private$try_query_log)
+         log_list             <- lapply(unique_version_paths, private$try_query_log, verbose = FALSE)
          names(log_list)      <- unique_version_paths
          # remove any NULLs, result of the tryCatch in try_query_log
          log_list             <- private$filter_null_logs_safely(log_list)
@@ -1036,7 +1053,7 @@ SLT <- R6::R6Class(
          folder_dt <- private$query_root_folder_types(root)
          # query logs for active symlinks of any type
          unique_version_paths <- unique(folder_dt[is_symlink == TRUE, dir_name_resolved])
-         log_list             <- lapply(unique_version_paths, private$try_query_log)
+         log_list             <- lapply(unique_version_paths, private$try_query_log, verbose = FALSE)
          names(log_list)      <- unique_version_paths
          # remove any NULLs, result of the tryCatch in try_query_log
          log_list             <- private$filter_null_logs_safely(log_list)
@@ -1044,12 +1061,15 @@ SLT <- R6::R6Class(
          return(log_list)
       },
 
-      query_all_logs_tool_symlink = function(root){
+      query_all_logs_tool_symlink = function(root, verbose = TRUE){
          # find all folders and their types
          folder_dt            <- private$query_root_folder_types(root)
          # query logs for active symlinks made by the tool
          unique_version_paths <- unique(folder_dt[is_tool_symlink == TRUE, dir_name_resolved])
-         log_list             <- lapply(unique_version_paths, private$try_query_log)
+         # we SOMETIMES want to see messages if expected logs are not found
+         # since the tool_symlink report _also_ now wraps up the discrepancy
+         # report, that will handle this message so it's not repeated too often
+         log_list             <- lapply(unique_version_paths, private$try_query_log, verbose = verbose)
          names(log_list)      <- unique_version_paths
          # remove any NULLs, result of the tryCatch in try_query_log
          log_list             <- private$filter_null_logs_safely(log_list)
@@ -1184,7 +1204,7 @@ SLT <- R6::R6Class(
       # - It must provide a discrepancy report as well
       report_all_logs_tool_symlink = function(root){
          # query logs for active symlinks of any type
-         log_list <- private$query_all_logs_tool_symlink(root)
+         log_list <- private$query_all_logs_tool_symlink(root, verbose = FALSE)
          last_row_dt <- private$query_logs_last_row(log_list)
          data.table::fwrite(last_row_dt, file.path(root, "report_all_logs_tool_symlink.csv"))
 
@@ -1263,7 +1283,7 @@ SLT <- R6::R6Class(
          discrepant_dt_non_tool_symlinks <- private$make_report_schema_for_discrepant_paths(dirs_non_tool_symlinks_dt, "non-tool symlinks in root folder")
 
          # Active tool symlink logs with `demote_` as last row (these should have been 'promoted)
-         log_list_tool_symlinks    <- private$query_all_logs_tool_symlink(root)
+         log_list_tool_symlinks    <- private$query_all_logs_tool_symlink(root, verbose = TRUE)
          last_row_dt_tool_symlinks <- private$query_logs_last_row(log_list_tool_symlinks)
          discrepant_dt_demote      <- last_row_dt_tool_symlinks[action %like% "^demote_"]
          discrepant_dt_demote      <- private$add_discrepancy_to_dt(discrepant_dt_demote, "active-tool-symlink logs with final 'demote' line")
@@ -1345,6 +1365,10 @@ SLT <- R6::R6Class(
          }
 
          # clear out any logging cruft from prior mark/create/delete operations
+         #
+         # I'm doing this pre-mark so user can print dynamic fields after any
+         # operation and see prior internal state of the tool - only reset if
+         # bootstrapping a new operation
          private$handler_reset_dynamic_fields(field_types = "log")
          private$handler_update_dynamic_fields(date_version = date_version)
       },
@@ -1367,7 +1391,6 @@ SLT <- R6::R6Class(
                allow_fewer  = TRUE
             )
 
-
             # update tool_symlink report
             # - prints a discrepancy report if any active symlink logs have 'demote_*' as the last row's action
             private$report_all_logs_tool_symlink(root)
@@ -1386,7 +1409,7 @@ SLT <- R6::R6Class(
          lapply(private$DYNAMIC$VERS_PATHS, private$validate_dir_exists, verbose = FALSE)
       },
 
-      # update all dynamic fields
+      # update all dynamic fields except log action
       handler_update_dynamic_fields = function(date_version){
          private$assert_scalar(date_version)
          # Update dictionaries
@@ -1849,6 +1872,27 @@ SLT <- R6::R6Class(
 
 
       ## Folder Creation -------------------------------------------------------
+
+      #' Create a new `date_version` folder in _ALL THE TOOL'S ROOTS_
+      #'
+      #' Create a new log in each folder.  No symlinks are created.  No
+      #' `user_entry` is used.
+      #'
+      #' @return
+      #' @export
+      #'
+      #' @examples
+      create_date_version_folders_with_logs = function(date_version){
+
+         private$assert_scalar(x = date_version)
+
+         private$handler_update_dynamic_fields(date_version = date_version)
+
+         for(vers_path in private$DYNAMIC$VERS_PATHS){
+            private$create_folder_with_log(vers_path = vers_path)
+         }
+
+      },
 
       #' Safely write an empty log file for first pipeline runs
       #'
