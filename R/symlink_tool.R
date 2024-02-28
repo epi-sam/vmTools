@@ -26,20 +26,24 @@
 # - require user-input to confirm deletion
 # - [x] Function to roundup all  active 'remove' symlinks
 #     - [x] this should wrap the `find_active_symlinks` function and filter
-# TODO SB - 2024 Feb 15 -
-# - [x] public function for empty log (for first pipeline outputs)
-# - [ ] allow user to set root(s) at initialization
-# - [ ] clean up function args that only pass around private$DICT values - use private$DICT directly
 # TODO SB - 2024 Feb 23 - Other Roundups
 # - [x] by date
 # TODO SB - 2024 Feb 23 - Central log
 # - [x] central log is updated after all marking operations
 # TODO SB - 2024 Feb 26 - THINK ABOUT
-# - [ ] central updates ONLY with the user-intended action, and does not show demotions, as the date_version logs do
+# - [x] central updates ONLY with the user-intended action, and does not show demotions, as the date_version logs do
 #       - this wasn't _intended_ behavior, but may or may not be desirable
 #       - could be nice to have "high level" view in central log, the fine-grained chain-of-custody in the date_version logs
 #       - this would show reveal if a symlink were deleted by hand, rather than with the tool, but leave the central log a bit more readable
 #       - this would also make the central log a bit more "high level" and less "fine-grained"
+#       - THIS IS FINE for v 1.0
+# TODO SB - 2024 Feb 28 -
+# - [ ] option to delete `remove_` folders and symlink and append action to central log
+# - [ ] option to create new folders with new log
+# TODO SB - 2024 Feb 15 -
+# - [x] public function for empty log (for first pipeline outputs)
+# - [ ] allow user to set root(s) at initialization
+# - [ ] clean up function args that only pass around private$DICT values - use private$DICT directly
 
 
 # LATER stuff - v2.0
@@ -668,6 +672,9 @@ SLT <- R6::R6Class(
          } else {
             # unset DYNAMIC log fields if there are no symlinks
             # - prevents central log from accidentally collecting extra rows
+            # - `append_to_central_log()` is keyed to ignore adding rows with no defined action
+            # TODO SB - 2024 Feb 28 - for coding roundtable
+            # - this handoff is not really clear without this comment - think of how to improve it
             private$reset_dynamic_fields(field_types = "log")
          }
       },
@@ -872,6 +879,8 @@ SLT <- R6::R6Class(
          # - this is handled within `remove_one_symlink` for date_version logs
          # - since the central log is folder-agnostic, we're handling it here instead
          # - this is a bit messy, hence the long comment
+         # TODO SB - 2024 Feb 28 - for coding roundtable
+         # - this handoff is not really clear without this comment - think of how to improve it
 
          if(!is.na(private$DYNAMIC$LOG$action)){
             log_entry <- data.table::data.table(
