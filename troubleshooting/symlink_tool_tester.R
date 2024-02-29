@@ -163,7 +163,7 @@
 # testing folder creation - whole folder life-cycle works as expected
 slt <- SLT$new(gbd_round = 'gbd2021')
 slt$create_date_version_folders_with_logs(date_version = "20240228_test_creation")
-slt$make_new_log(date_version = "20240228_test_creation")
+slt$make_new_log(date_version = "20240228_test_creation") # should already exist
 slt$mark_best(date_version = "20240228_test_creation", user_entry = list(comment = "testing mark on new folder"))
 slt$mark_best(date_version = "20240228_test_creation", user_entry = list(comment = "testing mark on new folder", junk_field = "should not exist")) # expect error
 slt$mark_keep(date_version = "20240228_test_creation", user_entry = list(comment = "testing mark on new folder"))
@@ -171,3 +171,15 @@ slt$unmark(date_version = "20240228_test_creation", user_entry = list(comment = 
 slt$delete_date_version_folders(date_version = "20240228_test_creation", user_entry = list(comment = "testing folder removal on new folder")) # expect a "no remove" message - yes
 slt$mark_remove(date_version = "20240228_test_creation", user_entry = list(comment = "testing mark on new folder"))
 slt$delete_date_version_folders(date_version = "20240228_test_creation", user_entry = list(comment = "testing folder removal on new folder")) # expect deletion
+
+
+
+
+# 2024 Feb 29 ------------------------------------------------------------------
+
+# debugging why only 'remove_' demotions appear in the central log
+# - as last of the 'symlink types', it wasn't getting cleared from log actions in `remove_one_symlink`
+# slt <- SLT$new(gbd_round = 'gbd2021')
+# slt$mark_remove(date_version = "20240228_test_creation", user_entry = list(comment = "testing mark on new folder"))
+# # slt$mark_best(date_version = "20240228_test_creation", user_entry = list(comment = "testing mark on new folder"))
+# slt$unmark(date_version = "20240228_test_creation", user_entry = list(comment = "testing mark on new folder"))
