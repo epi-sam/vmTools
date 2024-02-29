@@ -661,6 +661,8 @@ SLT <- R6::R6Class(
          )
          symlink <- unlist(symlink_list$symlinks)
 
+         browser()
+
          if(length(symlink) > 0){
             symlink_clean              <- private$extract_symlink(symlink_string = symlink)
             symlink_full               <- file.path(root, symlink_clean)
