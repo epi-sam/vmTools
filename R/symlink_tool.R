@@ -661,8 +661,6 @@ SLT <- R6::R6Class(
          )
          symlink <- unlist(symlink_list$symlinks)
 
-         browser()
-
          if(length(symlink) > 0){
             symlink_clean              <- private$extract_symlink(symlink_string = symlink)
             symlink_full               <- file.path(root, symlink_clean)
@@ -674,6 +672,13 @@ SLT <- R6::R6Class(
             system(paste("unlink", symlink_full))
 
             private$append_to_log(version_path = path_real, user_entry = user_entry)
+
+            # Handle the case where only 'remove' demotions are centrally
+            # logged, since they're the last `private$DICT$symlink_types`
+            # element.  If we want to centrally log all demotions, we'll need to
+            # restructure quite a bit of this code.
+            private$handler_reset_dynamic_fields(field_types = "log")
+
          } else {
             # unset DYNAMIC log fields if there are no symlinks
             # - prevents central log from accidentally collecting extra rows
