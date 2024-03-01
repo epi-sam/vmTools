@@ -225,17 +225,23 @@ slt$delete_date_version_folders(date_version = "20240228_test_creation", user_en
 # slt$print_dictionaries()
 # slt$print_dynamic_fields()
 
-my_roots <- list(
-   to_model = file.path("/mnt/share/homes/ssbyrne/scratch2/vc/slt/to_model"),
-   modeled  = file.path("/mnt/share/homes/ssbyrne/scratch2/vc/slt/modeled")
-)
-my_roots <- lapply(my_roots, function(root) file.path(root, "gbd2021"))
-central_log_root <- "/mnt/share/homes/ssbyrne/scratch2/vc/slt"
+# my_roots <- list(
+#    to_model = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/to_model/gbd2021",
+#    modeled  = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/modeled/gbd2021"
+# )
+# my_roots <- lapply(my_roots, function(root) file.path(root, "gbd2021"))
+# central_log_root <- "/mnt/share/homes/ssbyrne/scratch2/vc/slt"
 # expect an error
 # my_roots <- file.path(my_roots, "gbd2021")
 
 # Try new custom root setting
-slt <- SLT$new(user_root_list = my_roots, user_central_log_root = central_log_root)
+slt <- SLT$new(
+   user_root_list = list(
+      to_model = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/to_model/gbd2021",
+      modeled  = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/modeled/gbd2021"
+   ),
+   user_central_log_root = "/mnt/share/homes/ssbyrne/scratch2/vc/slt"
+)
 
 # Go through all this again
 slt$create_date_version_folders_with_logs(date_version = "20240229_1")
