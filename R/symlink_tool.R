@@ -87,10 +87,6 @@ SLT <- R6::R6Class(
 
       DICT = list(
 
-         ## Initialize: user-defined
-
-         ## Initialize: internally-defined
-
          #> The tool expects that each 'root' has a bunch of 'date_version' folders of pipeline output
          #> - each 'date_version' represents a fresh run of a data pipeline
          #> - each 'date_version' must be a folder one level under each 'root'
@@ -101,32 +97,24 @@ SLT <- R6::R6Class(
          #>
          #> Every time the tool runs a 'mark' operation, it will update the report on tool-generated active symlinks
 
-         # FIXME SB - 2024 Feb 05 - REMOVE AFTER TESTING
-         ROOTS = list(
-            to_model = file.path("/mnt/share/homes/ssbyrne/scratch2/vc/slt/to_model"),
-            modeled  = file.path("/mnt/share/homes/ssbyrne/scratch2/vc/slt/modeled")
-         ),
-         # FIXME SB - 2024 Feb 05 - REMOVE AFTER TESTING
-         # ROOTS = list(
-         #    to_model = file.path("/snfs1/WORK/01_covariates/02_inputs/vaccines/data/exp/to_model"),
-         #    modeled  = file.path("/snfs1/WORK/01_covariates/02_inputs/vaccines/data/exp/modeled")
-         # ),
+         ## Initialize: user-defined
 
-         ## Static
+         ROOTS = NULL,
+
+         LOG_CENTRAL = list(
+            root  = NULL,
+            fname = "log_symlinks_central.csv",
+            path  = NULL
+         ),
+
+         ## Initialize: internally-defined
+
          # In `initialize()`, defined as `setdiff(names(private$DICT$log_schema), private$DICT$log_fields_auto)`
          # e.g. c("comment") at time of writing
          log_fields_user = NULL,
 
          ## Logs
 
-         LOG_CENTRAL = list(
-            # FIXME SB - 2024 Feb 05 - REMOVE AFTER TESTING
-            # root = "/mnt/share/covariates/vaccines/reference",
-            # FIXME SB - 2024 Feb 05 - REMOVE AFTER TESTING
-            root  = "/mnt/share/homes/ssbyrne/scratch2/vc/slt",
-            fname = "log_symlinks_central.csv",
-            path  = NULL
-         ),
 
          log_name = "log_version_history.csv",
 
@@ -223,8 +211,9 @@ SLT <- R6::R6Class(
 
       assert_named_list = function(x){
          if(!is.null(x)){
-            err_msg <- "x must be a named list (list names may not be whitespace)"
+            err_msg <- "x must be a named list, not vector (list names may not be whitespace)"
             if(!is.list(x))               stop(err_msg)
+            if(is.data.table(x))          stop(err_msg)
             if(is.null(names(x)))         stop(err_msg)
             if(any(is.na(names(x))))      stop(err_msg)
             names(x) <- trimws(names(x))
@@ -1582,21 +1571,33 @@ SLT <- R6::R6Class(
       #' @export
       #'
       #' @examples
-      initialize = function() {
+      initialize = function(user_root_list, user_central_log_root) {
 
          library(data.table)
+         # browser()
 
-         # validate inputs
+         # Users must provide these fields
 
-         # Set private field values
-
-         ## User-defined fields
-
-         ## User should not interact with these
          ## ROOTS
-         # private$DICT$ROOTS            <- lapply(private$DICT$ROOTS, function(root) file.path(root, gbd_round))
+         # validate inputs
+         private$assert_named_list(user_root_list)
+         lapply(user_root_list, private$assert_dir_exists)
+         # set
+         private$DICT$ROOTS <- user_root_list
+
+         ## CENTRAL LOG
+         # validate inputs
+         private$assert_scalar(user_central_log_root)
+         private$assert_dir_exists(user_central_log_root)
+         # set
+         private$DICT$LOG_CENTRAL$root <- user_central_log_root
+
+
+         # User should not interact with these
+
+         ## Log fields the user can set
          private$DICT$log_fields_user  <- setdiff(names(private$DICT$log_schema), private$DICT$log_fields_auto)
-         ## Central Log
+         ## CENTRAL LOG
          private$DICT$LOG_CENTRAL$path <- file.path(private$DICT$LOG_CENTRAL$root,
                                                     private$DICT$LOG_CENTRAL$fname)
          # Make sure this exists any time the class is initialized

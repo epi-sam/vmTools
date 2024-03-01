@@ -187,7 +187,57 @@ slt$delete_date_version_folders(date_version = "20240228_test_creation", user_en
 
 # Testing multiple folder management at once
 
-slt <- SLT$new(gbd_round = 'gbd2021')
+# slt <- SLT$new(gbd_round = 'gbd2021')
+# slt$create_date_version_folders_with_logs(date_version = "20240229_1")
+# slt$create_date_version_folders_with_logs(date_version = "20240229_2")
+# slt$create_date_version_folders_with_logs(date_version = "20240229_3")
+# # Now mark each one best in turn
+# slt$mark_best(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
+# slt$mark_best(date_version = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
+# slt$mark_best(date_version = "20240229_3", user_entry = list(comment = "testing mark on new folder"))
+# # Now unmark the last one
+# slt$unmark(date_version = "20240229_3", user_entry = list(comment = "testing mark on new folder"))
+# # Mark all as keep
+# slt$mark_keep(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
+# slt$mark_keep(date_version = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
+# slt$mark_keep(date_version = "20240229_3", user_entry = list(comment = "testing mark on new folder"))
+# # Now randomly mark and unmark different folders in various ways
+# slt$mark_keep(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
+# slt$mark_remove(date_version = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
+# slt$mark_best(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
+# slt$unmark(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
+# slt$mark_best(date_version = "20240229_3", user_entry = list(comment = "testing mark on new folder"))
+# slt$mark_remove(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
+# slt$mark_keep(date_version = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
+# slt$unmark(date_version = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
+# slt$mark_keep(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
+# # Now delete all the folders, first marking to remove
+# slt$mark_remove(date_version = "20240229_3", user_entry = list(comment = "testing mark on new folder"))
+# slt$mark_remove(date_version = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
+# slt$mark_remove(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
+# slt$delete_date_version_folders(date_version = "20240229_1", user_entry = list(comment = "testing folder removal on new folder"))
+# slt$delete_date_version_folders(date_version = "20240229_2", user_entry = list(comment = "testing folder removal on new folder"))
+# slt$delete_date_version_folders(date_version = "20240229_3", user_entry = list(comment = "testing folder removal on new folder"))
+#
+# slt$reports()
+# slt$roundup_remove()
+# slt$roundup_by_date("2024-02-28", "gte")
+# slt$print_dictionaries()
+# slt$print_dynamic_fields()
+
+my_roots <- list(
+   to_model = file.path("/mnt/share/homes/ssbyrne/scratch2/vc/slt/to_model"),
+   modeled  = file.path("/mnt/share/homes/ssbyrne/scratch2/vc/slt/modeled")
+)
+my_roots <- lapply(my_roots, function(root) file.path(root, "gbd2021"))
+central_log_root <- "/mnt/share/homes/ssbyrne/scratch2/vc/slt"
+# expect an error
+# my_roots <- file.path(my_roots, "gbd2021")
+
+# Try new custom root setting
+slt <- SLT$new(user_root_list = my_roots, user_central_log_root = central_log_root)
+
+# Go through all this again
 slt$create_date_version_folders_with_logs(date_version = "20240229_1")
 slt$create_date_version_folders_with_logs(date_version = "20240229_2")
 slt$create_date_version_folders_with_logs(date_version = "20240229_3")
