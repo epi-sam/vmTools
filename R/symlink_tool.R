@@ -88,7 +88,6 @@ SLT <- R6::R6Class(
       DICT = list(
 
          ## Initialize: user-defined
-         gbd_round = NULL,
 
          ## Initialize: internally-defined
 
@@ -215,10 +214,6 @@ SLT <- R6::R6Class(
       # 1. assert_x - stop if conditions are unmet
       # 2. validate_x - warn if conditions are unmet
       #               - Return TRUE/FALSE
-
-      assert_gbd_round = function(gbd_round){
-         if(!grepl("^gbd[0-9]{4}$", gbd_round)) stop("`gbd_round` should follow pattern '^gbd[0-9]{4}$' e.g. gbd2023 (case sensitive).")
-      },
 
       assert_scalar = function(x){
          if(!(is.atomic(x) && length(x) == 1L)){
@@ -1582,29 +1577,24 @@ SLT <- R6::R6Class(
       #'
       #' Any time the tool is made, the tool is GBD-round specific.  Create one per round if you need more than one
       #'
-      #' @param gbd_round [chr] The GBD round to use of the form `gbd2023` (case-sensitive)
       #'
       #' @return
       #' @export
       #'
       #' @examples
-      initialize = function(gbd_round) {
+      initialize = function() {
 
          library(data.table)
 
          # validate inputs
-         private$assert_scalar(gbd_round)
-         private$assert_gbd_round(gbd_round)
 
          # Set private field values
 
          ## User-defined fields
-         ## gbd_round
-         private$DICT$gbd_round <- gbd_round
 
          ## User should not interact with these
          ## ROOTS
-         private$DICT$ROOTS            <- lapply(private$DICT$ROOTS, function(root) file.path(root, gbd_round))
+         # private$DICT$ROOTS            <- lapply(private$DICT$ROOTS, function(root) file.path(root, gbd_round))
          private$DICT$log_fields_user  <- setdiff(names(private$DICT$log_schema), private$DICT$log_fields_auto)
          ## Central Log
          private$DICT$LOG_CENTRAL$path <- file.path(private$DICT$LOG_CENTRAL$root,
