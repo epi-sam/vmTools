@@ -87,11 +87,6 @@ SLT <- R6::R6Class(
 
       DICT = list(
 
-         ## Initialize: user-defined
-         gbd_round = NULL,
-
-         ## Initialize: internally-defined
-
          #> The tool expects that each 'root' has a bunch of 'date_version' folders of pipeline output
          #> - each 'date_version' represents a fresh run of a data pipeline
          #> - each 'date_version' must be a folder one level under each 'root'
@@ -102,32 +97,24 @@ SLT <- R6::R6Class(
          #>
          #> Every time the tool runs a 'mark' operation, it will update the report on tool-generated active symlinks
 
-         # FIXME SB - 2024 Feb 05 - REMOVE AFTER TESTING
-         ROOTS = list(
-            to_model = file.path("/mnt/share/homes/ssbyrne/scratch2/vc/slt/to_model"),
-            modeled  = file.path("/mnt/share/homes/ssbyrne/scratch2/vc/slt/modeled")
-         ),
-         # FIXME SB - 2024 Feb 05 - REMOVE AFTER TESTING
-         # ROOTS = list(
-         #    to_model = file.path("/snfs1/WORK/01_covariates/02_inputs/vaccines/data/exp/to_model"),
-         #    modeled  = file.path("/snfs1/WORK/01_covariates/02_inputs/vaccines/data/exp/modeled")
-         # ),
+         ## Initialize: user-defined
 
-         ## Static
+         ROOTS = NULL,
+
+         LOG_CENTRAL = list(
+            root  = NULL,
+            fname = "log_symlinks_central.csv",
+            path  = NULL
+         ),
+
+         ## Initialize: internally-defined
+
          # In `initialize()`, defined as `setdiff(names(private$DICT$log_schema), private$DICT$log_fields_auto)`
          # e.g. c("comment") at time of writing
          log_fields_user = NULL,
 
          ## Logs
 
-         LOG_CENTRAL = list(
-            # FIXME SB - 2024 Feb 05 - REMOVE AFTER TESTING
-            # root = "/mnt/share/covariates/vaccines/reference",
-            # FIXME SB - 2024 Feb 05 - REMOVE AFTER TESTING
-            root  = "/mnt/share/homes/ssbyrne/scratch2/vc/slt",
-            fname = "log_symlinks_central.csv",
-            path  = NULL
-         ),
 
          log_name = "log_version_history.csv",
 
@@ -216,10 +203,6 @@ SLT <- R6::R6Class(
       # 2. validate_x - warn if conditions are unmet
       #               - Return TRUE/FALSE
 
-      assert_gbd_round = function(gbd_round){
-         if(!grepl("^gbd[0-9]{4}$", gbd_round)) stop("`gbd_round` should follow pattern '^gbd[0-9]{4}$' e.g. gbd2023 (case sensitive).")
-      },
-
       assert_scalar = function(x){
          if(!(is.atomic(x) && length(x) == 1L)){
             stop("x must be atomic and length 1L")
@@ -228,8 +211,9 @@ SLT <- R6::R6Class(
 
       assert_named_list = function(x){
          if(!is.null(x)){
-            err_msg <- "x must be a named list (list names may not be whitespace)"
+            err_msg <- "x must be a named list, not vector (list names may not be whitespace)"
             if(!is.list(x))               stop(err_msg)
+            if(is.data.table(x))          stop(err_msg)
             if(is.null(names(x)))         stop(err_msg)
             if(any(is.na(names(x))))      stop(err_msg)
             names(x) <- trimws(names(x))
@@ -1582,31 +1566,76 @@ SLT <- R6::R6Class(
       #'
       #' Any time the tool is made, the tool is GBD-round specific.  Create one per round if you need more than one
       #'
-      #' @param gbd_round [chr] The GBD round to use of the form `gbd2023` (case-sensitive)
       #'
       #' @return
       #' @export
       #'
       #' @examples
-      initialize = function(gbd_round) {
+      initialize = function(user_root_list = NULL, user_central_log_root = NULL) {
+
+         # useful start up feedback
+         if(is.null(user_root_list)){
+            message("\n\nThis tool expects `user_root_list` to be a named list of root directories for pipeline outputs. \n\n  ",
+
+                 "e.g.
+                 list( input_root = '/mnt/share/my_team/input_data',
+                      output_root = '/mnt/share/my_team/output_data' ) \n\n  ",
+
+                 "This tool assumes each root has a matching `date_version` output folder. \n  ",
+                 "  You may divert outputs to one root, or many roots in parallel. \n\n  ",
+
+                 "Each output folder defined by `file.path(user_root_list, date_version)`. \n  ",
+                 "  The `date_version` is defined when the user wants to 'mark' or 'unmark' a folder as best/keep/remove. \n  ",
+                 "  This folder receives a log of all *demotion* and *promotion* actions (marking and unmarking). \n  ",
+                 "  This `date_version` log is used for report generation. \n\n  "
+            )
+         }
+
+         if(is.null(user_central_log_root)){
+            message("\n\nThis tool expects `user_central_log_root` to be a single directory for the central log. \n\n  ",
+
+                 "e.g.
+                 '/mnt/share/my_team' \n\n  ",
+
+                 "The central log is a summary record of all *promotion* (marking) actions done by this tool, \n  ",
+                 "  but is not used for report generation. \n\n  ",
+                 "The central log is *created* on initialization i.e. when calling `SLT$new()`. \n\n  ",
+
+                 "Each output folder defined by `file.path(user_root_list, date_version)`. \n  ",
+                 "  The `date_version` is defined when the user wants to 'mark' or 'unmark' a folder as best/keep/remove. \n  ",
+                 "  This folder receives a log of all *demotion* and *promotion* actions (marking and unmarking). \n  ",
+                 "  This `date_version` log is used for report generation. \n\n  "
+            )
+         }
+
+         if(any(is.null(user_root_list) || is.null(user_central_log_root))){
+            stop("You must provide both user_root_list and user_central_log_root")
+         }
 
          library(data.table)
 
-         # validate inputs
-         private$assert_scalar(gbd_round)
-         private$assert_gbd_round(gbd_round)
+         # Users must provide these fields
 
-         # Set private field values
-
-         ## User-defined fields
-         ## gbd_round
-         private$DICT$gbd_round <- gbd_round
-
-         ## User should not interact with these
          ## ROOTS
-         private$DICT$ROOTS            <- lapply(private$DICT$ROOTS, function(root) file.path(root, gbd_round))
+         # validate inputs
+         private$assert_named_list(user_root_list)
+         lapply(user_root_list, private$assert_dir_exists)
+         # set
+         private$DICT$ROOTS <- user_root_list
+
+         ## CENTRAL LOG
+         # validate inputs
+         private$assert_scalar(user_central_log_root)
+         private$assert_dir_exists(user_central_log_root)
+         # set
+         private$DICT$LOG_CENTRAL$root <- user_central_log_root
+
+
+         # User should not interact with these
+
+         ## Log fields the user can set
          private$DICT$log_fields_user  <- setdiff(names(private$DICT$log_schema), private$DICT$log_fields_auto)
-         ## Central Log
+         ## CENTRAL LOG
          private$DICT$LOG_CENTRAL$path <- file.path(private$DICT$LOG_CENTRAL$root,
                                                     private$DICT$LOG_CENTRAL$fname)
          # Make sure this exists any time the class is initialized
