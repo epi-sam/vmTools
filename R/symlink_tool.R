@@ -1575,7 +1575,7 @@ SLT <- R6::R6Class(
 
          # useful start up feedback
          if(is.null(user_root_list)){
-            message("\n\nThis tool expects user_root_list to be a named list of root directories for pipeline outputs. \n\n  ",
+            message("\n\nThis tool expects `user_root_list` to be a named list of root directories for pipeline outputs. \n\n  ",
 
                  "e.g.
                  list( input_root = '/mnt/share/my_team/input_data',
@@ -1592,7 +1592,7 @@ SLT <- R6::R6Class(
          }
 
          if(is.null(user_central_log_root)){
-            message("\n\nThis tool expects user_central_log_root to be a single directory for the central log. \n\n  ",
+            message("\n\nThis tool expects `user_central_log_root` to be a single directory for the central log. \n\n  ",
 
                  "e.g.
                  '/mnt/share/my_team' \n\n  ",
