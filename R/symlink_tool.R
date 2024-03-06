@@ -190,10 +190,6 @@ SLT <- R6::R6Class(
          ),
 
          # Paths built from roots and intermediate path structures
-         # VERS_PATHS = list(
-         #    to_model = NA_character_,
-         #    modeled  = NA_character_
-         # )
          VERS_PATHS = list()
       ),
 
@@ -1425,10 +1421,6 @@ SLT <- R6::R6Class(
          }
 
          if("vers_paths" %in% field_types){
-            # private$DYNAMIC$VERS_PATHS = list(
-            #    to_model = NA_character_,
-            #    modeled  = NA_character_
-            # )
             private$DYNAMIC$VERS_PATHS = list()
          }
       },
