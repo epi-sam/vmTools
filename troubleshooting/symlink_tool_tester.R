@@ -277,6 +277,7 @@ slt$delete_date_version_folders(date_version = "20240229_3", user_entry = list(c
 
 slt$reports()
 slt$roundup_remove()
+slt$roundup_by_date("2024-02-28", "lte")
 slt$roundup_by_date("2024-02-28", "gte")
 slt$print_dictionaries()
 slt$print_dynamic_fields()
@@ -284,3 +285,13 @@ slt$print_dynamic_fields()
 # 2024 Mar 06 ------------------------------------------------------------------
 # test initialize messages
 slt <- SLT$new()
+
+# Deal with hard-baked list name scheme
+slt <- SLT$new(
+   user_root_list = list(
+      root_input = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/to_model/gbd2021",
+      root_ouput  = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/modeled/gbd2021",
+      root_third = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/third_root/gbd2021"
+   )
+   , user_central_log_root = "/mnt/share/homes/ssbyrne/scratch2/vc/slt"
+)

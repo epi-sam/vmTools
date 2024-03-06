@@ -177,7 +177,7 @@ SLT <- R6::R6Class(
 
       # These are not true R6 active fields, but are dynamic within the tool.
       # I'm not exposing these to the user but they need to by dynamic
-      # For each date_version operation, these will update e.g. file.path(ROOTS$to_model, date_version)
+      # For each date_version operation, these will update e.g. file.path(private$DICT$ROOTS, date_version)
       # - updated by operation, not on instantiate
       # - for managing internal state of the tool, not for user input
       # - if they seem buggy, call `print_dynamic_fields()` to see if they are updating as expected
@@ -190,10 +190,11 @@ SLT <- R6::R6Class(
          ),
 
          # Paths built from roots and intermediate path structures
-         VERS_PATHS = list(
-            to_model = NA_character_,
-            modeled  = NA_character_
-         )
+         # VERS_PATHS = list(
+         #    to_model = NA_character_,
+         #    modeled  = NA_character_
+         # )
+         VERS_PATHS = list()
       ),
 
       # Validations ------------------------------------------------------------
@@ -1424,10 +1425,11 @@ SLT <- R6::R6Class(
          }
 
          if("vers_paths" %in% field_types){
-            private$DYNAMIC$VERS_PATHS = list(
-               to_model = NA_character_,
-               modeled  = NA_character_
-            )
+            # private$DYNAMIC$VERS_PATHS = list(
+            #    to_model = NA_character_,
+            #    modeled  = NA_character_
+            # )
+            private$DYNAMIC$VERS_PATHS = list()
          }
       },
 
