@@ -235,13 +235,13 @@ slt$delete_date_version_folders(date_version = "20240228_test_creation", user_en
 # my_roots <- file.path(my_roots, "gbd2021")
 
 # Try new custom root setting
-slt <- SLT$new(
-   user_root_list = list(
-      to_model = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/to_model/gbd2021",
-      modeled  = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/modeled/gbd2021"
-   )
-   , user_central_log_root = "/mnt/share/homes/ssbyrne/scratch2/vc/slt"
-)
+# slt <- SLT$new(
+#    user_root_list = list(
+#       to_model = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/to_model/gbd2021",
+#       modeled  = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/modeled/gbd2021"
+#    )
+#    , user_central_log_root = "/mnt/share/homes/ssbyrne/scratch2/vc/slt"
+# )
 
 # Go through all this again
 slt$create_date_version_folders_with_logs(date_version = "20240229_1")
@@ -251,6 +251,7 @@ slt$create_date_version_folders_with_logs(date_version = "20240229_3")
 slt$mark_best(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
 slt$mark_best(date_version = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
 slt$mark_best(date_version = "20240229_3", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_best(date_version = "20240229_4", user_entry = list(comment = "testing mark on new folder")) # expect nothing to happen
 # Now unmark the last one
 slt$unmark(date_version = "20240229_3", user_entry = list(comment = "testing mark on new folder"))
 # Mark all as keep
@@ -284,13 +285,13 @@ slt$print_dynamic_fields()
 
 # 2024 Mar 06 ------------------------------------------------------------------
 # test initialize messages
-slt <- SLT$new()
+# slt <- SLT$new()
 
 # Deal with hard-baked list name scheme
 slt <- SLT$new(
    user_root_list = list(
       root_input = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/to_model/gbd2021",
-      root_ouput  = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/modeled/gbd2021",
+      root_ouput = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/modeled/gbd2021",
       root_third = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/third_root/gbd2021"
    )
    , user_central_log_root = "/mnt/share/homes/ssbyrne/scratch2/vc/slt"
