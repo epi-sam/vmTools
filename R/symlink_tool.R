@@ -718,17 +718,21 @@ SLT <- R6::R6Class(
 
          if(!deletion_symlink_exact %in% folder_dt_removes$dir_leaf){
             message(
-               "No `remove_` symlink found.\n",
-               "-- for: ", date_version, "\n",
-               "-- in root: ", root)
+               "\n",
+               "No valid `remove_` symlink found:\n",
+               "  -- for: ", date_version, "\n",
+               "  -- in root: ", root
+            )
             ret_val_deleted_TF <- NULL
          } else {
             dirnames_to_unlink <- folder_dt[dir_date_version == date_version, dir_name]
+            message("") # newline for visual clarity
             user_input <- utils::menu(
                title = paste0("Do you want to delete the following folders?\n  ",
                               paste(dirnames_to_unlink, collapse = "\n  "))
                , choices = c("No", "Yes")
             )
+            message("") # newline for visual clarity
             # Prompt user input to confirm deletion
             if(user_input == 2){
                private$DYNAMIC$LOG$action <- "delete_remove_folder"
