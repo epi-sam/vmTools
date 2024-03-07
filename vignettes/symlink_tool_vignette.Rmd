@@ -12,9 +12,126 @@ knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
 )
+# prevents idiosyncratic cluster warnings later
 ```
 
 ```{r setup}
-library(vmTools)
+library(vmTools, lib.loc = file.path("/mnt/share/code", Sys.info()[["user"]], "r_pkgs"))
 ```
+
+
+
+# What is the SymLink Tool?
+
+The SymLink Tool is an R6 object-oriented tool that helps a researcher manage pipleline outputs in a standard way.  It falls under the category of 'standard tooling'.  It will:
+
+1. Help you create 'best' symlinks to the best version of your outputs
+1. Update the 'best' symlink safely when a new version is ready for promotion.
+1. Maintain a log of promotions/demotions within your output folder
+1. Maintain a central log of which versions of your pipeline have ever been 'best'.
+1. Provide reports on the state of all the logs for all versions of your pipeline outputs.
+
+
+
+
+## Assumptions
+
+This assumes you have a large set of versioned output folders for your pipeline.
+
+If you're already using a database to manage your output versions, you probably don't need this.
+
+If you have a big mess of folders you're having difficulty tracking, this tool may help you out!
+
+
+
+
+# SymLink Tool Intro
+
+`SLT` (short for SymLink Tool) is an R6 object generator, or "R6ClassGenerator".
+
+When you want to make a new 'instance' of a tool, call the `new` method on the tool's class.
+
+- This is called "instantiation".
+- Think of SLT like a template, the Plantonic ideal of a hammer. Think of slt as your favorite, particular hammer.
+
+Let's start by calling `$new()` with no arguments.  
+
+- We expect an error, with some helpful messages about what arguments the tool template expects, in order to make the type of tool we need. 
+
+```{r naive_tool}
+slt <- try(SLT$new())
+```
+
+
+OK, now that we know what the tool expects, let's feed it this information and try using it in earnest.
+
+
+
+## SymLink Tool Use
+
+
+In my pipeline, I divert outputs to two folders:
+
+1. 'to_model', which is prepped data going into ST-GPR
+1. 'modeled', which is post-processed after ST-GPR
+
+I want to have the same `date_version` of my pipeline outputs in _both_ roots so I can correlate pre and post modeled data.
+
+- A `date_version` is simply a string like "2024_02_02_new_covariates" that's important to you, the modeler, to tell you when and why the pipeline was run.  There is no requirement for this to include a date, but it's good practice.
+
+In addition, the tool needs a location for a central log.  I'll set that one level above both my output folders, since the central log will be shared between them.
+
+- The tool manages outputs at the `date_version` level, not the folder level, so one 'best' promotion affects folders in _both_ my output roots.
+
+
+```{r first tool}
+
+# a safe temporary directory every user has access to, that we'll clean up later
+root_base <- file.path(tempdir(), "slt")
+root_input <- file.path(root_base, "to_model")
+root_ouput <- file.path(root_base, "modeled")
+
+
+# Try to make the tool 
+
+slt <- try(SLT$new(
+   user_root_list = list(
+      root_input = root_input,
+      root_ouput = root_ouput
+   )
+   , user_central_log_root = root_base
+))
+
+
+# We need to ensure all output folders exist first
+
+dir.create(root_input, recursive = TRUE, showWarnings = FALSE)
+dir.create(root_ouput, recursive = TRUE, showWarnings = FALSE)
+
+
+# Now everything should work
+
+slt <- SLT$new(
+   user_root_list = list(
+      root_input = root_input,
+      root_ouput = root_ouput
+   )
+   , user_central_log_root = root_base
+)
+
+# Ingore this warning, if you see it - it's idiosycratic to the IHME cluster and benign.
+#> Warning in system("timedatectl", intern = TRUE): running command 'timedatectl'
+#> had status 1
+
+
+# What do we have in our root_base folder?
+
+message(paste(list.files(root_base), collapse = "\n"))
+
+```
+
+We should now have a central log, and two output folder.
+
+- When you instantiate the tool, the central log is made automatially.
+- We must make the folders, or the tool will stop. 
 
