@@ -73,6 +73,10 @@
 #'     - Depends on vaccines/vaccination_pipeline_functions/validations.R for assert_data_schema
 #'     - Relies on libraries declared above, but calls on all functions by package namespace for clarity and robustness
 
+# Required for vignette to work in Rmarkdown
+# Known error: https://github.com/rstudio/rmarkdown/issues/187
+.datatable.aware = TRUE
+
 SLT <- R6::R6Class(
 
    "Symlink_Tool",
@@ -1019,10 +1023,10 @@ SLT <- R6::R6Class(
 
       # safely remove null logs, and account for zero-length logs if none are found for a date_version folder
       filter_null_logs_safely = function(log_list){
-         if(!length(log_list) == 0){
-            return(log_list[!unlist(lapply(log_list, is.null))])
-         } else {
+         if(length(log_list) == 0 || all(is.null(unlist(log_list)))){
             return(list(no_logs_found = private$make_schema_dt(schema = private$DICT$log_schema)))
+         } else {
+            return(log_list[!unlist(lapply(log_list, is.null))])
          }
       },
 
@@ -1282,7 +1286,6 @@ SLT <- R6::R6Class(
 
          # Non-symlink folder logs with 'promote' as the first row (these should have been 'demoted')
          log_list_non_symlink    <- private$query_all_logs_non_symlink(root)
-         # browser()
          last_row_dt_non_symlink <- private$query_logs_last_row(log_list_non_symlink)
          discrepant_dt_promote   <- last_row_dt_non_symlink[action %like% "^promote_"]
          discrepant_dt_promote   <- private$add_discrepancy_to_dt(discrepant_dt_promote, "non-active-symlink logs with final 'promote' line")
@@ -1714,8 +1717,6 @@ SLT <- R6::R6Class(
          message("Marking best: ", date_version)
          # Manage symlinks and append logs
          for(version_path in private$DYNAMIC$VERS_PATHS){
-
-            if(version_path == private$DYNAMIC$VERS_PATHS[[2]]) browser()
 
             if(!private$validate_dir_exists(version_path)) next()
 

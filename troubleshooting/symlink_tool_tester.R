@@ -242,6 +242,15 @@ slt$delete_date_version_folders(date_version = "20240228_test_creation", user_en
 #    )
 #    , user_central_log_root = "/mnt/share/homes/ssbyrne/scratch2/vc/slt"
 # )
+root_base  <- file.path("/mnt/share/homes/ssbyrne/scratch2/vc/slt_debug")
+slt <- SLT$new(
+   user_root_list = list(
+      root_input = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/to_model/gbd2021",
+      root_ouput = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/modeled/gbd2021",
+      root_third = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/third_root/gbd2021"
+   )
+   , user_central_log_root = "/mnt/share/homes/ssbyrne/scratch2/vc/slt"
+)
 
 # Go through all this again
 slt$create_date_version_folders_with_logs(date_version = "20240229_1")
@@ -334,8 +343,12 @@ PATHS <- list(
 )
 # Then we'll mark one as best
 slt$mark_best(date_version = "2024_02_02", user_entry = list(comment = "testing mark_best"))
+slt$mark_best(date_version = "2024_04_10", user_entry = list(comment = "testing mark_best"))
+
+# look at folders
 print_tree()
 system(paste("ls -alt", root_input))
+system(paste("ls -alt", root_ouput))
 
 # And we'll look at logs
 

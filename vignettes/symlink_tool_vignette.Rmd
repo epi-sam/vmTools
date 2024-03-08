@@ -181,6 +181,8 @@ dir.create(file.path(root_ouput, "2024_02_02"), recursive = TRUE, showWarnings =
 dir.create(file.path(root_input, "2024_04_10"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path(root_ouput, "2024_04_10"), recursive = TRUE, showWarnings = FALSE)
 
+print_tree()
+
 # Define some paths for later use
 PATHS <- list(
    log_cent = file.path(root_base, "log_symlinks_central.csv"),
@@ -192,6 +194,7 @@ PATHS <- list(
 # Then we'll mark one as best
 
 slt$mark_best(date_version = "2024_02_02", user_entry = list(comment = "testing mark_best"))
+slt$mark_best(date_version = "2024_04_10", user_entry = list(comment = "testing mark_best"))
 print_tree()
 
 # And we'll look at logs
