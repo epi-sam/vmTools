@@ -1282,6 +1282,7 @@ SLT <- R6::R6Class(
 
          # Non-symlink folder logs with 'promote' as the first row (these should have been 'demoted')
          log_list_non_symlink    <- private$query_all_logs_non_symlink(root)
+         # browser()
          last_row_dt_non_symlink <- private$query_logs_last_row(log_list_non_symlink)
          discrepant_dt_promote   <- last_row_dt_non_symlink[action %like% "^promote_"]
          discrepant_dt_promote   <- private$add_discrepancy_to_dt(discrepant_dt_promote, "non-active-symlink logs with final 'promote' line")
@@ -1449,8 +1450,9 @@ SLT <- R6::R6Class(
          symlink_type <- names(symlink)
 
          if(length(symlink) > 1) {
-            stop("More than one symlink found for ", date_version, "in: ", root, "\n  ",
-                 paste(symlink, collapse = "\n  "))
+            stop("More than one symlink found for ", date_version, " in: ", root, "\n  ",
+                 paste(symlink, collapse = "\n  "),
+                 "Please select one ", paste(private$DICT$symlink_types, collapse = "/"),  " symlink and delete all others manually.")
          }
 
          if(length(symlink) > 0) {
@@ -1712,6 +1714,8 @@ SLT <- R6::R6Class(
          message("Marking best: ", date_version)
          # Manage symlinks and append logs
          for(version_path in private$DYNAMIC$VERS_PATHS){
+
+            if(version_path == private$DYNAMIC$VERS_PATHS[[2]]) browser()
 
             if(!private$validate_dir_exists(version_path)) next()
 

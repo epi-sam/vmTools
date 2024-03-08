@@ -16,8 +16,21 @@ knitr::opts_chunk$set(
 ```
 
 ```{r setup}
-library(vmTools, lib.loc = file.path("/mnt/share/code", Sys.info()[["user"]], "r_pkgs"))
+# Installing locally only allows main branch - switching to load_all for development
+devtools::load_all()
+# library(vmTools, lib.loc = file.path("/mnt/share/code", Sys.info()[["user"]], "r_pkgs"))
+library(data.table)
 ```
+
+```{r utils}
+
+# Defining a couple vignette utils
+library(fs)
+
+print_tree <- function() {fs::dir_tree(root_base, recurse = TRUE)}
+
+```
+
 
 
 
@@ -42,6 +55,10 @@ If you're already using a database to manage your output versions, you probably 
 
 If you have a big mess of folders you're having difficulty tracking, this tool may help you out!
 
+
+
+
+--------------------------------------------------------------------------------
 
 
 
@@ -84,10 +101,10 @@ In addition, the tool needs a location for a central log.  I'll set that one lev
 - The tool manages outputs at the `date_version` level, not the folder level, so one 'best' promotion affects folders in _both_ my output roots.
 
 
-```{r first tool}
+```{r first_tool}
 
 # a safe temporary directory every user has access to, that we'll clean up later
-root_base <- file.path(tempdir(), "slt")
+root_base  <- file.path(tempdir(), "slt")
 root_input <- file.path(root_base, "to_model")
 root_ouput <- file.path(root_base, "modeled")
 
@@ -125,13 +142,74 @@ slt <- SLT$new(
 
 
 # What do we have in our root_base folder?
+print_tree()
 
-message(paste(list.files(root_base), collapse = "\n"))
 
 ```
+
 
 We should now have a central log, and two output folder.
 
 - When you instantiate the tool, the central log is made automatially.
 - We must make the folders, or the tool will stop. 
+
+
+
+## Mark Best
+
+You can mark any output folder as 'best', and give it a 'best' symlink in each output root.
+
+- Only one `date_version` can be 'best', and the SLT will demote the current 'best' version if you promote a new `date_version`.
+- This will create a log in the `date_version` folder, and an entry in the central log.
+
+**NOTE:**
+
+- The `date_version` log record records both 'demote' and 'promote' actions.
+- The central log _only records_ 'promote' actions.
+
+**NOTE:**
+
+- Each 'mark' action needs the user to provide a log entry comment as a _named list_.
+
+
+```{r mark_best}
+
+# First we'll create two `date_version` folders to play with in each root
+
+dir.create(file.path(root_input, "2024_02_02"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(root_ouput, "2024_02_02"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(root_input, "2024_04_10"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(root_ouput, "2024_04_10"), recursive = TRUE, showWarnings = FALSE)
+
+# Define some paths for later use
+PATHS <- list(
+   log_cent = file.path(root_base, "log_symlinks_central.csv"),
+   log_2024_02_02 = file.path(root_input, "2024_02_02", "log_version_history.csv"),
+   log_2024_04_10 = file.path(root_input, "2024_04_10", "log_version_history.csv")
+)
+
+
+# Then we'll mark one as best
+
+slt$mark_best(date_version = "2024_02_02", user_entry = list(comment = "testing mark_best"))
+print_tree()
+
+# And we'll look at logs
+
+fread(PATHS$log_cent)
+fread(PATHS$log_2024_02_02)
+fread(PATHS$log_2024_04_10)
+
+
+```
+
+
+```{r clean_up, eval = FALSE}
+
+# Finally, clean up all our temporary folders
+
+unlink(root_base, recursive = TRUE, force = TRUE)
+
+
+```
 

@@ -296,3 +296,52 @@ slt <- SLT$new(
    )
    , user_central_log_root = "/mnt/share/homes/ssbyrne/scratch2/vc/slt"
 )
+
+# 2024 Mar 07 ------------------------------------------------------------------
+
+# Vignette is failing for unknown reasons
+# - is this just a markdown bug?
+
+# Clean-up
+unlink(root_base, recursive = TRUE, force = TRUE)
+
+source("~/rstudio/projects/vmTools/R/symlink_tool.R")
+root_base  <- file.path("/mnt/share/homes/ssbyrne/scratch2/vc/slt_debug")
+root_input <- file.path(root_base, "to_model")
+root_ouput <- file.path(root_base, "modeled")
+dir.create(root_input, recursive = TRUE, showWarnings = FALSE)
+dir.create(root_ouput, recursive = TRUE, showWarnings = FALSE)
+print_tree <- function() {fs::dir_tree(root_base, recurse = TRUE)}
+print_tree()
+slt <- SLT$new(
+   user_root_list = list(
+      root_input = root_input,
+      root_ouput = root_ouput
+   )
+   , user_central_log_root = root_base
+)
+print_tree()
+# First we'll create two `date_version` folders to play with in each root
+dir.create(file.path(root_input, "2024_02_02"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(root_ouput, "2024_02_02"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(root_input, "2024_04_10"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(root_ouput, "2024_04_10"), recursive = TRUE, showWarnings = FALSE)
+# Define some paths for later use
+PATHS <- list(
+   log_cent = file.path(root_base, "log_symlinks_central.csv"),
+   log_2024_02_02 = file.path(root_input, "2024_02_02", "log_version_history.csv"),
+   log_2024_04_10 = file.path(root_input, "2024_04_10", "log_version_history.csv")
+)
+# Then we'll mark one as best
+slt$mark_best(date_version = "2024_02_02", user_entry = list(comment = "testing mark_best"))
+print_tree()
+system(paste("ls -alt", root_input))
+
+# And we'll look at logs
+
+fread(PATHS$log_cent)
+fread(PATHS$log_2024_02_02)
+fread(PATHS$log_2024_04_10)
+
+undebug(slt$mark_best)
+slt$mark_best(date_version = "2024_02_02", user_entry = list(comment = "testing mark_best"))
