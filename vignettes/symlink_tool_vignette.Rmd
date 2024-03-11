@@ -81,7 +81,7 @@ get_latest_output_date_index <- function(root, date) {
 
 # What is the SymLink Tool?
 
-The SymLink Tool is an R6 object-oriented tool that helps a researcher manage pipleline outputs in a standard way.  It falls under the category of 'standard tooling'.  It will:
+The SymLink Tool is an R6 object-oriented tool that helps a researcher manage pipeline outputs in a standard way.  It falls under the category of 'standard tooling'.  It will:
 
 1. Help you create 'best' symlinks to the best version of your outputs
 1. Update the 'best' symlink safely when a new version is ready for promotion.
@@ -114,7 +114,7 @@ If you have a big mess of folders you're having difficulty tracking, this tool m
 When you want to make a new 'instance' of a tool, call the `new` method on the tool's class.
 
 - This is called "instantiation".
-- Think of SLT like a template, the Plantonic ideal of a hammer. Think of slt as your favorite, particular hammer.
+- Think of SLT like a template, the Platonic ideal of a hammer. Think of slt as your favorite, particular hammer.
 
 Let's start by calling `$new()` with no arguments.  
 
@@ -181,7 +181,7 @@ slt <- SLT$new(
    , user_central_log_root = root_base
 )
 
-# Ingore this warning, if you see it - it's idiosycratic to the IHME cluster and benign.
+# Ignore this warning, if you see it - it's idiosyncratic to the IHME cluster and benign.
 #> Warning in system("timedatectl", intern = TRUE): running command 'timedatectl'
 #> had status 1
 ```
@@ -195,7 +195,7 @@ print_tree()
 
 We should now have a central log, and two output folder.
 
-- When you instantiate the tool, the central log is made automatially.
+- When you instantiate the tool, the central log is made automatically.
 - We must make the folders, or the tool will stop. 
 
 
@@ -256,7 +256,7 @@ Where does the 'best' folder point to?
 grep("best", system(paste("ls -alt", root_input), intern = TRUE), value = TRUE)
 ```
 
-Now let's mark the other one as best, and see what happens.
+Now let's mark the other one as best, and see what happens to the symlinks.
 
 ```{r mark_best4}
 slt$mark_best(date_version = "2024_04_10", user_entry = list(comment = "testing mark_best"))
@@ -269,18 +269,6 @@ print_tree()
 
 ```{r mark_best_tree3}
 grep("best", system(paste("ls -alt", root_input), intern = TRUE), value = TRUE)
-```
-
-```{r mark_best5}
-fread(PATHS$log_cent)
-```
-
-```{r mark_best6}
-fread(PATHS$log_2024_02_02)
-```
-
-```{r mark_best7}
-fread(PATHS$log_2024_04_10)
 ```
 
 
@@ -318,7 +306,7 @@ You've probably also noticed a report.  This also shows the current state of all
    - It only shows symlinks made by this tool, so if you make other symlinks, they won't be included.
 - It runs separately for each root.
    - For our example, these should match.
-   - If you hand-delete folders from one of your roots, this will reveal a potential mis-match. 
+   - If you hand-delete folders from one of your roots, this will reveal a potential mismatch. 
 
 ```{r reports}
 fread(file.path(root_input, "report_all_logs_tool_symlink.csv"))
@@ -382,9 +370,9 @@ fread(PATHS$log_2024_04_10)
 ```
 
 
-# Demote Best
+# Unmark
 
-Now let's say you review your results and _NO_ version of outputs should be best.  You can run `unmark()` to remove the 'best' status.
+Now let's say you review your results and _**no**_ version of outputs should be best.  You can run `unmark()` to remove the 'best' status.
 
 - There are no longer any 'best' symlinks, and the `date_version` log shows demotion.
 - The central log does not show the demotion.  The presence/absence of the best symlink, and the `date_version` log are the acid test of what's current.
