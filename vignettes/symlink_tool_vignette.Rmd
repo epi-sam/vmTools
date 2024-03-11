@@ -20,15 +20,60 @@ knitr::opts_chunk$set(
 devtools::load_all()
 # library(vmTools, lib.loc = file.path("/mnt/share/code", Sys.info()[["user"]], "r_pkgs"))
 library(data.table)
+library(fs)
 ```
 
-```{r utils}
 
-# Defining a couple vignette utils
-library(fs)
+```{r utils, include=FALSE}
 
+# Defining a couple vignette utilities
 print_tree <- function() {fs::dir_tree(root_base, recurse = TRUE)}
 
+#' Get output directory for results to save in.
+#'
+#' Returns a path to save results in of the form "YYYY_MM_DD.VV".
+#'
+#' @param root path to root of output results
+#' @param date character date in form of "YYYY_MM_DD" or "today". "today" will be interpreted as today's date.
+get_output_dir <- function(root, date) {
+  if (date == "today") {
+    date <- format(Sys.Date(), "%Y_%m_%d")
+  }
+  cur.version <- get_latest_output_date_index(root, date = date)
+
+  dir.name <- sprintf("%s.%02i", date, cur.version + 1)
+  return(dir.name)
+}
+
+#' get the latest index for given an output dir and a date
+#'
+#' directories are assumed to be named in YYYY_MM_DD.VV format with sane
+#' year/month/date/version values.
+#'
+#' @param dir path to directory with versioned dirs
+#' @param date character in be YYYY_MM_DD format
+#'
+#' @return largest version in directory tree or 0 if there are no version OR
+#' the directory tree does not exist
+get_latest_output_date_index <- function(root, date) {
+  currentfolders <- list.files(root)
+
+  # subset to date
+  pat <- sprintf("^%s[.]\\d{2}$", date)
+  date_dirs <- grep(pat, currentfolders, value = T)
+
+  if (length(date_dirs) == 0) {
+    return(0)
+  }
+
+  # get the index after day
+  date_list <- strsplit(date_dirs, "[.]")
+
+  inds <- unlist(lapply(date_list, function(x) x[2]))
+  if (is.na(max(inds, na.rm = T))) inds <- 0
+
+  return(max(as.numeric(inds)))
+}
 ```
 
 
@@ -102,36 +147,36 @@ In addition, the tool needs a location for a central log.  I'll set that one lev
 
 
 ```{r first_tool}
-
 # a safe temporary directory every user has access to, that we'll clean up later
 root_base  <- file.path(tempdir(), "slt")
 root_input <- file.path(root_base, "to_model")
-root_ouput <- file.path(root_base, "modeled")
+root_output <- file.path(root_base, "modeled")
+```
 
+Try to make the tool naively.
 
-# Try to make the tool 
-
+```{r first_tool2}
 slt <- try(SLT$new(
    user_root_list = list(
       root_input = root_input,
-      root_ouput = root_ouput
+      root_output = root_output
    )
    , user_central_log_root = root_base
 ))
+```
 
 
+```{r first_tool3}
 # We need to ensure all output folders exist first
-
 dir.create(root_input, recursive = TRUE, showWarnings = FALSE)
-dir.create(root_ouput, recursive = TRUE, showWarnings = FALSE)
+dir.create(root_output, recursive = TRUE, showWarnings = FALSE)
 
 
 # Now everything should work
-
 slt <- SLT$new(
    user_root_list = list(
       root_input = root_input,
-      root_ouput = root_ouput
+      root_output = root_output
    )
    , user_central_log_root = root_base
 )
@@ -139,12 +184,12 @@ slt <- SLT$new(
 # Ingore this warning, if you see it - it's idiosycratic to the IHME cluster and benign.
 #> Warning in system("timedatectl", intern = TRUE): running command 'timedatectl'
 #> had status 1
+```
 
+What do we have in our root_base folder?
 
-# What do we have in our root_base folder?
+```{r first_tool4}
 print_tree()
-
-
 ```
 
 
@@ -173,46 +218,203 @@ You can mark any output folder as 'best', and give it a 'best' symlink in each o
 
 
 ```{r mark_best}
-
-# First we'll create two `date_version` folders to play with in each root
-
-dir.create(file.path(root_input, "2024_02_02"), recursive = TRUE, showWarnings = FALSE)
-dir.create(file.path(root_ouput, "2024_02_02"), recursive = TRUE, showWarnings = FALSE)
-dir.create(file.path(root_input, "2024_04_10"), recursive = TRUE, showWarnings = FALSE)
-dir.create(file.path(root_ouput, "2024_04_10"), recursive = TRUE, showWarnings = FALSE)
-
-print_tree()
-
-# Define some paths for later use
+# First define some paths for later use
 PATHS <- list(
    log_cent = file.path(root_base, "log_symlinks_central.csv"),
    log_2024_02_02 = file.path(root_input, "2024_02_02", "log_version_history.csv"),
    log_2024_04_10 = file.path(root_input, "2024_04_10", "log_version_history.csv")
 )
+```
 
+First we'll create two `date_version` folders to play with in each root.
 
-# Then we'll mark one as best
+```{r mark_best2}
+dir.create(file.path(root_input, "2024_02_02"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(root_output, "2024_02_02"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(root_input, "2024_04_10"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(root_output, "2024_04_10"), recursive = TRUE, showWarnings = FALSE)
 
-slt$mark_best(date_version = "2024_02_02", user_entry = list(comment = "testing mark_best"))
-slt$mark_best(date_version = "2024_04_10", user_entry = list(comment = "testing mark_best"))
 print_tree()
+```
 
-# And we'll look at logs
+Then we'll mark one as best.
 
-fread(PATHS$log_cent)
-fread(PATHS$log_2024_02_02)
-fread(PATHS$log_2024_04_10)
+```{r mark_best3}
+slt$mark_best(date_version = "2024_02_02", user_entry = list(comment = "testing mark_best"))
+```
 
+Look at the folder structure again.
 
+```{r mark_best_tree}
+print_tree()
 ```
 
 
+Where does the 'best' folder point to?
+
+```{r mark_best3.1}
+grep("best", system(paste("ls -alt", root_input), intern = TRUE), value = TRUE)
+```
+
+Now let's mark the other one as best, and see what happens.
+
+```{r mark_best4}
+slt$mark_best(date_version = "2024_04_10", user_entry = list(comment = "testing mark_best"))
+```
+
+```{r mark_best_tree2}
+print_tree()
+```
+
+
+```{r mark_best_tree3}
+grep("best", system(paste("ls -alt", root_input), intern = TRUE), value = TRUE)
+```
+
+```{r mark_best5}
+fread(PATHS$log_cent)
+```
+
+```{r mark_best6}
+fread(PATHS$log_2024_02_02)
+```
+
+```{r mark_best7}
+fread(PATHS$log_2024_04_10)
+```
+
+
+
+## Inspect Logs
+
+In this trio, we see the central log, and each versioned folder's log of best promotion events.
+
+- The central log only records promotions, not demotions.
+- The versioned logs record both promotions and demotions.
+- Note each log comes with a creation date - this is the log creation date, not the folder creation date (that information isn't available on the cluster). 
+
+
+```{r mark_best_logs1}
+fread(PATHS$log_cent)
+```
+
+
+```{r mark_best_logs2}
+fread(PATHS$log_2024_02_02)
+```
+
+
+```{r mark_best_logs3}
+fread(PATHS$log_2024_04_10)
+```
+
+
+
+## Reports
+
+You've probably also noticed a report.  This also shows the current state of all tool-created symlinks, build from the `date_version` folder logs (not the central log).
+
+- This report runs _automatically_ any time you `mark` a folder.
+   - It only shows symlinks made by this tool, so if you make other symlinks, they won't be included.
+- It runs separately for each root.
+   - For our example, these should match.
+   - If you hand-delete folders from one of your roots, this will reveal a potential mis-match. 
+
+```{r reports}
+fread(file.path(root_input, "report_all_logs_tool_symlink.csv"))
+```
+
+```{r reports2}
+fread(file.path(root_output, "report_all_logs_tool_symlink.csv"))
+```
+
+
+# Create New Folders
+
+This tool was designed to allow the researcher to throw it into their process 'mid-stream' if you will.  I.e. you may mark existing output folders as best, and all the logging takes care of itself.
+
+In addition, the researcher may choose to have this tool manage folder creation.  This is useful if you want to ensure that all your output folders are managed by the same tool, and that the tool is aware of all the `date_version` folders that exist.  Further, there are some reports you can run against your `date_version` logs that are more informative if you create all your folders with the tool.
+
+- This records the creation date and time of each folder, so you can 'round up' folders that are younger or older than some date.
+- The Linux filesystem _**does not record the creation date**_ of a folder (per the Infrastructure team), so this is a value-added feature.
+
+
+```{r create_new_folders}
+# Using the same tool we already create - this will place new folders in the same roots.
+
+# Let's use a programmatic example to rationally build a new date_version.
+date_version_input  <- get_output_dir(root_input,  "today")
+date_version_output <- get_output_dir(root_output, "today")
+if(!date_version_input == date_version_output) {
+   stop("date_version_input and date_version_output must be the same")
+}
+date_version_today  <- intersect(date_version_input, date_version_output)
+
+# This creates folders safely, and will not overwrite existing folders if called twice.
+slt$create_date_version_folders_with_logs(date_version = date_version_today)
+slt$create_date_version_folders_with_logs(date_version = date_version_today)
+```
+
+Now we can see the new folders, with their logs and creation date-time stamps.
+
+- Creating new folders using the method above will index new version as YYYY_MM_DD.VV if reruns on the same day are necessary.
+   - e.g. 2024_04_10.01, 2024_04_10.02, 2024_04_10.03, etc.
+   - Note this behavior is _outside_ the tool, for demonstration purposes only.
+   - The tool assumes the research teams determines its own folder naming conventions.
+
+```{r create_new_folders2}
+print_tree()
+```
+
+```{r create_new_folders3}
+fread(file.path(root_input, date_version_today, "log_version_history.csv"))
+```
+
+This folder can be marked best just as the others, and prior best will be demoted.
+
+```{r create_new_folders4}
+slt$mark_best(date_version = date_version_today, user_entry = list(comment = "testing mark_best"))
+fread(PATHS$log_cent)
+```
+
+```{r create_new_folders5}
+fread(PATHS$log_2024_04_10)
+```
+
+
+# Demote Best
+
+Now let's say you review your results and _NO_ version of outputs should be best.  You can run `unmark()` to remove the 'best' status.
+
+- There are no longer any 'best' symlinks, and the `date_version` log shows demotion.
+- The central log does not show the demotion.  The presence/absence of the best symlink, and the `date_version` log are the acid test of what's current.
+- The tool-symlink report should now be empty.
+
+
+```{r demote_best}
+slt$unmark(date_version = date_version_today, user_entry = list(comment = "testing unmark_best"))
+print_tree()
+```
+
+```{r demote_best2}
+fread(PATHS$log_cent)
+```
+
+```{r demote_best3}
+fread(file.path(root_input, date_version_today, "log_version_history.csv"))
+```
+
+```{r demote_report}
+fread(file.path(root_input, "report_all_logs_tool_symlink.csv"))
+```
+
+
+# Clean Up
+
+This section just clears all the temporary folders and files that have been created.
+
 ```{r clean_up, eval = FALSE}
-
 # Finally, clean up all our temporary folders
-
 unlink(root_base, recursive = TRUE, force = TRUE)
-
-
 ```
 
