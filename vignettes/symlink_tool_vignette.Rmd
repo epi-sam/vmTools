@@ -382,7 +382,7 @@ fread(PATHS$log_2024_04_10)
 
 ## Unmark
 
-Now let's say you review your results and _**no**_ version of outputs should be best.  You can run `unmark()` to remove the 'best' status.
+Now let's say you review your results and _**no**_ version of outputs should be 'best'.  You can run `unmark()` to remove the 'best' status.
 
 - There are no longer any 'best' symlinks, and the `date_version` log shows demotion.
 - The central log does not show the demotion.  The presence/absence of the best symlink, and the `date_version` log are the acid test of what's current.
@@ -409,10 +409,10 @@ fread(file.path(root_input, "report_all_logs_tool_symlink.csv"))
 
 
 
-# Deletion
+## Deletion
 
 
-## Mark remove
+### Mark remove
 
 We love our 'best' version of outputs as long as it's best, but time passes and we get new 'best' versions.
 
@@ -465,7 +465,7 @@ fread(file.path(root_input, "report_all_logs_tool_symlink.csv"))
 
 
 
-## Delete the Folder
+### Delete the Folder
 
 
 First, let's naively try to delete a folder we _haven't_ marked as ready for removal.
@@ -520,6 +520,88 @@ Let's look at the report.
 ```{r delete_folder5}
 fread(file.path(root_input, "report_all_logs_tool_symlink.csv"))
 ```
+
+
+--------------------------------------------------------------------------------
+
+
+
+
+
+# Other Features
+
+Other available features will be covered briefly, and will assume the reader has already read the Symlink Tool Intro section.
+
+
+
+
+## Mark Keep 
+
+It's likely you'll have other output versions you want to keep, but not as 'best'.  You can mark these as 'keep'.
+
+- This will produce symlinks of the form `keep_<date_version>`
+
+```{r mark_keep}
+slt$mark_keep(date_version = "2024_04_10", user_entry = list(comment = "testing mark_keep"))
+```
+
+```{r mark_keep2}
+print_tree()
+```
+
+```{r mark_keep3}
+print_symlink("keep")
+```
+
+
+
+
+## Reports pt 2
+
+In addition to the `report_all_logs_tool_symlink.csv` file, there are other reports available.
+These will show the status of the last log row for each `date_version` folder in each `root` folder.
+
+You can view things like:
+
+- Of all your folders that are not currenlty symlinked (marked), what is their last log entry?
+- Of all symlinked folders, what is their last log entry
+  - includes symlinks not recognized by this tool, just in case you need to audit your symlinks
+
+
+This includes a discrepancy report that shows if logs do not conform to expected standards.
+
+- If you find a log discrepancy that is _not_ caught by this report and you think it should be, please contact the package maintainer.
+  - There is currently no issue queue, but this may be added if there is demand.
+
+
+```{r reports_pt2}
+# Show the types of reports currently available
+slt$reports
+```
+
+```{r reports_pt2b}
+# Run the reports
+slt$reports()
+```
+
+```{r reports_pt2c}
+print_tree()
+```
+
+
+```{r reports_pt2d}
+# View an example report - logs for folders with no active symlink
+# - you can see this folder was previously marked 'best'
+fread(file.path(root_input, "report_all_logs_non_symlink.csv"))
+```
+
+
+```{r reports_pt2e}
+# Expect this to be empty for the vignette
+try(fread(file.path(root_input, "REPORT_DISCREPANCIES.csv")))
+```
+
+
 
 
 
