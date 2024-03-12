@@ -27,7 +27,14 @@ library(fs)
 ```{r utils, include=FALSE}
 
 # Defining a couple vignette utilities
+
+# Print the folder output 'tree' structure
 print_tree <- function() {fs::dir_tree(root_base, recurse = TRUE)}
+
+# print a symlink's target from the file system 
+print_symlink <- function(symlink_type){
+  print(grep(symlink_type, system(paste("ls -alt", root_input), intern = TRUE), value = TRUE))
+}
 
 #' Get output directory for results to save in.
 #'
@@ -83,11 +90,14 @@ get_latest_output_date_index <- function(root, date) {
 
 The SymLink Tool is an R6 object-oriented tool that helps a researcher manage pipeline outputs in a standard way.  It falls under the category of 'standard tooling'.  It will:
 
-1. Help you create 'best' symlinks to the best version of your outputs
-1. Update the 'best' symlink safely when a new version is ready for promotion.
-1. Maintain a log of promotions/demotions within your output folder
+1. Create 'best' symlinks to the best version of your outputs.
+  1. Safely update the 'best' symlink when you, the researcher, want to 'promote' a new version.
+  
+1. Maintain a log of 'best' promotions & demotions within each versioned output folder.
+  1. Provide reports on the state of all these logs. E.g. 'what is currently best?'
+  
 1. Maintain a central log of which versions of your pipeline have ever been 'best'.
-1. Provide reports on the state of all the logs for all versions of your pipeline outputs.
+  1. The central log can also track versioned folder deletion.
 
 
 
@@ -253,7 +263,7 @@ print_tree()
 Where does the 'best' folder point to?
 
 ```{r mark_best3.1}
-grep("best", system(paste("ls -alt", root_input), intern = TRUE), value = TRUE)
+print_symlink("best")
 ```
 
 Now let's mark the other one as best, and see what happens to the symlinks.
@@ -268,7 +278,7 @@ print_tree()
 
 
 ```{r mark_best_tree3}
-grep("best", system(paste("ls -alt", root_input), intern = TRUE), value = TRUE)
+print_symlink("best")
 ```
 
 
@@ -317,7 +327,7 @@ fread(file.path(root_output, "report_all_logs_tool_symlink.csv"))
 ```
 
 
-# Create New Folders
+## Create New Folders
 
 This tool was designed to allow the researcher to throw it into their process 'mid-stream' if you will.  I.e. you may mark existing output folders as best, and all the logging takes care of itself.
 
@@ -370,7 +380,7 @@ fread(PATHS$log_2024_04_10)
 ```
 
 
-# Unmark
+## Unmark
 
 Now let's say you review your results and _**no**_ version of outputs should be best.  You can run `unmark()` to remove the 'best' status.
 
@@ -397,9 +407,125 @@ fread(file.path(root_input, "report_all_logs_tool_symlink.csv"))
 ```
 
 
+
+
+# Deletion
+
+
+## Mark remove
+
+We love our 'best' version of outputs as long as it's best, but time passes and we get new 'best' versions.
+
+When it's time to remove those old folders, we can use this tool  to do that safely, in two stages.
+
+1. Mark a folder to 'remove'.
+1. Delete that marked folder and update the central log.
+  1. This way you have a history of what was deleted, and when.
+
+Think of the two-step process a bit like `git add` and `git commit`. 
+
+- First, you mark a folder with `mark_remove`, which puts it the the 'deletion staging area'.
+- Second, if you're sure you want to delete it, you run `delete_date_version_folders()` to actually delete the folder and update the central log.
+
+Let's demonstrate on the folder we made programmatically with today's date.
+
+
+```{r mark_remove}
+slt$mark_remove(date_version = date_version_today, user_entry = list(comment = "testing mark_remove"))
+```
+
+And let's look at the folder structure.
+
+- since many folders can be marked `remove_`, we combine 'remove_' with the `date_version` to make the folder name unique.
+
+```{r mark_remove2}
+print_tree()
+```
+
+
+```{r mark_remove3}
+print_symlink("remove")
+```
+
+
+
+And finally look at the log.
+
+- It should have a 'promote_remove' action in the last row.
+
+```{r mark_remove4}
+fread(file.path(root_input, date_version_today, "log_version_history.csv"))
+```
+
+The report should also update to show the new symlink.
+
+```{r mark_remove5}
+fread(file.path(root_input, "report_all_logs_tool_symlink.csv"))
+```
+
+
+
+## Delete the Folder
+
+
+First, let's naively try to delete a folder we _haven't_ marked as ready for removal.
+
+- We should be blocked from doing this operation, since we haven't marked the folder as 'remove'.
+- Note: this will try to delete folders in both output `root`s.
+
+```{r delete_folder}
+slt$delete_date_version_folders(date_version = "2024_02_02", user_entry = list(comment = "testing delete_date_version_folders"))
+```
+
+Now let's delete the folder we _have_ marked as ready for removal.
+
+- This will delete the folder and update the central log.
+- This function defaults to requiring user input
+  - For each `root`, it will ask if you're sure you want to delete the folder.
+  - This allow the user to choose what to keep.
+    - E.g. keep outputs, but delete the inputs to free up disk space.
+
+```{r delete_folder2}
+slt$delete_date_version_folders(
+  date_version       = date_version_today,
+  user_entry         = list(comment = "testing delete_date_version_folders"),
+  require_user_input = FALSE
+)
+```
+
+
+Let's look at the folder structure.
+
+- The folder and 'remove_' symlink should be gone.
+
+```{r delete_folder4} 
+print_tree()
+```
+
+Since we no longer have a `date_version` log, we can't look at it.  But we can look at the central log.
+
+- The last two rows should show:
+ - the 'promote_remove' action
+ - the 'delete_remove_folder' action
+
+```{r delete_folder3}
+fread(PATHS$log_cent)
+```
+
+Let's look at the report.
+
+- We should expect to not see the `date_version` in the report, since it's been deleted.
+
+
+```{r delete_folder5}
+fread(file.path(root_input, "report_all_logs_tool_symlink.csv"))
+```
+
+
+
 # Clean Up
 
-This section just clears all the temporary folders and files that have been created.
+This section just clears all the temporary folders and files that have been created when making the vignette.
 
 ```{r clean_up, eval = FALSE}
 # Finally, clean up all our temporary folders

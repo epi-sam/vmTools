@@ -588,7 +588,7 @@ SLT <- R6::R6Class(
          if(!symlink_type %in% private$DICT$symlink_types) stop("Invalid symlink_type: ", symlink_type)
          root         <- DescTools::SplitPath(version_path)$dirname
          root         <- sub("/$", "", root) # remove trailing slash
-         date_version <- DescTools::SplitPath(version_path)$filename
+         date_version <- DescTools::SplitPath(version_path)$fullfilename
 
          symlink_suffix <- switch(
             symlink_type,
@@ -707,7 +707,7 @@ SLT <- R6::R6Class(
 
       },
 
-      delete_remove_folder = function(root, date_version, user_entry){
+      delete_remove_folder = function(root, date_version, user_entry, require_user_input){
          private$assert_dir_exists(root)
          private$assert_scalar(date_version)
 
@@ -727,16 +727,23 @@ SLT <- R6::R6Class(
                "  -- for: ", date_version, "\n",
                "  -- in root: ", root
             )
+
             ret_val_deleted_TF <- NULL
-         } else {
+
+         } else if (require_user_input == TRUE) {
+
             dirnames_to_unlink <- folder_dt[dir_date_version == date_version, dir_name]
+
             message("") # newline for visual clarity
+
             user_input <- utils::menu(
                title = paste0("Do you want to delete the following folders?\n  ",
                               paste(dirnames_to_unlink, collapse = "\n  "))
                , choices = c("No", "Yes")
             )
+
             message("") # newline for visual clarity
+
             # Prompt user input to confirm deletion
             if(user_input == 2){
                private$DYNAMIC$LOG$action <- "delete_remove_folder"
@@ -747,8 +754,25 @@ SLT <- R6::R6Class(
             }
 
             ret_val_deleted_TF <- ifelse(user_input == 2, TRUE, FALSE)
+
+         } else if (require_user_input == FALSE) {
+
+            dirnames_to_unlink <- folder_dt[dir_date_version == date_version, dir_name]
+
+            message("") # newline for visual clarity
+
+            private$DYNAMIC$LOG$action <- "delete_remove_folder"
+            for(dir_name in dirnames_to_unlink){
+               message("Deleting ", dir_name)
+               unlink(x = dir_name, recursive = TRUE, force = TRUE)
+            }
+
+            ret_val_deleted_TF <- TRUE
+         } else {
+            stop("Unforeseen error in `delete_remove_folder` function. Please contact the developer.")
          }
 
+         return(ret_val_deleted_TF)
 
       },
 
@@ -1972,11 +1996,15 @@ SLT <- R6::R6Class(
       #'
       #' Removes the symlink(s) and the underlying folder(s), and updates central log if folders were removed.
       #'
+      #' @param date_version [chr]
+      #' @param user_entry [list] named list of log entry fields
+      #' @param require_user_input [lgl] if TRUE, will prompt user to confirm deletion
+      #'
       #' @return
       #' @export
       #'
       #' @examples
-      delete_date_version_folders = function(date_version, user_entry){
+      delete_date_version_folders = function(date_version, user_entry, require_user_input = TRUE){
 
          private$handler_pre_mark(
             date_version = date_version,
@@ -1984,15 +2012,18 @@ SLT <- R6::R6Class(
          )
 
          ret_val_deleted_TF <- lapply(
-            private$DICT$ROOTS,
-            private$delete_remove_folder, date_version = date_version, user_entry = user_entry
+            X   = private$DICT$ROOTS,
+            FUN = private$delete_remove_folder,
+            date_version       = date_version,
+            user_entry         = user_entry,
+            require_user_input = require_user_input
          )
 
          ret_val_deleted_TF <- unlist(ret_val_deleted_TF)
 
          if(any(ret_val_deleted_TF)) {
             private$handler_post_mark(date_version = date_version,
-                                      user_entry = user_entry)
+                                      user_entry   = user_entry)
          }
       },
 
