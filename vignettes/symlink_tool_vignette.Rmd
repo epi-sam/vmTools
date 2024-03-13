@@ -601,8 +601,135 @@ fread(file.path(root_input, "report_all_logs_non_symlink.csv"))
 try(fread(file.path(root_input, "REPORT_DISCREPANCIES.csv")))
 ```
 
+## Roundups
+
+Let's say you have a set of folders you want to keep or remove, and you want to do it all at once.
+
+We'll demonstrate by:
+
+1. Making a set of dummy folders
+  1. Marking some as `remove_`
+    1. Rounding up the `remove_` folders for deletion
+  1. Round up the rest by date
+    1. Mark these as `keep_`
+
+```{r roundup}
+# Make a set of dummy folders
+dv1  <- get_output_dir(root_input,  "today")
+slt$create_date_version_folders_with_logs(dv1)
+dv2  <- get_output_dir(root_input,  "today")
+slt$create_date_version_folders_with_logs(dv2)
+dv3  <- get_output_dir(root_input,  "today")
+slt$create_date_version_folders_with_logs(dv3)
+dv4  <- get_output_dir(root_input,  "today")
+slt$create_date_version_folders_with_logs(dv4)
+print_tree()
+```
+
+### roundup_remove
+
+```{r roundup2}
+# Mark some as 'remove_'
+for(dv in c(dv1, dv2)){
+  slt$mark_remove(dv, user_entry = list(comment = "mark_remove for roundup"))
+}
+```
 
 
+```{r roundup3}
+# Round up and delete
+roundup_remove_list <- slt$roundup_remove()
+if(!identical(roundup_remove_list$root_input$dir_date_version, roundup_remove_list$root_output$dir_date_version)){
+  stop("roundup_remove found different date_versions in each `root` folder")
+}
+```
+
+```{r roundup4}
+for(dv in roundup_remove_list$root_input$dir_date_version){
+  slt$delete_date_version_folders(
+    date_version       = dv,
+    user_entry         = list(comment = "roundup_remove"),
+    require_user_input = FALSE
+  )
+}
+```
+
+```{r roundup5}
+print_tree()
+```
+
+
+
+### roundup_by_date
+
+Use the log creation date (first row) to round up folders created on, before, or after that date.
+
+```{r roundup6}
+my_date <- format(Sys.Date(), "%Y_%m_%d")
+roundup_date_list <- slt$roundup_by_date(
+  user_date     = my_date,
+  date_selector = "lte", # less than or equal to today's date
+  verbose       = TRUE
+)
+```
+
+```{r roundup7}
+# mark all our dummy folders (with the ".VV" pattern) as keepers
+dv_keep <- grep(
+  pattern = "\\.\\d\\d"
+  , x = roundup_date_list$root_input$dir_date_version
+  , value = TRUE
+)
+for(dv in dv_keep){
+  suppressMessages(
+    slt$mark_keep(dv, user_entry = list(comment = "roundup_by_date"))
+  )
+}
+print_tree()
+```
+
+### Make new log
+
+The date roundup relies on the log creation date (recall, the Linux filesystem
+does not record folder creation / birth dates). If you've made your own folders
+without the symlink tool, you can make a blank log easily.  You can hand-edit
+the creation date if you know when the folder was made.
+
+Note: The tool tries to resolve all operations in each `root` independently.  So even though we're not creating a folder in both our `root`s, the tool will create as many logs as it can.
+
+_**If you need to handle roots independently, then you should instantiate different versions of the tool to handle each independent root, giving each instance of the tool a unique name e.t. `slt_input` and `slt_output`**._
+
+```{r make_new_log}
+# Make a naive folder without a log
+dir.create(file.path(root_output, "2024_04_10_naive"))
+try(slt$make_new_log(date_version = "2024_04_10_naive"))
+```
+
+```{r make_new_log2}
+print_tree()
+```
+
+### Internal State
+
+You can audit the internal state of the tool with the `print_` functions.
+
+```{r print}
+# Print all the static internal fields.
+# - roots are likely most interesting to the user.
+slt$print_dictionaries(item_names = "ROOTS")
+```
+
+
+```{r print2}
+# Call without args to show everything
+slt$print_dictionaries()
+```
+
+```{r print3}
+# Show the last 'action' the tool performed
+# - these fields reset each time the user defines a new action, and are set as part of the 'marking' operations.
+slt$print_dynamic_fields()
+```
 
 
 # Clean Up
@@ -611,6 +738,7 @@ This section just clears all the temporary folders and files that have been crea
 
 ```{r clean_up, eval = FALSE}
 # Finally, clean up all our temporary folders
+slt$
 unlink(root_base, recursive = TRUE, force = TRUE)
 ```
 
