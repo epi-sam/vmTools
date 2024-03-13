@@ -111,11 +111,7 @@ SLT <- R6::R6Class(
             path  = NULL
          ),
 
-         ## Initialize: internally-defined
 
-         # In `initialize()`, defined as `setdiff(names(private$DICT$log_schema), private$DICT$log_fields_auto)`
-         # e.g. c("comment") at time of writing
-         log_fields_user = NULL,
 
          ## Logs
 
@@ -144,6 +140,10 @@ SLT <- R6::R6Class(
             , "action"
          ),
 
+         ## Initialize: internally-defined
+         # In `initialize()`, defined as `setdiff(names(private$DICT$log_schema), private$DICT$log_fields_auto)`
+         # e.g. c("comment") at time of writing
+         log_fields_user = NULL,
 
 
          ## Status updates / symlinks
@@ -416,7 +416,7 @@ SLT <- R6::R6Class(
 
       assert_user_date = function(user_date){
          # user date should be formatted as YYYY MM DD with select delimiters between
-         valid_date_classes <- c("character", "POSIXct", "POSIXt")
+         valid_date_classes <- c("character", "Date", "POSIXct", "POSIXt")
          if(!any(class(user_date) %in% valid_date_classes)){
             stop("Invalid user_date. Must be one of: ", toString(valid_date_classes), "\n",
                  "Received: ", class(user_date))
@@ -1565,17 +1565,10 @@ SLT <- R6::R6Class(
       }
 
 
-
+      # END OF PRIVATE LIST
       # ^ NO FINAL COMMA
-      # END OF PRIVATE METHODS
       # NOTHING BELOW THIS LINE
       # CLOSING PARENTHEIS BELOW
-
-
-
-
-
-
 
 
    ),
@@ -1591,13 +1584,23 @@ SLT <- R6::R6Class(
 
       #' Initialize a symlink tool by GBD round
       #'
-      #' Any time the tool is made, the tool is GBD-round specific.  Create one per round if you need more than one
+      #' Any time the tool is made, the tool is GBD-round specific.  Create one
+      #' per round if you need more than one
       #'
       #'
-      #' @return
+      #' @param user_root_list [list] Named list of root directories for
+      #'   pipeline outputs. This is where `date_version` folders live (these
+      #'   are iterative runs of an analysis pipeline.)
+      #' @param user_central_log_root [path] Root directory for the central log.
+      #'   If you have multiple roots in the `user_root_list`, you probably want
+      #'   the central log to live one level above those roots.
+      #'
+      #' @return [symlink_tool] A symlink tool object.  You can instantiate
+      #'   (create) multiple version, each of which has different roots and
+      #'   central logs.
       #' @export
       #'
-      #' @examples
+      #' @examples See the symlink_tool_vignette.
       initialize = function(user_root_list = NULL, user_central_log_root = NULL) {
 
          # useful start up feedback
@@ -1674,9 +1677,11 @@ SLT <- R6::R6Class(
 
       #' Print the contents of all private dictionaries.
       #'
-      #' @param item_names [chr] vector of dictionaries you want to see
+      #' @param item_names [chr] Default `NULL`.  If `NULL`, show all static
+      #'   internal fields.  Otherwise, vector of static field names you want to
+      #'   see.
       #'
-      #' @return [std_out]
+      #' @return [std_out] Print static field values to std_out.
       #' @export
       #'
       #' @examples
@@ -1693,9 +1698,11 @@ SLT <- R6::R6Class(
 
       #' Print the contents of all dynamic fields.
       #'
-      #' @param item_names [chr] vector of fields you want to see
+      #' @param item_names [chr] Default `NULL`.  If `NULL`, show all dynamic
+      #'   internal fields.  Otherwise, vector of dynamic field names you want
+      #'   to see.
       #'
-      #' @return [std_out]
+      #' @return [std_out] Print dynamic field values to std_out.
       #' @export
       #'
       #' @examples
@@ -1720,8 +1727,19 @@ SLT <- R6::R6Class(
       #'
       #' Writes:
       #' - appends to a log file in the output folder with a date and time stamp
+      #' - appends a line to the central log file with a date and time stamp
       #'
-      #' @return
+      #' @param date_version [chr] The directory name of the output folder that
+      #'   lives directly under one of the `root`s you define when you
+      #'   instantiate the tool.
+      #' @param user_entry [list] Named list of user-defined fields to append to
+      #'   the log.  After making a tool called e.g. slt, call
+      #'   `slt$print_dictionaries("log_fields_user")` to find which fields a
+      #'   user may add.  If you want to make your own version of this class,
+      #'   you may update `log_schema` in the `private$DICT` section to allow
+      #'   for them.
+      #'
+      #' @return [ste_err] Messages about actions taken.
       #' @export
       #'
       #' @examples
@@ -1729,9 +1747,10 @@ SLT <- R6::R6Class(
 
          # For all date_version folders, do the following:
          # 1. check if there is already a best model symlink
-         # 2. if there is, demote it (unlink the current 'best' symlink) & append to the log
+         # 2. if there is, demote it using `unlink()` & append to the log
          # 3. make a new best model symlink
-         # 4. append to the log
+         # 4. append to the date_version log
+         # 5. append to the central log
 
          private$handler_pre_mark(
             date_version = date_version,
@@ -1768,8 +1787,19 @@ SLT <- R6::R6Class(
       #'
       #' Writes:
       #' - appends to a log file in the output folder with a date and time stamp
+      #' - appends a line to the central log file with a date and time stamp
       #'
-      #' @return
+      #' @param date_version [chr] The directory name of the output folder that
+      #'   lives directly under one of the `root`s you define when you
+      #'   instantiate the tool.
+      #' @param user_entry [list] Named list of user-defined fields to append to
+      #'   the log.  After making a tool called e.g. slt, call
+      #'   `slt$print_dictionaries("log_fields_user")` to find which fields a
+      #'   user may add.  If you want to make your own version of this class,
+      #'   you may update `log_schema` in the `private$DICT` section to allow
+      #'   for them.
+      #'
+      #' @return [std_err] Messages about actions taken.
       #' @export
       #'
       #' @examples
@@ -1777,6 +1807,7 @@ SLT <- R6::R6Class(
 
          # 1. make a new keep model symlink
          # 2. append to the log
+         # 3. append to the central log
 
          private$handler_pre_mark(
             date_version = date_version,
@@ -1813,14 +1844,28 @@ SLT <- R6::R6Class(
       #'
       #' Writes:
       #' - appends to a log file in the output folder with a date and time stamp
+      #' - appends a line to the central log file with a date and time stamp
       #'
-      #' @return
+      #' @param date_version [chr] The directory name of the output folder that
+      #'   lives directly under one of the `root`s you define when you
+      #'   instantiate the tool.
+      #' @param user_entry [list] Named list of user-defined fields to append to
+      #'   the log.  After making a tool called e.g. slt, call
+      #'   `slt$print_dictionaries("log_fields_user")` to find which fields a
+      #'   user may add.  If you want to make your own version of this class,
+      #'   you may update `log_schema` in the `private$DICT` section to allow
+      #'   for them.
+      #'
+      #' @return [std_err] Messages about actions taken.
       #' @export
       #'
       #' @examples
       mark_remove = function(date_version, user_entry){
+
          # 1. make a new remove model symlink
          # 2. append to the log
+         # 3. append to the central log
+
          private$handler_pre_mark(
             date_version = date_version,
             user_entry   = user_entry
@@ -1851,8 +1896,22 @@ SLT <- R6::R6Class(
 
       #' Remove all symlinks for a single `date_version` in all `roots`
       #'
+      #' Writes:
+      #' - appends to a log file in the output folder with a date and time stamp
+      #' - does _not_ append to the central log file
+      #'
+      #' @param date_version [chr] The directory name of the output folder that
+      #'   lives directly under one of the `root`s you define when you
+      #'   instantiate the tool.
+      #' @param user_entry [list] Named list of user-defined fields to append to
+      #'   the log.  After making a tool called e.g. slt, call
+      #'   `slt$print_dictionaries("log_fields_user")` to find which fields a
+      #'   user may add.  If you want to make your own version of this class,
+      #'   you may update `log_schema` in the `private$DICT` section to allow
+      #'   for them.
+      #'
       #' @return
-      #' @export
+      #' @export [std_err] Messages about the symlinks removed.
       #'
       #' @examples
       unmark = function(date_version, user_entry){
@@ -1878,7 +1937,7 @@ SLT <- R6::R6Class(
       #' Return both the symlink and the resolved symlink (folder the symlink
       #' points to)
       #'
-      #' @return [list] list of data.tables - one for each root
+      #' @return [list] list of data.tables - one for each `root`
       #' @export
       #'
       #' @examples
@@ -1889,14 +1948,20 @@ SLT <- R6::R6Class(
       #' Find all `date_version` folders by creation date
       #'
       #' Only finds folders that _have a log_, and reads creation date on first
-      #' row.  May select by:
+      #' row.  User may select dates by (using the `date_selector` argument):
       #' - greater than - `gt`
       #' - greater than or equal to - `gte`
       #' - less than - `nt`
       #' - less than or equal to `nte`
       #' - equal to `e`
       #'
-      #' @return [list] list of data.tables - one for each root
+      #' @param user_date [c("character", "Date", POSIXct", "POSIXt")] A date
+      #'   with class requirements - must be formatted "2020-01-01 or 2020_01_01
+      #'   or 2020/01/01"
+      #' @param date_selector [chr] See docstring explanation.
+      #' @param verbose [lgl] If `TRUE`, std_err message.
+      #'
+      #' @return [list] list of data.tables - one for each `root`
       #' @export
       #'
       #' @examples
@@ -1941,7 +2006,11 @@ SLT <- R6::R6Class(
       #' Create a new log in each folder.  No symlinks are created.  No
       #' `user_entry` is used.
       #'
-      #' @return
+      #' @param date_version [chr] The directory name of the output folder that
+      #'   lives directly under one of the `root`s you define when you
+      #'   instantiate the tool.
+      #'
+      #' @return [std_err] Messages about the folder creation.
       #' @export
       #'
       #' @examples
@@ -1964,7 +2033,11 @@ SLT <- R6::R6Class(
       #' - you can roundup date_versions by creation date using the log's first entry
       #' - the file system doesn't track directory creation dates (at time of writing)
       #'
-      #' @return
+      #' @param date_version [chr] The directory name of the output folder that
+      #'   lives directly under one of the `root`s you define when you
+      #'   instantiate the tool.
+      #'
+      #' @return [std_err] Messages about the log creation.
       #' @export
       #'
       #' @examples
@@ -1992,15 +2065,28 @@ SLT <- R6::R6Class(
 
       ## Folder Deletion -------------------------------------------------------
 
-      #' Delete a `date_version` folder marked with a `remove_` symlink from _ALL ITS ROOTS_
+      #' Delete a `date_version` folder marked with a `remove_` symlink from
+      #' _ALL ITS ROOTS_
       #'
-      #' Removes the symlink(s) and the underlying folder(s), and updates central log if folders were removed.
+      #' Removes the symlink(s) and the underlying folder(s), and updates
+      #' central log if folders were removed.
       #'
-      #' @param date_version [chr]
-      #' @param user_entry [list] named list of log entry fields
-      #' @param require_user_input [lgl] if TRUE, will prompt user to confirm deletion
+      #' Writes:
+      #' - appends a line to the central log file with a date and time stamp
       #'
-      #' @return
+      #' @param date_version [chr] The directory name of the output folder that
+      #'   lives directly under one of the `root`s you define when you
+      #'   instantiate the tool.
+      #' @param user_entry [list] Named list of user-defined fields to append to
+      #'   the log.  After making a tool called e.g. slt, call
+      #'   `slt$print_dictionaries("log_fields_user")` to find which fields a
+      #'   user may add.  If you want to make your own version of this class,
+      #'   you may update `log_schema` in the `private$DICT` section to allow
+      #'   for them.
+      #' @param require_user_input [lgl] if `TRUE`, will prompt user to confirm
+      #'   deletion.
+      #'
+      #' @return [std_err] Messages about deletion events.
       #' @export
       #'
       #' @examples
@@ -2033,9 +2119,10 @@ SLT <- R6::R6Class(
 
       #' Make all reports
       #'
-      #' Writes all reports to a summary .csv for every `root` defined in the tool
+      #' Writes all reports to a summary .csv for every `root` defined in the
+      #' tool.
       #'
-      #' @return
+      #' @return [std_err] Messages about where reports were written.
       #' @export
       #'
       #' @examples
@@ -2052,7 +2139,20 @@ SLT <- R6::R6Class(
       }
 
 
+      # END OF PUBLIC LIST
+      # ^ NO FINAL COMMA
+      # NOTHING BELOW THIS LINE
+      # CLOSING PARENTHEIS BELOW
+
+
    )
+
+
+   # END OF CLASS DEFINITION
+   # ^ NO FINAL COMMA
+   # NOTHING BELOW THIS LINE
+   # CLOSING PARENTHEIS BELOW
+
 )
 
 
