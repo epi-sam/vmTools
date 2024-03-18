@@ -125,23 +125,37 @@ get_latest_output_date_index <- function(root, date) {
 
 
 
-## Assumptions
-
-This tool assumes you have a large set of output folders for runs of your pipeline, and you store them on the cluster file system.
-
-If you're already using a central database to manage your output versions, you probably don't need this.  You can stop reading now!
+## Give Me a High-Level Overview
 
 
+The SymLink Tool is a way for researchers to manage multiple data pipeline output runs.  
+
+- It's a device you can 'drop into' your pipeline to automatically track when a run is 'best' or 'important for a paper'.
+
+It's designed with user flexibility and project officers in mind, and doesn't require using anything like a database.
+
+- Everything important you need to see is immediately visible as files and folders in the file system.
 
 
-## Tell Me All About It
 
 
-The SymLink Tool is a way for researchers to manage data pipeline output runs.  It will:
+## Is This for Me and My Team?
+
+This tool assumes you have a large set of output folders for runs of your pipeline, and you store them on the file system.
+
+- If you're already using a central database to manage your output versions, you probably don't need this.  You can stop reading now!
+
+
+
+
+## Give Me a Little More Detail
+
+
+The Symlink Tool will:
 
 1. Create a 'best' symlink to the 'best' pipeline run of your outputs.
-    1. This is just a shortcut link in the `H:` drive i.e. on the Cluster File System.
-    1. It allows you to have a **stable** file path to results **that you and others don't need to update**.
+    1. This is just a shortcut link in the `H:` or `J:` drive i.e. on the File System.
+    1. It allows you to have a **stable file path** to results **that you and others don't need to update**.
     1. Safely update the 'best' symlink when you, the researcher, want to 'promote' a new pipeline run to being 'best'.
 
 
@@ -164,7 +178,9 @@ The most important thing you get are some simple **logs** that automatically kee
 > Hmm, is that all?  I feel like I could keep an excel document or HUB page that does the same thing?
 
 
-That's very true.  But maybe there are pipeline runs you want to track for different reasons.  
+That's very true, but this doesn't require you to remember, or do any typing yourself.  
+
+Also, maybe there are pipeline runs you want to track for different reasons.  
 
 - What if you want to keep a pipeline run for a paper, but it's not the 'best' GBD pipeline run.  What if you write multiple papers?  
 - Do you want to keep track of all those by hand?  I don't!
@@ -182,16 +198,17 @@ And your **Project Officer** gets things too!
 > That sounds pretty nice, but didn't you also say something about deleting folders?  Why do I need help doing that?
 
 
-Ah!  I'm glad you asked.  The SymLink Tool will also:
+You get some additional benefits - The SymLink Tool will also:
 
 1. Let you mark folders you want to 'remove' **before** you actually delete them.
     1. This is a **staging area** where you can take time to decide before you actually delete them.
     1. You can also 'unmark' them for removal if you change your mind.
-1. When you want to really delete them you'll get:
+
+When you're ready to delete, you'll get:
     1. **Safety** 
         - The Symlink Tool will only delete folders that marked to 'remove'.
     1. **Provenance** 
-        - You'll get a record in the central log telling you which pipeline runs were deleted, when, and you can add a note about why they were deleted.
+        - You'll get a record in the central log telling you which pipeline runs were deleted, when, why they were deleted (user gets to add a comment).
 
 
 
