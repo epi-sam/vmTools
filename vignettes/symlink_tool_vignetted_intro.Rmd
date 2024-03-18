@@ -1,0 +1,187 @@
+---
+title: "Symlink Tool Intro Vignette"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+# This is lighter weight, but doesn't support TOC
+# output: rmarkdown::html_vignette
+# vignette: >
+#   %\VignetteIndexEntry{symlink_tool_vignette}
+#   %\VignetteEngine{knitr::rmarkdown}
+#   %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+
+# Chunk options
+
+# This is a nice default so log output doesn't wrap
+options(width = 320)
+
+# save the built-in output hook
+hook_output <- knitr::knit_hooks$get("output")
+
+# set a new output hook to truncate text output
+# if the output is too long, it will be truncated like:
+# 
+# top output
+# ...
+# bottom output
+knitr::knit_hooks$set(output = function(x, options) {
+  if (!is.null(n <- options$out.lines)) {
+    x <- xfun::split_lines(x)
+    if (length(x) > n) {
+      # truncate the output
+      # x <- c(head(x, n), "....\n")
+      x <- c(head(x, n/2), '....', tail(x, n/2 + 1))
+    }
+    x <- paste(x, collapse = "\n")
+  }
+  hook_output(x, options)
+})
+```
+
+```{r setup}
+# Installing locally only allows main branch - switching to load_all for development
+devtools::load_all()
+# library(vmTools, lib.loc = file.path("/mnt/share/code", Sys.info()[["user"]], "r_pkgs"))
+library(data.table)
+library(fs)
+```
+
+```{r utils, include = FALSE}
+
+# Defining a couple vignette utilities
+
+# Print the folder output 'tree' structure
+print_tree <- function() {fs::dir_tree(root_base, recurse = TRUE)}
+
+# Make a directory with desired defaults without cluttering the vignette
+make_directory <- function(path){
+  dir.create(path, recursive = TRUE, showWarnings = FALSE)
+}
+
+# print a symlink's target from the file system 
+print_symlink <- function(symlink_type){
+  print(grep(symlink_type, system(paste("ls -alt", root_input), intern = TRUE), value = TRUE))
+}
+
+#' Get output directory for results to save in.
+#'
+#' Returns a path to save results in of the form "YYYY_MM_DD.VV".
+#'
+#' @param root path to root of output results
+#' @param date character date in form of "YYYY_MM_DD" or "today". "today" will be interpreted as today's date.
+get_output_dir <- function(root, date) {
+  if (date == "today") {
+    date <- format(Sys.Date(), "%Y_%m_%d")
+  }
+  cur.version <- get_latest_output_date_index(root, date = date)
+  
+  dir.name <- sprintf("%s.%02i", date, cur.version + 1)
+  return(dir.name)
+}
+
+#' get the latest index for given an output dir and a date
+#'
+#' directories are assumed to be named in YYYY_MM_DD.VV format with sane
+#' year/month/date/version values.
+#'
+#' @param dir path to directory with versioned dirs
+#' @param date character in be YYYY_MM_DD format
+#'
+#' @return largest version in directory tree or 0 if there are no version OR
+#' the directory tree does not exist
+get_latest_output_date_index <- function(root, date) {
+  currentfolders <- list.files(root)
+  
+  # subset to date
+  pat <- sprintf("^%s[.]\\d{2}$", date)
+  date_dirs <- grep(pat, currentfolders, value = TRUE)
+  
+  if (length(date_dirs) == 0) {
+    return(0)
+  }
+  
+  # get the index after day
+  date_list <- strsplit(date_dirs, "[.]")
+  
+  inds <- unlist(lapply(date_list, function(x) x[2]))
+  if (is.na(max(inds, na.rm = TRUE))) inds <- 0
+  
+  return(max(as.numeric(inds)))
+}
+```
+
+
+
+
+# What is the SymLink Tool?
+
+
+
+## Assumptions
+
+This tool assumes you have a large set of output folders for runs of your pipeline, and you store them on the cluster file system.
+
+If you're already using a central database to manage your output versions, you probably don't need this.  You can stop reading now!
+
+
+
+
+## Tell Me All About It
+
+
+The SymLink Tool is a way for researchers to manage data pipeline output runs.  It will:
+
+1. Create a 'best' symlink to the 'best' pipeline run of your outputs.
+    1. This is just a shortcut link in the `H:` drive i.e. on the Cluster File System.
+    1. It allows you to have a stable file path to results that you and others don't need to update.
+    1. Safely update the 'best' symlink when you, the researcher, want to 'promote' a new pipeline run to being 'best'.
+
+
+
+> OK, that's nice, but symlinks are pretty easy to make.  What else do I (the researcher) get **for free** if I use this tool?
+
+
+The most important thing you get are some simple logs, that auto-magically keep track of which folders have been 'best.'
+
+1. Maintain a central log of which versions of your pipeline have ever been 'best'.
+    1. Allows you to keep older versions around for a while in case you need to 'roll back' what you consider 'best'.
+    1. Track deletion of old pipeline runs.
+1. Maintain run-specific log of 'best' promotions & demotions within each versioned output folder.
+    1. Run reports for your Project Officer on the state of all your important pipeline outputs.  
+
+
+
+> Hmm, is that all?  I feel like I could keep an excel document or HUB page that does the same thing?
+
+
+That's very true.  But maybe there are folders you want to track for different reasons.  
+
+- What if you want to keep a pipeline run for a paper, but it's not the 'best' GBD pipeline run.  What if you write multiple papers?  
+- Do you want to keep track of all those by hand?  I don't!
+
+1. Mark folders as 'keep', with a symlink that tells you it's important.
+    1. You get all the same log and report benefits as the 'best' symlink.
+
+
+
+> OK, this sounds pretty nice, but didn't you also say something about deleting folders?  Why do I need help doing that?
+
+
+Ah!  I'm glad you asked.  The SymLink Tool will also:
+
+1. Let you mark folders you want to 'remove' **before** you actually delete them.
+    1. This is a 'staging area' where you can take time to decide before you actually remove them.
+    1. You can also 'unmark' them for removal if you change your mind.
+1. When you want to really delete them:
+    1. You'll get a warning if you try to delete a folder that isn't marked for removal (safety).
+    1. You'll get a line in the central log so you know what happened in the future (provenance).
+
+

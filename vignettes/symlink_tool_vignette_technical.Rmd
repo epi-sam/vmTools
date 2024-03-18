@@ -1,5 +1,5 @@
 ---
-title: "symlink_tool_vignette"
+title: "Symlink Tool Technical Vignette"
 output: 
   html_document:
     toc: true
