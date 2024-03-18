@@ -46,7 +46,7 @@ knitr::knit_hooks$set(output = function(x, options) {
 })
 ```
 
-```{r setup}
+```{r setup, include = FALSE}
 # Installing locally only allows main branch - switching to load_all for development
 devtools::load_all()
 # library(vmTools, lib.loc = file.path("/mnt/share/code", Sys.info()[["user"]], "r_pkgs"))
@@ -141,7 +141,7 @@ The SymLink Tool is a way for researchers to manage data pipeline output runs.  
 
 1. Create a 'best' symlink to the 'best' pipeline run of your outputs.
     1. This is just a shortcut link in the `H:` drive i.e. on the Cluster File System.
-    1. It allows you to have a stable file path to results that you and others don't need to update.
+    1. It allows you to have a **stable** file path to results **that you and others don't need to update**.
     1. Safely update the 'best' symlink when you, the researcher, want to 'promote' a new pipeline run to being 'best'.
 
 
@@ -149,39 +149,66 @@ The SymLink Tool is a way for researchers to manage data pipeline output runs.  
 > OK, that's nice, but symlinks are pretty easy to make.  What else do I (the researcher) get **for free** if I use this tool?
 
 
-The most important thing you get are some simple logs, that auto-magically keep track of which folders have been 'best.'
+The most important thing you get are some simple **logs** that automatically keep track of which folders have been 'best.'
 
-1. Maintain a central log of which versions of your pipeline have ever been 'best'.
-    1. Allows you to keep older versions around for a while in case you need to 'roll back' what you consider 'best'.
+1. Maintain a **central log.**
+    1. Which pipeline run is currently 'best'?
+    1. Which older runs were _ever_ 'best' in case you need to 'roll back' what you consider 'best'.
     1. Track deletion of old pipeline runs.
-1. Maintain run-specific log of 'best' promotions & demotions within each versioned output folder.
-    1. Run reports for your Project Officer on the state of all your important pipeline outputs.  
-
+1. Maintain **run-specific logs.**
+    1. When was this runs started?  (the file system actually _doesn't_ keep track of this!)
+    1. When was it marked 'best'?
+    1. If it stopped being 'best', when did that happen?
 
 
 > Hmm, is that all?  I feel like I could keep an excel document or HUB page that does the same thing?
 
 
-That's very true.  But maybe there are folders you want to track for different reasons.  
+That's very true.  But maybe there are pipeline runs you want to track for different reasons.  
 
 - What if you want to keep a pipeline run for a paper, but it's not the 'best' GBD pipeline run.  What if you write multiple papers?  
 - Do you want to keep track of all those by hand?  I don't!
 
-1. Mark folders as 'keep', with a symlink that tells you it's important.
-    1. You get all the same log and report benefits as the 'best' symlink.
+1. Mark folders as 'keep', with a symlink and log entry that tells you it's important.
+    1. You get all the same central log benefits as the 'best' symlink.
+    
+
+And your **Project Officer** gets things too!
+
+1. Run reports on **all these logs simultaneously** about the status of all your important pipeline outputs.  
 
 
 
-> OK, this sounds pretty nice, but didn't you also say something about deleting folders?  Why do I need help doing that?
+> That sounds pretty nice, but didn't you also say something about deleting folders?  Why do I need help doing that?
 
 
 Ah!  I'm glad you asked.  The SymLink Tool will also:
 
 1. Let you mark folders you want to 'remove' **before** you actually delete them.
-    1. This is a 'staging area' where you can take time to decide before you actually remove them.
+    1. This is a **staging area** where you can take time to decide before you actually delete them.
     1. You can also 'unmark' them for removal if you change your mind.
-1. When you want to really delete them:
-    1. You'll get a warning if you try to delete a folder that isn't marked for removal (safety).
-    1. You'll get a line in the central log so you know what happened in the future (provenance).
+1. When you want to really delete them you'll get:
+    1. **Safety** 
+        - The Symlink Tool will only delete folders that marked to 'remove'.
+    1. **Provenance** 
+        - You'll get a record in the central log telling you which pipeline runs were deleted, when, and you can add a note about why they were deleted.
 
+
+
+> I'm still reading, and curious to see how this works.
+
+
+
+
+
+--------------------------------------------------------------------------------
+
+
+
+# Demonstration 
+
+
+```{r}
+
+```
 
