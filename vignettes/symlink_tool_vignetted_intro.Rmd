@@ -225,7 +225,40 @@ When you're ready to delete, you'll get:
 # Demonstration 
 
 
-```{r}
+In the following demonstration, we'll show the life-cycle of a pipeline run's
+output folder, from creation, to filling with data, to marking as 'best', to
+marking as 'keep', to marking as 'remove', and finally to deletion.
+
+We'll show how the logs update at a couple key points.
+
+This won't be an exhaustive demonstration of all the available options, this is a vignette of an average use case.
+
+See the `symlink_tool_vignette_technical.Rmd` file for more detailed technical explanations.
+
+
+
+
+## The `to_model` Folder
+
+My team uses a `to_model` folder for all inputs we submit to ST-GPR.  
+This way we can prepare the data, then submit various ST-GPR models with
+different parameters without needing to re-prep the inputs. The results of the
+ST-GPR models go into an output folder, which we'll ignore for simplicity.
+
+
+```{r baseline_folder, include = FALSE}
+# Building up a dummy output folder
+
+# Make the root
+root_base   <- file.path(tempdir(), "slt")
+root_input  <- file.path(root_base, "to_model")
+make_directory(root_input)
+
+# Make some dummy folders
+
+slt_prep <- SLT$new(user_root_list = list("to_model" = root_input), user_central_log_root = root_input)
+
+get_output_dir(root_input, "2024_02_01")
 
 ```
 
