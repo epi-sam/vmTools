@@ -38,11 +38,11 @@
 #       - this would also make the central log a bit more "high level" and less "fine-grained"
 #       - THIS IS FINE for v 1.0
 # TODO SB - 2024 Feb 28 -
-# - [ ] option to delete `remove_` folders and symlink and append action to central log
-# - [ ] option to create new folders with new log
+# - [x] option to delete `remove_` folders and symlink and append action to central log
+# - [x] option to create new folders with new log
 # TODO SB - 2024 Feb 15 -
 # - [x] public function for empty log (for first pipeline outputs)
-# - [ ] allow user to set root(s) at initialization
+# - [x] allow user to set root(s) at initialization
 # - [ ] clean up function args that only pass around private$DICT values - use private$DICT directly
 
 
@@ -184,7 +184,7 @@ SLT <- R6::R6Class(
       # For each date_version operation, these will update e.g. file.path(private$DICT$ROOTS, date_version)
       # - updated by operation, not on instantiate
       # - for managing internal state of the tool, not for user input
-      # - if they seem buggy, call `print_dynamic_fields()` to see if they are updating as expected
+      # - if they seem buggy, call `return_dynamic_fields()` to see if they are updating as expected
       DYNAMIC = list(
 
          # Field for logs - updated by tool, not user
@@ -1685,15 +1685,15 @@ SLT <- R6::R6Class(
       #' @export
       #'
       #' @examples
-      print_dictionaries = function(item_names = NULL){
+      return_dictionaries = function(item_names = NULL){
          dict_names <- names(private$DICT)
-         print_list <- data.table::copy(private$DICT)
+         return_list <- data.table::copy(private$DICT)
          if(!is.null(item_names)) {
             if(!all(item_names %in% dict_names)) stop("item_name(s) not in the symlink_tool dictionaries. \n ", toString(dict_names))
-            print_list <- lapply(item_names, function(x) return(private$DICT[[x]]))
-            names(print_list) <- item_names
+            return_list <- lapply(item_names, function(x) return(private$DICT[[x]]))
+            names(return_list) <- item_names
          }
-         print(print_list)
+         return(return_list)
       },
 
       #' Print the contents of all dynamic fields.
@@ -1706,15 +1706,15 @@ SLT <- R6::R6Class(
       #' @export
       #'
       #' @examples
-      print_dynamic_fields = function(item_names = NULL){
+      return_dynamic_fields = function(item_names = NULL){
          dict_names <- names(private$DYNAMIC)
-         print_list <- data.table::copy(private$DYNAMIC)
+         return_list <- data.table::copy(private$DYNAMIC)
          if(!is.null(item_names)) {
             if(!all(item_names %in% dict_names)) stop("item_name(s) not in the symlink_tool dynamic files \n ", toString(dict_names))
-            print_list <- lapply(item_names, function(x) return(private$DYNAMIC[[x]]))
-            names(print_list) <- item_names
+            return_list <- lapply(item_names, function(x) return(private$DYNAMIC[[x]]))
+            names(return_list) <- item_names
          }
-         print(print_list)
+         return(return_list)
       },
 
       ## Marks and Symlinks ----------------------------------------------------
@@ -1734,7 +1734,7 @@ SLT <- R6::R6Class(
       #'   instantiate the tool.
       #' @param user_entry [list] Named list of user-defined fields to append to
       #'   the log.  After making a tool called e.g. slt, call
-      #'   `slt$print_dictionaries("log_fields_user")` to find which fields a
+      #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
       #'   user may add.  If you want to make your own version of this class,
       #'   you may update `log_schema` in the `private$DICT` section to allow
       #'   for them.
@@ -1794,7 +1794,7 @@ SLT <- R6::R6Class(
       #'   instantiate the tool.
       #' @param user_entry [list] Named list of user-defined fields to append to
       #'   the log.  After making a tool called e.g. slt, call
-      #'   `slt$print_dictionaries("log_fields_user")` to find which fields a
+      #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
       #'   user may add.  If you want to make your own version of this class,
       #'   you may update `log_schema` in the `private$DICT` section to allow
       #'   for them.
@@ -1851,7 +1851,7 @@ SLT <- R6::R6Class(
       #'   instantiate the tool.
       #' @param user_entry [list] Named list of user-defined fields to append to
       #'   the log.  After making a tool called e.g. slt, call
-      #'   `slt$print_dictionaries("log_fields_user")` to find which fields a
+      #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
       #'   user may add.  If you want to make your own version of this class,
       #'   you may update `log_schema` in the `private$DICT` section to allow
       #'   for them.
@@ -1905,7 +1905,7 @@ SLT <- R6::R6Class(
       #'   instantiate the tool.
       #' @param user_entry [list] Named list of user-defined fields to append to
       #'   the log.  After making a tool called e.g. slt, call
-      #'   `slt$print_dictionaries("log_fields_user")` to find which fields a
+      #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
       #'   user may add.  If you want to make your own version of this class,
       #'   you may update `log_schema` in the `private$DICT` section to allow
       #'   for them.
@@ -2079,7 +2079,7 @@ SLT <- R6::R6Class(
       #'   instantiate the tool.
       #' @param user_entry [list] Named list of user-defined fields to append to
       #'   the log.  After making a tool called e.g. slt, call
-      #'   `slt$print_dictionaries("log_fields_user")` to find which fields a
+      #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
       #'   user may add.  If you want to make your own version of this class,
       #'   you may update `log_schema` in the `private$DICT` section to allow
       #'   for them.
