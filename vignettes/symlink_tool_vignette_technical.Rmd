@@ -1,0 +1,783 @@
+---
+title: "Symlink Tool Technical Vignette"
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+# This is lighter weight, but doesn't support TOC
+# output: rmarkdown::html_vignette
+# vignette: >
+#   %\VignetteIndexEntry{symlink_tool_vignette}
+#   %\VignetteEngine{knitr::rmarkdown}
+#   %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+
+# Chunk options
+
+options(width = 320)
+
+# save the built-in output hook
+hook_output <- knitr::knit_hooks$get("output")
+
+# set a new output hook to truncate text output
+knitr::knit_hooks$set(output = function(x, options) {
+  if (!is.null(n <- options$out.lines)) {
+    x <- xfun::split_lines(x)
+    if (length(x) > n) {
+      # truncate the output
+      # x <- c(head(x, n), "....\n")
+      x <- c(head(x, n/2), '....', tail(x, n/2 + 1))
+    }
+    x <- paste(x, collapse = "\n")
+  }
+  hook_output(x, options)
+})
+
+```
+
+```{r setup}
+# Installing locally only allows main branch - switching to load_all for development
+devtools::load_all()
+# library(vmTools, lib.loc = file.path("/mnt/share/code", Sys.info()[["user"]], "r_pkgs"))
+library(data.table)
+library(fs)
+```
+
+
+```{r utils, include = FALSE}
+
+# Defining a couple vignette utilities
+
+# Print the folder output 'tree' structure
+print_tree <- function() {fs::dir_tree(root_base, recurse = TRUE)}
+
+# print a symlink's target from the file system 
+print_symlink <- function(symlink_type){
+  print(grep(symlink_type, system(paste("ls -alt", root_input), intern = TRUE), value = TRUE))
+}
+
+#' Get output directory for results to save in.
+#'
+#' Returns a path to save results in of the form "YYYY_MM_DD.VV".
+#'
+#' @param root path to root of output results
+#' @param date character date in form of "YYYY_MM_DD" or "today". "today" will be interpreted as today's date.
+get_output_dir <- function(root, date) {
+  if (date == "today") {
+    date <- format(Sys.Date(), "%Y_%m_%d")
+  }
+  cur.version <- get_latest_output_date_index(root, date = date)
+  
+  dir.name <- sprintf("%s.%02i", date, cur.version + 1)
+  return(dir.name)
+}
+
+#' get the latest index for given an output dir and a date
+#'
+#' directories are assumed to be named in YYYY_MM_DD.VV format with sane
+#' year/month/date/version values.
+#'
+#' @param dir path to directory with versioned dirs
+#' @param date character in be YYYY_MM_DD format
+#'
+#' @return largest version in directory tree or 0 if there are no version OR
+#' the directory tree does not exist
+get_latest_output_date_index <- function(root, date) {
+  currentfolders <- list.files(root)
+  
+  # subset to date
+  pat <- sprintf("^%s[.]\\d{2}$", date)
+  date_dirs <- grep(pat, currentfolders, value = T)
+  
+  if (length(date_dirs) == 0) {
+    return(0)
+  }
+  
+  # get the index after day
+  date_list <- strsplit(date_dirs, "[.]")
+  
+  inds <- unlist(lapply(date_list, function(x) x[2]))
+  if (is.na(max(inds, na.rm = T))) inds <- 0
+  
+  return(max(as.numeric(inds)))
+}
+```
+
+
+
+
+# What is the SymLink Tool?
+
+The SymLink Tool is an R6 object-oriented tool that helps a researcher manage pipeline outputs in a standard way.  It falls under the category of 'standard tooling'.  It will:
+
+1. Create 'best' symlinks to the best version of your outputs.
+    1. Safely update the 'best' symlink when you, the researcher, want to 'promote' a new version.
+1. Maintain a log of 'best' promotions & demotions within each versioned output folder.
+    1. Provide reports on the state of all these logs. E.g. 'what is currently best?'
+1. Maintain a central log of which versions of your pipeline have ever been 'best'.
+    1. The central log can also track versioned folder deletion.
+
+
+
+
+## Assumptions
+
+This assumes you have a large set of versioned output folders for your pipeline.
+
+If you're already using a database to manage your output versions, you probably don't need this.
+
+If you have a big mess of folders you're having difficulty tracking, this tool may help you out!
+
+
+
+
+--------------------------------------------------------------------------------
+
+
+
+# SymLink Tool Intro
+
+`SLT` (short for SymLink Tool) is an R6 object generator, or "R6ClassGenerator".
+
+When you want to make a new 'instance' of a tool, call the `new` method on the tool's class.
+
+- This is called "instantiation".
+- Think of SLT like a template, the Platonic ideal of a hammer. Think of slt as your favorite, particular hammer.
+
+Let's start by calling `$new()` with no arguments.  
+
+- We expect an error, with some helpful messages about what arguments the tool template expects, in order to make the type of tool we need. 
+
+```{r naive_tool}
+slt <- try(SLT$new())
+```
+
+
+OK, now that we know what the tool expects, let's feed it this information and try using it in earnest.
+
+
+
+## SymLink Tool Use
+
+
+In my pipeline, I divert outputs to two folders:
+
+1. 'to_model', which is prepped data going into ST-GPR
+1. 'modeled', which is post-processed after ST-GPR
+
+I want to have the same `date_version` of my pipeline outputs in _both_ roots so I can correlate pre and post modeled data.
+
+_**If you need to handle roots independently, then you should instantiate different versions of the tool to handle each independent root, giving each instance of the tool a unique name e.g. `slt_input` and `slt_output`**._
+
+- A `date_version` is simply a string like "2024_02_02_new_covariates" that's important to you, the modeler, to tell you when and why the pipeline was run.  There is no requirement for this to include a date, but it's good practice.
+
+In addition, the tool needs a location for a central log.  I'll set that one level above both my output folders, since the central log will be shared between them.
+
+- The tool manages outputs at the `date_version` level, not the folder level, so one 'best' promotion affects folders in _both_ my output roots.
+
+
+```{r first_tool}
+# a safe temporary directory every user has access to, that we'll clean up later
+root_base   <- file.path(tempdir(), "slt")
+root_input  <- file.path(root_base, "to_model")
+root_output <- file.path(root_base, "modeled")
+
+PATHS       <- list(
+  log_cent       = file.path(root_base, "log_symlinks_central.csv"),
+  log_2024_02_02 = file.path(root_input, "2024_02_02", "log_version_history.csv"),
+  log_2024_02_10 = file.path(root_input, "2024_02_10", "log_version_history.csv")
+)
+```
+
+Try to make the tool naively.
+
+```{r first_tool2}
+slt <- try(SLT$new(
+  user_root_list = list(
+    root_input  = root_input,
+    root_output = root_output
+  )
+  , user_central_log_root = root_base
+))
+```
+
+
+```{r first_tool3}
+# We need to ensure all output folders exist first
+dir.create(root_input, recursive = TRUE, showWarnings = FALSE)
+dir.create(root_output, recursive = TRUE, showWarnings = FALSE)
+
+# Now everything should work
+suppressWarnings({ # idiosyncratic and benign cluster message
+  
+  slt <- SLT$new(
+    user_root_list = list(
+      root_input  = root_input,
+      root_output = root_output
+    )
+    , user_central_log_root = root_base
+  )
+  
+})
+```
+
+What do we have in our root_base folder?
+
+```{r first_tool4}
+print_tree()
+```
+
+
+We should now have a central log, and two output folder.
+
+- When you instantiate the tool, the central log is made automatically.
+- We must make the folders, or the tool will stop. 
+
+
+
+## Mark Best
+
+You can mark any output folder as 'best', and give it a 'best' symlink in each output root.
+
+- Only one `date_version` can be 'best', and the SLT will demote the current 'best' version if you promote a new `date_version`.
+- This will create a log in the `date_version` folder, and an entry in the central log.
+
+**NOTE:**
+
+- The `date_version` log record records both 'demote' and 'promote' actions.
+- The central log _only records_ 'promote' actions.
+
+**NOTE:**
+
+- Each 'mark' action needs the user to provide a log entry comment as a _named list_.
+
+
+First we'll create two `date_version` folders to play with in each root.
+
+```{r mark_best2}
+dir.create(file.path(root_input, "2024_02_02"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(root_output, "2024_02_02"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(root_input, "2024_02_10"), recursive = TRUE, showWarnings = FALSE)
+dir.create(file.path(root_output, "2024_02_10"), recursive = TRUE, showWarnings = FALSE)
+
+print_tree()
+```
+
+Then we'll mark one as best.
+
+```{r mark_best3}
+slt$mark_best(date_version = "2024_02_02", user_entry = list(comment = "testing mark_best"))
+```
+
+Look at the folder structure again.
+
+```{r mark_best_tree}
+print_tree()
+```
+
+
+Where does the 'best' folder point to?
+
+```{r mark_best3.1}
+print_symlink("best")
+```
+
+Now let's mark the other one as best, and see what happens to the symlinks.
+
+```{r mark_best4}
+# The tool is chatty by default at the console, but it's easy to make it quite if it's part of a pipeline.
+suppressMessages({
+  slt$mark_best(date_version = "2024_02_10", user_entry = list(comment = "testing mark_best"))
+})
+```
+
+```{r mark_best_tree2}
+print_tree()
+```
+
+
+```{r mark_best_tree3}
+print_symlink("best")
+```
+
+
+
+## Inspect Logs
+
+In this trio, we see the central log, and each versioned folder's log of best promotion events.
+
+- The central log only records promotions, not demotions.
+- The versioned logs record both promotions and demotions.
+- Note each log comes with a creation date - this is the log creation date, not the folder creation date (that information isn't available on the cluster). 
+
+
+```{r mark_best_logs1}
+fread(PATHS$log_cent)
+```
+
+
+```{r mark_best_logs2}
+fread(PATHS$log_2024_02_02)
+```
+
+
+```{r mark_best_logs3}
+fread(PATHS$log_2024_02_10)
+```
+
+
+
+## Reports
+
+You've probably also noticed a report.  This also shows the current state of all tool-created symlinks, built from the `date_version` folder logs (not the central log).
+
+- This report runs _automatically_ any time you `mark` a folder.
+- It only shows symlinks made by this tool, so if you make other symlinks, they won't be included.
+    - Other reports are possible (see 'Other Features' section.)
+- It runs separately for each root, and pulls the last log entry.
+
+```{r reports}
+fread(file.path(root_input, "report_all_logs_tool_symlink.csv"))
+```
+
+```{r reports2}
+fread(file.path(root_output, "report_all_logs_tool_symlink.csv"))
+```
+
+
+## Create New Folders
+
+This tool was designed to allow the researcher to use it 'mid-stream' during a modeling round.  I.e. you may mark existing output folders as best, and all the logging takes care of itself.
+
+In addition, the researcher may choose to have this tool manage folder creation.  This is useful if you want to ensure that all your output folders are managed by the same tool, and that the tool is aware of all the `date_version` folders that exist.  Further, there are more reports you can run against your `date_version` logs that are more informative if you create all your folders with the tool. (See 'Other Features')
+
+- This records the creation date and time of each folder, so you can 'round up' folders that are younger or older than some date.
+- The Linux filesystem _**does not record the creation date**_ of folders.
+
+
+```{r create_new_folders}
+# Let's use a programmatic example to build a new `date_version.`
+date_version_input  <- get_output_dir(root_input,  "today")
+date_version_output <- get_output_dir(root_output, "today")
+if(!date_version_input == date_version_output) {
+  stop("date_version_input and date_version_output must be the same")
+}
+date_version_today  <- intersect(date_version_input, date_version_output)
+
+# This creates folders safely, and will not overwrite existing folders if called twice.
+slt$create_date_version_folders_with_logs(date_version = date_version_today)
+slt$create_date_version_folders_with_logs(date_version = date_version_today)
+```
+
+Now we can see the new folders, with their logs and creation date-time stamps.
+
+- Creating new folders using the method above will index new version as `YYYY_MM_DD.VV` if reruns on the same day are necessary.
+- e.g. `2024_02_10.01`, `2024_02_10.02`, `2024_02_10.03`, etc.
+- Note this behavior is _outside_ the tool, for demonstration purposes only.
+- The tool assumes the research team determines its own folder-naming conventions.
+
+```{r create_new_folders2}
+print_tree()
+```
+
+```{r create_new_folders3}
+fread(file.path(root_input, date_version_today, "log_version_history.csv"))
+```
+
+This folder can be marked best just as the others, and prior best will be demoted.
+
+```{r create_new_folders4}
+suppressMessages({
+  slt$mark_best(date_version = date_version_today, user_entry = list(comment = "testing mark_best"))
+})
+fread(PATHS$log_cent)
+```
+
+```{r create_new_folders5}
+fread(PATHS$log_2024_02_10)
+```
+
+
+## Unmark
+
+Now let's say you review your results and _**no**_ version of outputs should be 'best'.  You can run `unmark()` to remove the 'best' status.
+
+- There are no longer any 'best' symlinks, and the `date_version` log shows demotion.
+- The central log does not show the demotion.  The presence/absence of the best symlink, and the `date_version` log are the acid test of what's current.
+- The tool-symlink report should now be empty.
+
+
+```{r demote_best}
+suppressMessages({
+  slt$unmark(date_version = date_version_today, user_entry = list(comment = "testing unmark_best"))
+})
+print_tree()
+```
+
+```{r demote_best2}
+fread(PATHS$log_cent)
+```
+
+```{r demote_best3}
+fread(file.path(root_input, date_version_today, "log_version_history.csv"))
+```
+
+```{r demote_report}
+fread(file.path(root_input, "report_all_logs_tool_symlink.csv"))
+```
+
+
+
+
+## Deletion
+
+
+### Mark remove
+
+We love our 'best' version of outputs as long as it's best, but time passes and we get new 'best' versions.
+
+When it's time to remove those old folders, we can use this tool  to do that safely, in two stages.
+
+1. Mark a folder to 'remove'.
+1. Delete that marked folder and update the central log.
+1. This way you have a history of what was deleted, and when.
+
+Think of the two-step process a bit like `git add` and `git commit`. 
+
+- First, you mark a folder with `mark_remove`, which puts it the the 'deletion staging area'.
+- Second, if you're sure you want to delete it, you run `delete_date_version_folders()` to actually delete the folder and update the central log.
+
+Let's demonstrate on the folder we made programmatically with today's date.
+
+
+```{r mark_remove}
+suppressMessages({
+  slt$mark_remove(date_version = date_version_today, user_entry = list(comment = "testing mark_remove"))
+})
+```
+
+And let's look at the folder structure.
+
+- since many folders can be marked `remove_`, we combine 'remove_' with the `date_version` to make the folder name unique.
+
+```{r mark_remove2}
+print_tree()
+```
+
+
+```{r mark_remove3}
+print_symlink("remove")
+```
+
+
+
+And finally look at the log.
+
+- It should have a 'promote_remove' action in the last row.
+
+```{r mark_remove4}
+fread(file.path(root_input, date_version_today, "log_version_history.csv"))
+```
+
+The report should also update to show the new symlink.
+
+```{r mark_remove5}
+fread(file.path(root_input, "report_all_logs_tool_symlink.csv"))
+```
+
+
+
+### Delete the Folder
+
+
+First, let's naively try to delete a folder we _haven't_ marked as ready for removal.
+
+- We should be blocked from doing this operation, since we haven't marked the folder as 'remove'.
+
+**Note:** 
+
+- this will try to delete folders in both output `root`s.
+
+```{r delete_folder}
+slt$delete_date_version_folders(
+  date_version = "2024_02_02",
+  user_entry   = list(comment = "testing delete_date_version_folders")
+)
+```
+
+Now let's delete the folder we _have_ marked as ready for removal.
+
+- This will delete the folder and update the central log.
+- This function defaults to requiring user input
+    - For each `root`, it will ask if you're sure you want to delete the folder.
+    - This allow the user to choose what to keep.
+    - E.g. keep outputs, but delete the inputs to free up disk space.
+
+```{r delete_folder2}
+slt$delete_date_version_folders(
+  date_version       = date_version_today,
+  user_entry         = list(comment = "testing delete_date_version_folders"),
+  require_user_input = FALSE
+)
+```
+
+
+Let's look at the folder structure.
+
+- The folder and `remove_` symlink should be gone.
+
+```{r delete_folder4} 
+print_tree()
+```
+
+Since we no longer have a `date_version` log, we can't look at it.  But we can look at the central log.
+
+- The last two rows should show:
+    - the 'promote_remove' action
+    - the 'delete_remove_folder' action
+
+```{r delete_folder3}
+fread(PATHS$log_cent)
+```
+
+Let's look at the report.
+
+- We should expect to not see the `date_version` in the report, since it's been deleted.
+
+
+```{r delete_folder5}
+fread(file.path(root_input, "report_all_logs_tool_symlink.csv"))
+```
+
+
+--------------------------------------------------------------------------------
+
+
+
+
+
+# Other Features
+
+Other available features will be covered briefly, and will assume the reader has already read the Symlink Tool Intro section.
+
+
+
+
+## Mark Keep 
+
+It's likely you'll have other output versions you want to keep, but not as 'best'.  You can mark these as 'keep'.
+
+- This will produce symlinks of the form `keep_<date_version>`
+
+```{r mark_keep}
+suppressMessages(
+  slt$mark_keep(date_version = "2024_02_10", user_entry = list(comment = "testing mark_keep"))
+)
+```
+
+```{r mark_keep2}
+print_tree()
+```
+
+```{r mark_keep3}
+print_symlink("keep")
+```
+
+
+
+
+## Reports pt 2
+
+In addition to the `report_all_logs_tool_symlink.csv` file, there are other reports available.
+These will show the status of the last log row for each `date_version` folder in each `root` folder.
+
+You can view things like:
+
+- All your folders that are not currently symlinked (marked).
+- All symlinked folders.
+    - Includes symlinks not recognized by this tool.
+
+
+**NOTE:** This includes a discrepancy report that shows if logs do not conform to expected standards.
+
+- If you find a log discrepancy that is _not_ caught by this report and you think it should be, please contact the package maintainer.
+    - There is currently no issue queue, but this may be added if there is demand.
+
+
+```{r reports_pt2}
+# Show the types of reports currently available
+slt$reports
+```
+
+```{r reports_pt2b}
+# Run the reports
+suppressMessages({
+  slt$reports()
+})
+print_tree()
+```
+
+
+```{r reports_pt2d}
+# View an example report - logs for folders with no active symlink
+# - you can see this folder was previously marked 'best'
+fread(file.path(root_input, "report_all_logs_non_symlink.csv"))
+```
+
+
+```{r reports_pt2e}
+# Expect this to be absent for the vignette
+try(fread(file.path(root_input, "REPORT_DISCREPANCIES.csv")))
+```
+
+## Roundups
+
+Let's say you have a set of folders you want to keep or remove, and you want to do it all at once.
+
+We'll demonstrate by:
+
+1. Making a set of dummy folders
+    1. Marking some as `remove_`
+        1. Rounding up the `remove_` folders for deletion
+    1. Round up the rest by date
+        1. Mark these as `keep_`
+
+```{r roundup}
+# Make a set of dummy folders
+dv1  <- get_output_dir(root_input,  "today")
+slt$create_date_version_folders_with_logs(dv1)
+dv2  <- get_output_dir(root_input,  "today")
+slt$create_date_version_folders_with_logs(dv2)
+dv3  <- get_output_dir(root_input,  "today")
+slt$create_date_version_folders_with_logs(dv3)
+dv4  <- get_output_dir(root_input,  "today")
+slt$create_date_version_folders_with_logs(dv4)
+
+print_tree()
+```
+
+### roundup_remove
+
+```{r roundup2}
+# Mark some as 'remove_'
+suppressMessages({
+  for(dv in c(dv1, dv2)){
+    slt$mark_remove(dv, user_entry = list(comment = "mark_remove for roundup"))
+  }
+})
+```
+
+
+```{r roundup3}
+# Round up and delete
+roundup_remove_list <- slt$roundup_remove()
+```
+
+
+```{r roundup3.1, include = FALSE}
+if(! identical(roundup_remove_list$root_input$dir_date_version, 
+               roundup_remove_list$root_output$dir_date_version)){
+  
+  stop("roundup_remove found different date_versions in each `root` folder")
+}
+```
+
+```{r roundup4}
+suppressMessages({
+  for(dv in roundup_remove_list$root_input$dir_date_version){
+    slt$delete_date_version_folders(
+      date_version       = dv,
+      user_entry         = list(comment = "roundup_remove"),
+      require_user_input = FALSE
+    )
+  }
+})
+print_tree()
+```
+
+
+
+### roundup_by_date
+
+Use the log creation date (first row) to round up folders created on, before, or after that date.
+
+```{r roundup6}
+my_date <- format(Sys.Date(), "%Y_%m_%d")
+roundup_date_list <- slt$roundup_by_date(
+  user_date     = my_date,
+  date_selector = "lte", # less than or equal to today's date
+  verbose       = TRUE
+)
+```
+
+```{r roundup7}
+# mark all our dummy folders (with the ".VV" pattern) as keepers
+dv_keep <- grep(
+  pattern = "\\.\\d\\d"
+  , x     = roundup_date_list$root_input$dir_date_version
+  , value = TRUE
+)
+suppressMessages({
+  for(dv in dv_keep){
+    slt$mark_keep(dv, user_entry = list(comment = "roundup_by_date"))
+  }
+})
+print_tree()
+```
+
+## Make new log
+
+The date roundup relies on the log creation date (recall, the Linux filesystem
+does not record folder creation / birth dates). If you've made your own folders
+without the symlink tool, you can make a blank log easily.  You can hand-edit
+the creation date if you know when the folder was made.
+
+**Note:**
+
+- The tool tries to resolve all operations in each `root` independently.  So even though we're not creating a folder in both our `root`s, the tool will create as many logs as it can.
+
+
+```{r make_new_log}
+# Make a naive folder without a log
+dir.create(file.path(root_output, "2024_02_10_naive"))
+try(slt$make_new_log(date_version = "2024_02_10_naive"))
+```
+
+```{r make_new_log2}
+print_tree()
+```
+
+## Internal State
+
+You can audit the internal state of the tool with the `print_` functions.
+
+```{r print, out.lines = 22}
+# Print all static fields (output truncated)
+slt$print_dictionaries()
+```
+
+```{r print2}
+# ROOTS are likely most interesting to the user.
+slt$print_dictionaries(item_names = "ROOTS")
+```
+
+```{r print3}
+# Show the last 'action' the tool performed
+# - these fields are set as part of each 'marking' new action.
+slt$print_dynamic_fields()
+```
+
+
+# Clean Up
+
+```{r clean_up, eval = FALSE}
+# Finally, clean up all our temporary folders
+unlink(root_base, recursive = TRUE, force = TRUE)
+```
+
