@@ -1,11 +1,11 @@
 Package: vmTools
 Type: Package
-Title: What the Package Does (Title Case)
+Title: Version Management Tools For Data Science Projects
 Version: 0.1.0
-Author: Who wrote it
-Maintainer: The package maintainer <yourself@somewhere.net>
-Description: More about what it does (maybe more than one line)
-    Use four spaces when indenting paragraphs within the Description.
+Author: Sam Byrne
+Maintainer: Sam Byrne <ssbyrne@uw.edu>
+Description: Set of tools for managing pipeline output folders
+    Symlink Tool - an R6 class for managing output folder 'best' status with structured logging.
 License: What license is it under?
 Encoding: UTF-8
 LazyData: true
