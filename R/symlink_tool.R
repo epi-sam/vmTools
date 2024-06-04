@@ -524,7 +524,7 @@ SLT <- R6::R6Class(
       #' @param n_sym [int] number of symlinks to assert
       #' @param allow_fewer [lgl] if TRUE, allow fewer symlinks than n_sym symlinks (i.e. 0 is OK)
       #'
-      #' @return
+      #' @return none
       #' @export
       #'
       #' @examples
