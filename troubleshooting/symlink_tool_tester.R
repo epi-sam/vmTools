@@ -242,6 +242,7 @@ slt$delete_date_version_folders(date_version = "20240228_test_creation", user_en
 #    )
 #    , user_central_log_root = "/mnt/share/homes/ssbyrne/scratch2/vc/slt"
 # )
+devtools::load_all()
 root_base  <- file.path("/mnt/share/homes/ssbyrne/scratch2/vc/slt_debug")
 slt <- SLT$new(
    user_root_list = list(
