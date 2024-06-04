@@ -2,26 +2,11 @@
 % Please edit documentation in R/symlink_tool.R
 \name{SLT}
 \alias{SLT}
-\title{WARNING: DO NOT touch '.__enclos_env__' unless you want the tool to break}
+\title{Enforce a data.table's schema with merge protection defaults.}
 \description{
-NOTES:
-  DEBUGGING:
-    - The 'red dot' stop point will not work with R6 objects
-    - Use `debug(my_fun)/undebug(my_fun)` or place a `browser()` in the code
-    - See https://r6.r-lib.org/articles/Debugging.html
-}
-\details{
-LIBRARIES
-    - Depends on vaccines/vaccination_pipeline_functions/validations.R for assert_data_schema
-    - Relies on libraries declared above, but calls on all functions by package namespace for clarity and robustness
 Enforce a data.table's schema with merge protection defaults.
 
-Asserts the following in order (*all are OPTIONAL*):
-- required column names by exact name
-- forbidden column names by exact name
-- required column names by regex pattern
-- forbidden column names by regex pattern (default `\.x` and `\.y` to guard against invalid merges)
-- data types for selected columns
+Enforce a data.table's schema with merge protection defaults.
 }
 \examples{
 
@@ -31,21 +16,23 @@ Asserts the following in order (*all are OPTIONAL*):
 
 Initialize a symlink tool by GBD round
 
-Any time the tool is made, the tool is GBD-round specific.  Create one per round if you need more than one
+Any time the tool is made, the tool is GBD-round specific.  Create one
+per round if you need more than one
 
 
+See the symlink_tool_vignette.
 Print the contents of all private dictionaries.
 
 
 ## ------------------------------------------------
-## Method `SLT$print_dictionaries`
+## Method `SLT$return_dictionaries`
 ## ------------------------------------------------
 
 Print the contents of all dynamic fields.
 
 
 ## ------------------------------------------------
-## Method `SLT$print_dynamic_fields`
+## Method `SLT$return_dynamic_fields`
 ## ------------------------------------------------
 
 Mark an output folder with a "best" symlink.
@@ -56,6 +43,7 @@ Enforces:
 
 Writes:
 - appends to a log file in the output folder with a date and time stamp
+- appends a line to the central log file with a date and time stamp
 
 
 ## ------------------------------------------------
@@ -66,6 +54,7 @@ Mark an output folder with a "keep_<date_version>" symlink
 
 Writes:
 - appends to a log file in the output folder with a date and time stamp
+- appends a line to the central log file with a date and time stamp
 
 
 ## ------------------------------------------------
@@ -80,6 +69,7 @@ Indication that the results can be deleted
 
 Writes:
 - appends to a log file in the output folder with a date and time stamp
+- appends a line to the central log file with a date and time stamp
 
 
 ## ------------------------------------------------
@@ -87,6 +77,10 @@ Writes:
 ## ------------------------------------------------
 
 Remove all symlinks for a single `date_version` in all `roots`
+
+Writes:
+- appends to a log file in the output folder with a date and time stamp
+- does _not_ append to the central log file
 
 
 ## ------------------------------------------------
@@ -106,7 +100,7 @@ points to)
 Find all `date_version` folders by creation date
 
 Only finds folders that _have a log_, and reads creation date on first
-row.  May select by:
+row.  User may select dates by (using the `date_selector` argument):
 - greater than - `gt`
 - greater than or equal to - `gte`
 - less than - `nt`
@@ -130,9 +124,14 @@ When you start a new pipeline run, make an empty log
 ## Method `SLT$make_new_log`
 ## ------------------------------------------------
 
-Delete a `date_version` folder marked with a `remove_` symlink from _ALL ITS ROOTS_
+Delete a `date_version` folder marked with a `remove_` symlink from
+_ALL ITS ROOTS_
 
-Removes the symlink(s) and the underlying folder(s), and updates central log if folders were removed.
+Removes the symlink(s) and the underlying folder(s), and updates
+central log if folders were removed.
+
+Writes:
+- appends a line to the central log file with a date and time stamp
 
 
 ## ------------------------------------------------
@@ -141,15 +140,16 @@ Removes the symlink(s) and the underlying folder(s), and updates central log if 
 
 Make all reports
 
-Writes all reports to a summary .csv for every `root` defined in the tool
+Writes all reports to a summary .csv for every `root` defined in the
+tool.
 
 }
 \section{Methods}{
 \subsection{Public methods}{
 \itemize{
 \item \href{#method-Symlink_Tool-new}{\code{SLT$new()}}
-\item \href{#method-Symlink_Tool-print_dictionaries}{\code{SLT$print_dictionaries()}}
-\item \href{#method-Symlink_Tool-print_dynamic_fields}{\code{SLT$print_dynamic_fields()}}
+\item \href{#method-Symlink_Tool-return_dictionaries}{\code{SLT$return_dictionaries()}}
+\item \href{#method-Symlink_Tool-return_dynamic_fields}{\code{SLT$return_dynamic_fields()}}
 \item \href{#method-Symlink_Tool-mark_best}{\code{SLT$mark_best()}}
 \item \href{#method-Symlink_Tool-mark_keep}{\code{SLT$mark_keep()}}
 \item \href{#method-Symlink_Tool-mark_remove}{\code{SLT$mark_remove()}}
@@ -167,6 +167,12 @@ Writes all reports to a summary .csv for every `root` defined in the tool
 \if{html}{\out{<a id="method-Symlink_Tool-new"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-new}{}}}
 \subsection{Method \code{new()}}{
+Asserts the following in order (*all are OPTIONAL*):
+- required column names by exact name
+- forbidden column names by exact name
+- required column names by regex pattern
+- forbidden column names by regex pattern (default `\.x` and `\.y` to guard against invalid merges)
+- data types for selected columns
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$new(user_root_list = NULL, user_central_log_root = NULL)}\if{html}{\out{</div>}}
 }
@@ -174,6 +180,14 @@ Writes all reports to a summary .csv for every `root` defined in the tool
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
+\item{\code{user_root_list}}{[list] Named list of root directories for
+pipeline outputs. This is where `date_version` folders live (these
+are iterative runs of an analysis pipeline.)}
+
+\item{\code{user_central_log_root}}{[path] Root directory for the central log.
+If you have multiple roots in the `user_root_list`, you probably want
+the central log to live one level above those roots.}
+
 \item{\code{my_dt}}{[data.table] your data}
 
 \item{\code{varnames_strict}}{[chr] strictly required vector of column names - all required, no others allowed}
@@ -220,14 +234,16 @@ Determine if an object is an error
 \if{html}{\out{<div class="r example copy">}}
 \preformatted{Initialize a symlink tool by GBD round
 
-Any time the tool is made, the tool is GBD-round specific.  Create one per round if you need more than one
+Any time the tool is made, the tool is GBD-round specific.  Create one
+per round if you need more than one
 
 
 }
 \if{html}{\out{</div>}}
 
 \if{html}{\out{<div class="r example copy">}}
-\preformatted{Print the contents of all private dictionaries.
+\preformatted{See the symlink_tool_vignette.
+Print the contents of all private dictionaries.
 
 }
 \if{html}{\out{</div>}}
@@ -236,22 +252,24 @@ Any time the tool is made, the tool is GBD-round specific.  Create one per round
 
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Symlink_Tool-print_dictionaries"></a>}}
-\if{latex}{\out{\hypertarget{method-Symlink_Tool-print_dictionaries}{}}}
-\subsection{Method \code{print_dictionaries()}}{
+\if{html}{\out{<a id="method-Symlink_Tool-return_dictionaries"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Tool-return_dictionaries}{}}}
+\subsection{Method \code{return_dictionaries()}}{
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$print_dictionaries(item_names = NULL)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$return_dictionaries(item_names = NULL)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{item_names}}{[chr] vector of dictionaries you want to see}
+\item{\code{item_names}}{[chr] Default `NULL`.  If `NULL`, show all static
+internal fields.  Otherwise, vector of static field names you want to
+see.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[std_out]
+[std_out] Print static field values to std_out.
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
@@ -264,22 +282,24 @@ Any time the tool is made, the tool is GBD-round specific.  Create one per round
 
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Symlink_Tool-print_dynamic_fields"></a>}}
-\if{latex}{\out{\hypertarget{method-Symlink_Tool-print_dynamic_fields}{}}}
-\subsection{Method \code{print_dynamic_fields()}}{
+\if{html}{\out{<a id="method-Symlink_Tool-return_dynamic_fields"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Tool-return_dynamic_fields}{}}}
+\subsection{Method \code{return_dynamic_fields()}}{
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$print_dynamic_fields(item_names = NULL)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$return_dynamic_fields(item_names = NULL)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{item_names}}{[chr] vector of fields you want to see}
+\item{\code{item_names}}{[chr] Default `NULL`.  If `NULL`, show all dynamic
+internal fields.  Otherwise, vector of dynamic field names you want
+to see.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[std_out]
+[std_out] Print dynamic field values to std_out.
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
@@ -291,6 +311,7 @@ Enforces:
 
 Writes:
 - appends to a log file in the output folder with a date and time stamp
+- appends a line to the central log file with a date and time stamp
 
 }
 \if{html}{\out{</div>}}
@@ -306,12 +327,32 @@ Writes:
 \if{html}{\out{<div class="r">}}\preformatted{SLT$mark_best(date_version, user_entry)}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{date_version}}{[chr] The directory name of the output folder that
+lives directly under one of the `root`s you define when you
+instantiate the tool.}
+
+\item{\code{user_entry}}{[list] Named list of user-defined fields to append to
+the log.  After making a tool called e.g. slt, call
+`slt$return_dictionaries("log_fields_user")` to find which fields a
+user may add.  If you want to make your own version of this class,
+you may update `log_schema` in the `private$DICT` section to allow
+for them.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+[ste_err] Messages about actions taken.
+}
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
 \preformatted{Mark an output folder with a "keep_<date_version>" symlink
 
 Writes:
 - appends to a log file in the output folder with a date and time stamp
+- appends a line to the central log file with a date and time stamp
 
 }
 \if{html}{\out{</div>}}
@@ -327,6 +368,25 @@ Writes:
 \if{html}{\out{<div class="r">}}\preformatted{SLT$mark_keep(date_version, user_entry)}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{date_version}}{[chr] The directory name of the output folder that
+lives directly under one of the `root`s you define when you
+instantiate the tool.}
+
+\item{\code{user_entry}}{[list] Named list of user-defined fields to append to
+the log.  After making a tool called e.g. slt, call
+`slt$return_dictionaries("log_fields_user")` to find which fields a
+user may add.  If you want to make your own version of this class,
+you may update `log_schema` in the `private$DICT` section to allow
+for them.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+[std_err] Messages about actions taken.
+}
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
 \preformatted{Mark an output folder with a "remove_<date_version>" symlink
@@ -337,6 +397,7 @@ Indication that the results can be deleted
 
 Writes:
 - appends to a log file in the output folder with a date and time stamp
+- appends a line to the central log file with a date and time stamp
 
 }
 \if{html}{\out{</div>}}
@@ -352,9 +413,32 @@ Writes:
 \if{html}{\out{<div class="r">}}\preformatted{SLT$mark_remove(date_version, user_entry)}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{date_version}}{[chr] The directory name of the output folder that
+lives directly under one of the `root`s you define when you
+instantiate the tool.}
+
+\item{\code{user_entry}}{[list] Named list of user-defined fields to append to
+the log.  After making a tool called e.g. slt, call
+`slt$return_dictionaries("log_fields_user")` to find which fields a
+user may add.  If you want to make your own version of this class,
+you may update `log_schema` in the `private$DICT` section to allow
+for them.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+[std_err] Messages about actions taken.
+}
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
 \preformatted{Remove all symlinks for a single `date_version` in all `roots`
+
+Writes:
+- appends to a log file in the output folder with a date and time stamp
+- does _not_ append to the central log file
 
 }
 \if{html}{\out{</div>}}
@@ -370,6 +454,22 @@ Writes:
 \if{html}{\out{<div class="r">}}\preformatted{SLT$unmark(date_version, user_entry)}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{date_version}}{[chr] The directory name of the output folder that
+lives directly under one of the `root`s you define when you
+instantiate the tool.}
+
+\item{\code{user_entry}}{[list] Named list of user-defined fields to append to
+the log.  After making a tool called e.g. slt, call
+`slt$return_dictionaries("log_fields_user")` to find which fields a
+user may add.  If you want to make your own version of this class,
+you may update `log_schema` in the `private$DICT` section to allow
+for them.}
+}
+\if{html}{\out{</div>}}
+}
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
 \preformatted{Find all `remove_` symlinks in all `roots`
@@ -392,14 +492,14 @@ points to)
 }
 
 \subsection{Returns}{
-[list] list of data.tables - one for each root
+[list] list of data.tables - one for each `root`
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
 \preformatted{Find all `date_version` folders by creation date
 
 Only finds folders that _have a log_, and reads creation date on first
-row.  May select by:
+row.  User may select dates by (using the `date_selector` argument):
 - greater than - `gt`
 - greater than or equal to - `gte`
 - less than - `nt`
@@ -420,8 +520,21 @@ row.  May select by:
 \if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_by_date(user_date, date_selector, verbose = TRUE)}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{user_date}}{[c("character", "Date", POSIXct", "POSIXt")] A date
+with class requirements - must be formatted "2020-01-01 or 2020_01_01
+or 2020/01/01"}
+
+\item{\code{date_selector}}{[chr] See docstring explanation.}
+
+\item{\code{verbose}}{[lgl] If `TRUE`, std_err message.}
+}
+\if{html}{\out{</div>}}
+}
 \subsection{Returns}{
-[list] list of data.tables - one for each root
+[list] list of data.tables - one for each `root`
 }
 }
 \if{html}{\out{<hr>}}
@@ -432,6 +545,18 @@ row.  May select by:
 \if{html}{\out{<div class="r">}}\preformatted{SLT$create_date_version_folders_with_logs(date_version)}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{date_version}}{[chr] The directory name of the output folder that
+lives directly under one of the `root`s you define when you
+instantiate the tool.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+[std_err] Messages about the folder creation.
+}
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
 \preformatted{Safely write an empty log file for first pipeline runs
@@ -455,11 +580,28 @@ When you start a new pipeline run, make an empty log
 \if{html}{\out{<div class="r">}}\preformatted{SLT$make_new_log(date_version)}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{date_version}}{[chr] The directory name of the output folder that
+lives directly under one of the `root`s you define when you
+instantiate the tool.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+[std_err] Messages about the log creation.
+}
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
-\preformatted{Delete a `date_version` folder marked with a `remove_` symlink from _ALL ITS ROOTS_
+\preformatted{Delete a `date_version` folder marked with a `remove_` symlink from
+_ALL ITS ROOTS_
 
-Removes the symlink(s) and the underlying folder(s), and updates central log if folders were removed.
+Removes the symlink(s) and the underlying folder(s), and updates
+central log if folders were removed.
+
+Writes:
+- appends a line to the central log file with a date and time stamp
 
 }
 \if{html}{\out{</div>}}
@@ -472,14 +614,41 @@ Removes the symlink(s) and the underlying folder(s), and updates central log if 
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-delete_date_version_folders}{}}}
 \subsection{Method \code{delete_date_version_folders()}}{
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$delete_date_version_folders(date_version, user_entry)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$delete_date_version_folders(
+  date_version,
+  user_entry,
+  require_user_input = TRUE
+)}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{date_version}}{[chr] The directory name of the output folder that
+lives directly under one of the `root`s you define when you
+instantiate the tool.}
+
+\item{\code{user_entry}}{[list] Named list of user-defined fields to append to
+the log.  After making a tool called e.g. slt, call
+`slt$return_dictionaries("log_fields_user")` to find which fields a
+user may add.  If you want to make your own version of this class,
+you may update `log_schema` in the `private$DICT` section to allow
+for them.}
+
+\item{\code{require_user_input}}{[lgl] if `TRUE`, will prompt user to confirm
+deletion.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+[std_err] Messages about deletion events.
+}
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
 \preformatted{Make all reports
 
-Writes all reports to a summary .csv for every `root` defined in the tool
+Writes all reports to a summary .csv for every `root` defined in the
+tool.
 
 }
 \if{html}{\out{</div>}}
@@ -495,6 +664,9 @@ Writes all reports to a summary .csv for every `root` defined in the tool
 \if{html}{\out{<div class="r">}}\preformatted{SLT$reports()}\if{html}{\out{</div>}}
 }
 
+\subsection{Returns}{
+[std_err] Messages about where reports were written.
+}
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-clone"></a>}}
