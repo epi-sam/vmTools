@@ -335,9 +335,9 @@ Capture some paths, using the Symlink Tool to help.  We'll use these in a minute
 - **Note:** These can be drawn from within the Symlink Tool 
 
 ```{r capture_paths_dv1}
-path_log_central <- slt_prep$return_dictionaries()$LOG_CENTRAL$path
-root_dv1         <- slt_prep$return_dynamic_fields()$VERS_PATHS
-fname_dv_log     <- slt_prep$return_dictionaries()$log_name
+path_log_central <- slt_prep$return_dictionaries()[["LOG_CENTRAL"]][["path"]]
+fname_dv_log     <- slt_prep$return_dictionaries()[["log_name"]]
+root_dv1         <- slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]]
 path_log_dv1     <- file.path(root_dv1, fname_dv_log)
 ```
 

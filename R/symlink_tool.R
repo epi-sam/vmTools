@@ -1424,7 +1424,9 @@ SLT <- R6::R6Class(
       # build versioned paths from roots, assert existence
       handler_update_version_paths = function(date_version){
          private$assert_scalar(date_version)
-         private$DYNAMIC$VERS_PATHS <- file.path(private$DICT$ROOTS, date_version)
+         # private$DYNAMIC$VERS_PATHS <- file.path(private$DICT$ROOTS, date_version)
+         private$DYNAMIC$VERS_PATHS <- lapply(private$DICT$ROOTS, function(root) file.path(root, date_version))
+         names(private$DYNAMIC$VERS_PATHS) <- names(private$DICT$ROOTS)
          if(!length(private$DYNAMIC$VERS_PATHS)) stop("No version paths found")
          lapply(private$DYNAMIC$VERS_PATHS, private$validate_dir_exists, verbose = FALSE)
       },
