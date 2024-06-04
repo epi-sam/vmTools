@@ -61,17 +61,17 @@
 # library(lubridate)
 
 
-#' WARNING: DO NOT touch '.__enclos_env__' unless you want the tool to break
-#'
-#' NOTES:
-#'   DEBUGGING:
-#'     - The 'red dot' stop point will not work with R6 objects
-#'     - Use `debug(my_fun)/undebug(my_fun)` or place a `browser()` in the code
-#'     - See https://r6.r-lib.org/articles/Debugging.html
-#'
-#'   LIBRARIES
-#'     - Depends on vaccines/vaccination_pipeline_functions/validations.R for assert_data_schema
-#'     - Relies on libraries declared above, but calls on all functions by package namespace for clarity and robustness
+#> WARNING: DO NOT touch '.__enclos_env__' unless you want the tool to break
+#>
+#> NOTES:
+#>   DEBUGGING:
+#>     - The 'red dot' stop point will not work with R6 objects
+#>     - Use `debug(my_fun)/undebug(my_fun)` or place a `browser()` in the code
+#>     - See https://r6.r-lib.org/articles/Debugging.html
+#>
+#>   LIBRARIES
+#>     - Depends on vaccines/vaccination_pipeline_functions/validations.R for assert_data_schema
+#>     - Relies on libraries declared above, but calls on all functions by package namespace for clarity and robustness
 
 # Required for vignette to work in Rmarkdown
 # Known error: https://github.com/rstudio/rmarkdown/issues/187
