@@ -235,10 +235,20 @@ slt$delete_date_version_folders(date_version = "20240228_test_creation", user_en
 # my_roots <- file.path(my_roots, "gbd2021")
 
 # Try new custom root setting
+# slt <- SLT$new(
+#    user_root_list = list(
+#       to_model = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/to_model/gbd2021",
+#       modeled  = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/modeled/gbd2021"
+#    )
+#    , user_central_log_root = "/mnt/share/homes/ssbyrne/scratch2/vc/slt"
+# )
+devtools::load_all()
+root_base  <- file.path("/mnt/share/homes/ssbyrne/scratch2/vc/slt_debug")
 slt <- SLT$new(
    user_root_list = list(
-      to_model = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/to_model/gbd2021",
-      modeled  = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/modeled/gbd2021"
+      root_input = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/to_model/gbd2021",
+      root_ouput = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/modeled/gbd2021",
+      root_third = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/third_root/gbd2021"
    )
    , user_central_log_root = "/mnt/share/homes/ssbyrne/scratch2/vc/slt"
 )
@@ -251,6 +261,7 @@ slt$create_date_version_folders_with_logs(date_version = "20240229_3")
 slt$mark_best(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
 slt$mark_best(date_version = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
 slt$mark_best(date_version = "20240229_3", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_best(date_version = "20240229_4", user_entry = list(comment = "testing mark on new folder")) # expect nothing to happen
 # Now unmark the last one
 slt$unmark(date_version = "20240229_3", user_entry = list(comment = "testing mark on new folder"))
 # Mark all as keep
@@ -284,14 +295,68 @@ slt$print_dynamic_fields()
 
 # 2024 Mar 06 ------------------------------------------------------------------
 # test initialize messages
-slt <- SLT$new()
+# slt <- SLT$new()
 
 # Deal with hard-baked list name scheme
 slt <- SLT$new(
    user_root_list = list(
       root_input = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/to_model/gbd2021",
-      root_ouput  = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/modeled/gbd2021",
+      root_ouput = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/modeled/gbd2021",
       root_third = "/mnt/share/homes/ssbyrne/scratch2/vc/slt/third_root/gbd2021"
    )
    , user_central_log_root = "/mnt/share/homes/ssbyrne/scratch2/vc/slt"
 )
+
+# 2024 Mar 07 ------------------------------------------------------------------
+
+# Vignette is failing for unknown reasons
+# - is this just a markdown bug?
+# - due to the 'filter_null_logs_safely' function needing some tweaking, now resolved 2024 Mar 09
+
+# Clean-up
+# unlink(root_base, recursive = TRUE, force = TRUE)
+#
+# source("~/rstudio/projects/vmTools/R/symlink_tool.R")
+# root_base  <- file.path("/mnt/share/homes/ssbyrne/scratch2/vc/slt_debug")
+# root_input <- file.path(root_base, "to_model")
+# root_ouput <- file.path(root_base, "modeled")
+# dir.create(root_input, recursive = TRUE, showWarnings = FALSE)
+# dir.create(root_ouput, recursive = TRUE, showWarnings = FALSE)
+# print_tree <- function() {fs::dir_tree(root_base, recurse = TRUE)}
+# print_tree()
+# slt <- SLT$new(
+#    user_root_list = list(
+#       root_input = root_input,
+#       root_ouput = root_ouput
+#    )
+#    , user_central_log_root = root_base
+# )
+# print_tree()
+# # First we'll create two `date_version` folders to play with in each root
+# dir.create(file.path(root_input, "2024_02_02"), recursive = TRUE, showWarnings = FALSE)
+# dir.create(file.path(root_ouput, "2024_02_02"), recursive = TRUE, showWarnings = FALSE)
+# dir.create(file.path(root_input, "2024_04_10"), recursive = TRUE, showWarnings = FALSE)
+# dir.create(file.path(root_ouput, "2024_04_10"), recursive = TRUE, showWarnings = FALSE)
+# # Define some paths for later use
+# PATHS <- list(
+#    log_cent = file.path(root_base, "log_symlinks_central.csv"),
+#    log_2024_02_02 = file.path(root_input, "2024_02_02", "log_version_history.csv"),
+#    log_2024_04_10 = file.path(root_input, "2024_04_10", "log_version_history.csv")
+# )
+# # Then we'll mark one as best
+# slt$mark_best(date_version = "2024_02_02", user_entry = list(comment = "testing mark_best"))
+# slt$mark_best(date_version = "2024_04_10", user_entry = list(comment = "testing mark_best"))
+#
+# # look at folders
+# print_tree()
+# system(paste("ls -alt", root_input))
+# system(paste("ls -alt", root_ouput))
+#
+# # And we'll look at logs
+#
+# fread(PATHS$log_cent)
+# fread(PATHS$log_2024_02_02)
+# fread(PATHS$log_2024_04_10)
+#
+# undebug(slt$mark_best)
+# slt$mark_best(date_version = "2024_02_02", user_entry = list(comment = "testing mark_best"))
