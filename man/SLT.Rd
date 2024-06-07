@@ -2,147 +2,11 @@
 % Please edit documentation in R/symlink_tool.R
 \name{SLT}
 \alias{SLT}
-\title{Enforce a data.table's schema with merge protection defaults.}
+\title{Assert a directory exists on disk}
 \description{
-Enforce a data.table's schema with merge protection defaults.
+Assert a directory exists on disk
 
-Enforce a data.table's schema with merge protection defaults.
-}
-\examples{
-
-## ------------------------------------------------
-## Method `SLT$new`
-## ------------------------------------------------
-
-Initialize a symlink tool by GBD round
-
-Any time the tool is made, the tool is GBD-round specific.  Create one
-per round if you need more than one
-
-
-See the symlink_tool_vignette.
-Print the contents of all private dictionaries.
-
-
-## ------------------------------------------------
-## Method `SLT$return_dictionaries`
-## ------------------------------------------------
-
-Print the contents of all dynamic fields.
-
-
-## ------------------------------------------------
-## Method `SLT$return_dynamic_fields`
-## ------------------------------------------------
-
-Mark an output folder with a "best" symlink.
-
-Enforces:
-- maximum of one best model
-  - does not go back through history to make a best model from a prior version (not capable, this is what log_tool is for)
-
-Writes:
-- appends to a log file in the output folder with a date and time stamp
-- appends a line to the central log file with a date and time stamp
-
-
-## ------------------------------------------------
-## Method `SLT$mark_best`
-## ------------------------------------------------
-
-Mark an output folder with a "keep_<date_version>" symlink
-
-Writes:
-- appends to a log file in the output folder with a date and time stamp
-- appends a line to the central log file with a date and time stamp
-
-
-## ------------------------------------------------
-## Method `SLT$mark_keep`
-## ------------------------------------------------
-
-Mark an output folder with a "remove_<date_version>" symlink
-
-Indication that the results can be deleted
-- In the future, this will be used to remove old versions of the
-  output, and provide a list of ST-GPR models to delete
-
-Writes:
-- appends to a log file in the output folder with a date and time stamp
-- appends a line to the central log file with a date and time stamp
-
-
-## ------------------------------------------------
-## Method `SLT$mark_remove`
-## ------------------------------------------------
-
-Remove all symlinks for a single `date_version` in all `roots`
-
-Writes:
-- appends to a log file in the output folder with a date and time stamp
-- does _not_ append to the central log file
-
-
-## ------------------------------------------------
-## Method `SLT$unmark`
-## ------------------------------------------------
-
-Find all `remove_` symlinks in all `roots`
-
-Return both the symlink and the resolved symlink (folder the symlink
-points to)
-
-
-## ------------------------------------------------
-## Method `SLT$roundup_remove`
-## ------------------------------------------------
-
-Find all `date_version` folders by creation date
-
-Only finds folders that _have a log_, and reads creation date on first
-row.  User may select dates by (using the `date_selector` argument):
-- greater than - `gt`
-- greater than or equal to - `gte`
-- less than - `nt`
-- less than or equal to `nte`
-- equal to `e`
-
-
-## ------------------------------------------------
-## Method `SLT$create_date_version_folders_with_logs`
-## ------------------------------------------------
-
-Safely write an empty log file for first pipeline runs
-
-When you start a new pipeline run, make an empty log
-- helpful if you let this tool manage all your versions
-- you can roundup date_versions by creation date using the log's first entry
-- the file system doesn't track directory creation dates (at time of writing)
-
-
-## ------------------------------------------------
-## Method `SLT$make_new_log`
-## ------------------------------------------------
-
-Delete a `date_version` folder marked with a `remove_` symlink from
-_ALL ITS ROOTS_
-
-Removes the symlink(s) and the underlying folder(s), and updates
-central log if folders were removed.
-
-Writes:
-- appends a line to the central log file with a date and time stamp
-
-
-## ------------------------------------------------
-## Method `SLT$delete_date_version_folders`
-## ------------------------------------------------
-
-Make all reports
-
-Writes all reports to a summary .csv for every `root` defined in the
-tool.
-
+Assert a directory exists on disk
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -167,12 +31,7 @@ tool.
 \if{html}{\out{<a id="method-Symlink_Tool-new"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-new}{}}}
 \subsection{Method \code{new()}}{
-Asserts the following in order (*all are OPTIONAL*):
-- required column names by exact name
-- forbidden column names by exact name
-- required column names by regex pattern
-- forbidden column names by regex pattern (default `\.x` and `\.y` to guard against invalid merges)
-- data types for selected columns
+Assert an element is atomic and length 1
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$new(user_root_list = NULL, user_central_log_root = NULL)}\if{html}{\out{</div>}}
 }
@@ -180,13 +39,19 @@ Asserts the following in order (*all are OPTIONAL*):
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{user_root_list}}{[list] Named list of root directories for
-pipeline outputs. This is where `date_version` folders live (these
-are iterative runs of an analysis pipeline.)}
+\item{\code{user_root_list}}{[list] Named list of root directories for pipeline outputs. This is where `date_version` folders live (these are iterative runs of an analysis pipeline.)}
 
-\item{\code{user_central_log_root}}{[path] Root directory for the central log.
-If you have multiple roots in the `user_root_list`, you probably want
-the central log to live one level above those roots.}
+\item{\code{user_central_log_root}}{[path] Root directory for the central log. If you have multiple roots in the `user_root_list`, you probably want the central log to live one level above those roots.}
+
+\item{\code{x}}{[any] Element to check}
+
+\item{\code{x}}{[list] List to check}
+
+\item{\code{user_entry}}{[named list] User's entry for a mark operation}
+
+\item{\code{log_fields_user}}{[character] Names of fields in the log schema}
+
+\item{\code{log_schema}}{[named list] Log schema}
 
 \item{\code{my_dt}}{[data.table] your data}
 
@@ -206,6 +71,18 @@ the central log to live one level above those roots.}
 
 \item{\code{verbose}}{[lgl] confirmation message if passing all assertions}
 
+\item{\code{x}}{[path] A directory path}
+
+\item{\code{x}}{[path] A directory path}
+
+\item{\code{verbose}}{[lgl] message to std_out?}
+
+\item{\code{date_selector}}{[chr] One of 'gt', 'gte', 'lt', 'lte', 'e'}
+
+\item{\code{user_date}}{[chr] a date string of class `c('character', 'Date', 'POSIXct', 'POSIXt')`}
+
+\item{\code{date}}{[chr] a date string}
+
 \item{\code{x}}{[obj] some R object}
 
 \item{\code{root}}{[path] full path to gbd round data}
@@ -223,33 +100,189 @@ the central log to live one level above those roots.}
 \item{\code{n_sym}}{[int] number of symlinks to assert}
 
 \item{\code{allow_fewer}}{[lgl] if TRUE, allow fewer symlinks than n_sym symlinks (i.e. 0 is OK)}
+
+\item{\code{path}}{[chr] a path to a symlink}
+
+\item{\code{version_path}}{[chr] full path to a version folder}
+
+\item{\code{symlink_type}}{[chr] valid symlink type defined by class, e.g. 'best', 'keep', 'remove'}
+
+\item{\code{symlink_string}}{[chr] a string from a linux path e.g. "lrwxrwxrwx 1 USER Domain Users  63 Feb  6 17:04 best -> /mnt/share/some/path"}
+
+\item{\code{root}}{[chr] path to the root folder}
+
+\item{\code{date_version}}{[chr] date_version of the user's folder}
+
+\item{\code{symlink_type}}{[chr] valid symlink type defined by class, e.g. 'best', 'keep', 'remove'}
+
+\item{\code{user_entry}}{[named list] user entry from the user's folder}
+
+\item{\code{root}}{[chr] path to the root folder}
+
+\item{\code{date_version}}{[chr] date_version of the user's folder}
+
+\item{\code{user_entry}}{[named list] user entry from the user's folder}
+
+\item{\code{vers_path}}{[chr] path to the versioned folder}
+
+\item{\code{root}}{[chr] path to the root folder}
+
+\item{\code{date_version}}{[chr] date_version of the user's folder}
+
+\item{\code{user_entry}}{[named list] user entry from the user's folder}
+
+\item{\code{require_user_input}}{[lgl] TRUE if the user should be prompted to confirm deletion, FALSE if deletion should be automated e.g. in a loop.}
+
+\item{\code{schema}}{[named list] named list of column names and data types}
+
+\item{\code{fpath}}{[chr] path to the log file}
+
+\item{\code{log_schema}}{[named list] named list of column names and data types}
+
+\item{\code{dt_log}}{[data.table] log data.table}
+
+\item{\code{date_version}}{[chr] date version in format 'YYYY_MM_DD' default private$DYNAMIC$LOG$date_version}
+
+\item{\code{fpath}}{[chr] path to the log file}
+
+\item{\code{log_schema}}{[named list] named list of column names and data types}
+
+\item{\code{dt_log}}{[data.table] log data.table}
+
+\item{\code{fpath}}{[chr] path to the log file}
+
+\item{\code{log_schema}}{[named list] named list of column names and data types}
+
+\item{\code{version_path}}{[chr] path to a date_version folder}
+
+\item{\code{user_entry}}{[named list] named list of user entry values}
+
+\item{\code{fpath}}{[chr] path to the log file}
+
+\item{\code{log_schema}}{[named list] named list of column names and data types}
+
+\item{\code{fpath}}{[chr] path to the central log file}
+
+\item{\code{log_schema}}{[named list] named list of column names and data types}
+
+\item{\code{dt_log}}{[data.table] log data.table}
+
+\item{\code{user_entry}}{[named list] named list of user entry values}
+
+\item{\code{root}}{[chr] path to a root folder defined at instantiation (`STL$new()`)}
+
+\item{\code{version_path}}{[chr] path to a date_version folder}
+
+\item{\code{verbose}}{[lgl] print message if no log found}
+
+\item{\code{log_list}}{[list] list of log data.tables}
+
+\item{\code{root}}{[chr] path to a root folder defined at instantiation (`STL$new()`)}
+
+\item{\code{root}}{[chr] path to a root folder defined at instantiation (`STL$new()`)}
+
+\item{\code{root}}{[chr] path to a root folder defined at instantiation (`STL$new()`)}
+
+\item{\code{verbose}}{[lgl] std_err message if no log found}
+
+\item{\code{root}}{[chr] path to a root folder defined at instantiation (`STL$new()`)}
+
+\item{\code{log_list}}{[list] list of logs, each log is a data.table}
+
+\item{\code{log_list}}{[list] list of logs, each log is a data.table}
+
+\item{\code{root}}{[chr] path to a root folder defined at instantiation (`STL$new()`)}
+
+\item{\code{log_list}}{[list] list of logs, each log is a data.table}
+
+\item{\code{log_list}}{[list] list of logs, each log is a data.table}
+
+\item{\code{root}}{[chr] path to a root folder defined at instantiation
+(`STL$new()`)}
+
+\item{\code{user_date_parsed}}{[chr] a date in a format allowed by
+`assert_user_date_class_and_format()`}
+
+\item{\code{date_selector}}{[chr] a selector allowed by `assert_date_selector()`}
+
+\item{\code{root}}{[chr] path to a root folder defined at instantiation}
+
+\item{\code{root}}{[chr] path to a root folder defined at instantiation}
+
+\item{\code{root}}{[chr] path to a root folder defined at instantiation}
+
+\item{\code{root}}{[chr] path to a root folder defined at instantiation}
+
+\item{\code{report_dt}}{[data.table] a data.table of discrepancies found with some log}
+
+\item{\code{discrepancy_reason}}{[chr] a string describing the discrepancy}
+
+\item{\code{path_dt}}{[data.table] a data.table of paths}
+
+\item{\code{discrepancy_reason}}{[chr] a string describing the discrepancy}
+
+\item{\code{root}}{[chr] path to a root folder defined at instantiation}
+
+\item{\code{date_version}}{[chr] Date version folder to mark}
+
+\item{\code{user_entry}}{[named list] User-supplied log entry}
+
+\item{\code{roots}}{[named list] All user-defined `root`s defined at instantiation}
+
+\item{\code{date_version}}{[chr] Date version folder to mark}
+
+\item{\code{user_entry}}{[named list] User-supplied log entry}
+
+\item{\code{date_version}}{[chr] Date version folder to mark}
+
+\item{\code{date_version}}{[chr] Date version folder}
+
+\item{\code{field_types}}{[chr] Field types to reset e.g. 'log', 'vers_paths'}
+
+\item{\code{version_path}}{[chr] Path to a date_version folder}
+
+\item{\code{date_version}}{[chr] Date version folder to demote}
+
+\item{\code{user_entry}}{[named list] User-supplied log entry}
+
+\item{\code{symlink_types}}{[chr] `private$DICT$symlink_types`}
+
+\item{\code{version_path}}{[chr] Path to a date_version folder for `best_` demotion}
+
+\item{\code{date_version}}{[chr] Date version folder to demote from `best_`}
+
+\item{\code{user_entry}}{[named list] User-supplied log entry}
+
+\item{\code{version_path}}{[chr] Path to a date_version folder for `best_` promotion}
+
+\item{\code{date_version}}{[chr] Date version folder to promote to `best_`}
+
+\item{\code{user_entry}}{[named list] User-supplied log entry}
+
+\item{\code{version_path}}{[chr] Path to a date_version folder for `keep_` promotion}
+
+\item{\code{user_entry}}{[named list] User-supplied log entry}
+
+\item{\code{version_path}}{[chr] Path to a date_version folder for `remove_` promotion}
+
+\item{\code{user_entry}}{[named list] User-supplied log entry}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[std_err] message or error
-Determine if an object is an error
+none
+
+
+Assert an object is a list with named elements
+
+- Stops if:
+ - x is not a list
+ - x is a data.table
+ - x has no names
+ - x has any NA names
+ - x has any zero-length names
+ - x has any whitespace-only names
 }
-\subsection{Examples}{
-\if{html}{\out{<div class="r example copy">}}
-\preformatted{Initialize a symlink tool by GBD round
-
-Any time the tool is made, the tool is GBD-round specific.  Create one
-per round if you need more than one
-
-
-}
-\if{html}{\out{</div>}}
-
-\if{html}{\out{<div class="r example copy">}}
-\preformatted{See the symlink_tool_vignette.
-Print the contents of all private dictionaries.
-
-}
-\if{html}{\out{</div>}}
-
-}
-
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-return_dictionaries"></a>}}
@@ -270,16 +303,11 @@ see.}
 }
 \subsection{Returns}{
 [std_out] Print static field values to std_out.
-}
-\subsection{Examples}{
-\if{html}{\out{<div class="r example copy">}}
-\preformatted{Print the contents of all dynamic fields.
 
-}
-\if{html}{\out{</div>}}
 
-}
 
+Print the contents of all dynamic fields.
+}
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-return_dynamic_fields"></a>}}
@@ -300,10 +328,10 @@ to see.}
 }
 \subsection{Returns}{
 [std_out] Print dynamic field values to std_out.
-}
-\subsection{Examples}{
-\if{html}{\out{<div class="r example copy">}}
-\preformatted{Mark an output folder with a "best" symlink.
+
+
+
+Mark an output folder with a "best" symlink.
 
 Enforces:
 - maximum of one best model
@@ -312,12 +340,7 @@ Enforces:
 Writes:
 - appends to a log file in the output folder with a date and time stamp
 - appends a line to the central log file with a date and time stamp
-
 }
-\if{html}{\out{</div>}}
-
-}
-
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-mark_best"></a>}}
@@ -345,20 +368,15 @@ for them.}
 }
 \subsection{Returns}{
 [ste_err] Messages about actions taken.
-}
-\subsection{Examples}{
-\if{html}{\out{<div class="r example copy">}}
-\preformatted{Mark an output folder with a "keep_<date_version>" symlink
+
+
+
+Mark an output folder with a "keep_<date_version>" symlink
 
 Writes:
 - appends to a log file in the output folder with a date and time stamp
 - appends a line to the central log file with a date and time stamp
-
 }
-\if{html}{\out{</div>}}
-
-}
-
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-mark_keep"></a>}}
@@ -386,10 +404,10 @@ for them.}
 }
 \subsection{Returns}{
 [std_err] Messages about actions taken.
-}
-\subsection{Examples}{
-\if{html}{\out{<div class="r example copy">}}
-\preformatted{Mark an output folder with a "remove_<date_version>" symlink
+
+
+
+Mark an output folder with a "remove_<date_version>" symlink
 
 Indication that the results can be deleted
 - In the future, this will be used to remove old versions of the
@@ -398,12 +416,7 @@ Indication that the results can be deleted
 Writes:
 - appends to a log file in the output folder with a date and time stamp
 - appends a line to the central log file with a date and time stamp
-
 }
-\if{html}{\out{</div>}}
-
-}
-
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-mark_remove"></a>}}
@@ -431,20 +444,15 @@ for them.}
 }
 \subsection{Returns}{
 [std_err] Messages about actions taken.
-}
-\subsection{Examples}{
-\if{html}{\out{<div class="r example copy">}}
-\preformatted{Remove all symlinks for a single `date_version` in all `roots`
+
+
+
+Remove all symlinks for a single `date_version` in all `roots`
 
 Writes:
 - appends to a log file in the output folder with a date and time stamp
 - does _not_ append to the central log file
-
 }
-\if{html}{\out{</div>}}
-
-}
-
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-unmark"></a>}}
@@ -470,18 +478,16 @@ for them.}
 }
 \if{html}{\out{</div>}}
 }
-\subsection{Examples}{
-\if{html}{\out{<div class="r example copy">}}
-\preformatted{Find all `remove_` symlinks in all `roots`
+\subsection{Returns}{
+[std_err] Messages about the symlinks removed.
+
+
+
+Find all `remove_` symlinks in all `roots`
 
 Return both the symlink and the resolved symlink (folder the symlink
 points to)
-
 }
-\if{html}{\out{</div>}}
-
-}
-
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-roundup_remove"></a>}}
@@ -493,10 +499,10 @@ points to)
 
 \subsection{Returns}{
 [list] list of data.tables - one for each `root`
-}
-\subsection{Examples}{
-\if{html}{\out{<div class="r example copy">}}
-\preformatted{Find all `date_version` folders by creation date
+
+
+
+Find all `date_version` folders by creation date
 
 Only finds folders that _have a log_, and reads creation date on first
 row.  User may select dates by (using the `date_selector` argument):
@@ -505,12 +511,7 @@ row.  User may select dates by (using the `date_selector` argument):
 - less than - `nt`
 - less than or equal to `nte`
 - equal to `e`
-
 }
-\if{html}{\out{</div>}}
-
-}
-
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-roundup_by_date"></a>}}
@@ -535,6 +536,13 @@ or 2020/01/01"}
 }
 \subsection{Returns}{
 [list] list of data.tables - one for each `root`
+
+
+
+Create a new `date_version` folder in _ALL THE TOOL'S ROOTS_
+
+Create a new log in each folder.  No symlinks are created.  No
+`user_entry` is used.
 }
 }
 \if{html}{\out{<hr>}}
@@ -556,21 +564,16 @@ instantiate the tool.}
 }
 \subsection{Returns}{
 [std_err] Messages about the folder creation.
-}
-\subsection{Examples}{
-\if{html}{\out{<div class="r example copy">}}
-\preformatted{Safely write an empty log file for first pipeline runs
+
+
+
+Safely write an empty log file for first pipeline runs
 
 When you start a new pipeline run, make an empty log
 - helpful if you let this tool manage all your versions
 - you can roundup date_versions by creation date using the log's first entry
 - the file system doesn't track directory creation dates (at time of writing)
-
 }
-\if{html}{\out{</div>}}
-
-}
-
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-make_new_log"></a>}}
@@ -591,10 +594,10 @@ instantiate the tool.}
 }
 \subsection{Returns}{
 [std_err] Messages about the log creation.
-}
-\subsection{Examples}{
-\if{html}{\out{<div class="r example copy">}}
-\preformatted{Delete a `date_version` folder marked with a `remove_` symlink from
+
+
+
+Delete a `date_version` folder marked with a `remove_` symlink from
 _ALL ITS ROOTS_
 
 Removes the symlink(s) and the underlying folder(s), and updates
@@ -602,12 +605,7 @@ central log if folders were removed.
 
 Writes:
 - appends a line to the central log file with a date and time stamp
-
 }
-\if{html}{\out{</div>}}
-
-}
-
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-delete_date_version_folders"></a>}}
@@ -642,19 +640,14 @@ deletion.}
 }
 \subsection{Returns}{
 [std_err] Messages about deletion events.
-}
-\subsection{Examples}{
-\if{html}{\out{<div class="r example copy">}}
-\preformatted{Make all reports
+
+
+
+Make all reports
 
 Writes all reports to a summary .csv for every `root` defined in the
 tool.
-
 }
-\if{html}{\out{</div>}}
-
-}
-
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-reports"></a>}}
