@@ -43,7 +43,12 @@
 # TODO SB - 2024 Feb 15 -
 # - [x] public function for empty log (for first pipeline outputs)
 # - [x] allow user to set root(s) at initialization
-# - [ ] clean up function args that only pass around private$DICT values - use private$DICT directly
+# TODO SB - 2024 Jun 07
+# - [x] fully document the package
+# - [ ] consistent strategy to pass around private$DICT values
+#     PICK ONE:
+#     - [ ] use private$DICT directly
+#     - [ ] submit private$DICT through all function args
 
 
 # LATER stuff - v2.0
@@ -51,16 +56,14 @@
 # - [ ] don't demote if the symlink is already the desired type
 #       - clutters up the logs, but not a deal-breaker
 
-# .username <- Sys.info()[["user"]]
-# for assert_data_schema
-# source(file.path("/share/code/vaccines", .username, "vaccines/vaccination_pipeline_functions/validations.R"))
-
-# library(R6)
-# library(DescTools)
-# library(data.table)
-# library(lubridate)
-
-
+#> NOTE:
+#> These are required, but all namespaced within:
+#>
+#> library(R6)
+#> library(DescTools)
+#> library(data.table)
+#> library(lubridate)
+#>
 #> WARNING: DO NOT touch '.__enclos_env__' unless you want the tool to break
 #>
 #> NOTES:
@@ -70,11 +73,14 @@
 #>     - See https://r6.r-lib.org/articles/Debugging.html
 #>
 #>   LIBRARIES
-#>     - Depends on vaccines/vaccination_pipeline_functions/validations.R for assert_data_schema
 #>     - Relies on libraries declared above, but calls on all functions by package namespace for clarity and robustness
-
-# Required for vignette to work in Rmarkdown
-# Known error: https://github.com/rstudio/rmarkdown/issues/187
+#>     - data.tables themselves cannot be namespaced
+#>
+#>   ROXYGEN
+#>     - Roxygen docstrings cannot be added to private methods, because reasons
+#>
+#> Required for vignette to work in Rmarkdown
+#> Known issue: https://github.com/rstudio/rmarkdown/issues/187
 .datatable.aware = TRUE
 
 SLT <- R6::R6Class(
@@ -199,17 +205,35 @@ SLT <- R6::R6Class(
 
       # Validations ------------------------------------------------------------
 
-      # Two types:
+      # Two types of check functions:
       # 1. assert_x - stop if conditions are unmet
       # 2. validate_x - warn if conditions are unmet
       #               - Return TRUE/FALSE
 
+      # Assert an element is atomic and length 1
+      #
+      #  @param x [any] Element to check
+      #
+      #  @return none
       assert_scalar = function(x){
          if(!(is.atomic(x) && length(x) == 1L)){
             stop("x must be atomic and length 1L")
          }
       },
 
+      #  Assert an object is a list with named elements
+      #
+      #  Stops if:
+      #   - x is not a list
+      #   - x is a data.table
+      #   - x has no names
+      #   - x has any NA names
+      #   - x has any zero-length names
+      #   - x has any whitespace-only names
+      #
+      #  @param x [list] List to check
+      #
+      #  @return none
       assert_named_list = function(x){
          if(!is.null(x)){
             err_msg <- "x must be a named list, not vector (list names may not be whitespace)"
@@ -222,12 +246,20 @@ SLT <- R6::R6Class(
          }
       },
 
+      #  Assert the user's mark-operation entry matches the log schema
+      #
+      #  @param user_entry [named list] User's entry for a mark operation
+      #  @param log_fields_user [character] Names of fields in the log schema
+      #  @param log_schema [named list] Log schema
+      #
+      #  @return [none]
       assert_schema_vs_user_entry = function(user_entry,
                                              log_fields_user = private$DICT$log_fields_user,
                                              log_schema      = private$DICT$log_schema) {
 
          # check that user_entry is a named list
          private$assert_named_list(user_entry)
+         private$assert_named_list(log_schema)
 
          # check that user_entry names are in log_fields_user
          if(!all(names(user_entry) %in% log_fields_user)){
@@ -247,26 +279,26 @@ SLT <- R6::R6Class(
          }
       },
 
-      #' Enforce a data.table's schema with merge protection defaults.
-      #'
-      #' Asserts the following in order (*all are OPTIONAL*):
-      #' - required column names by exact name
-      #' - forbidden column names by exact name
-      #' - required column names by regex pattern
-      #' - forbidden column names by regex pattern (default `\.x` and `\.y` to guard against invalid merges)
-      #' - data types for selected columns
-      #'
-      #' @param my_dt [data.table] your data
-      #' @param varnames_strict [chr] strictly required vector of column names - all required, no others allowed
-      #' @param strict_order_req [lgl] if varnames_strict is not NULL, should the order of columns be asserted?
-      #' @param varnames_req [chr] vector of column names required in my_dt (include)
-      #' @param varnames_forbid [chr] vector of column names forbidden in my_dt (exclude)
-      #' @param regex_req [chr] regex pattern for required column names
-      #' @param regex_forbid [chr] regex pattern for forbidden coumn names (default `\.x` and `\.y` to guard against invalid merges)
-      #' @param data_types [named list] `key=value` pair list of column names and required data type
-      #' @param verbose [lgl] confirmation message if passing all assertions
-      #'
-      #' @return [std_err] message or error
+      #  Enforce a data.table's schema with merge protection defaults.
+      #
+      #  Asserts the following in order (*all are OPTIONAL*):
+      #  - required column names by exact name
+      #  - forbidden column names by exact name
+      #  - required column names by regex pattern
+      #  - forbidden column names by regex pattern (default `\.x` and `\.y` to guard against invalid merges)
+      #  - data types for selected columns
+      #
+      #  @param my_dt [data.table] your data
+      #  @param varnames_strict [chr] strictly required vector of column names - all required, no others allowed
+      #  @param strict_order_req [lgl] if varnames_strict is not NULL, should the order of columns be asserted?
+      #  @param varnames_req [chr] vector of column names required in my_dt (include)
+      #  @param varnames_forbid [chr] vector of column names forbidden in my_dt (exclude)
+      #  @param regex_req [chr] regex pattern for required column names
+      #  @param regex_forbid [chr] regex pattern for forbidden coumn names (default `\.x` and `\.y` to guard against invalid merges)
+      #  @param data_types [named list] `key=value` pair list of column names and required data type
+      #  @param verbose [lgl] confirmation message if passing all assertions
+      #
+      #  @return [none] message or error
       assert_data_schema = function(
       my_dt
       , varnames_strict  = NULL
@@ -380,12 +412,23 @@ SLT <- R6::R6Class(
 
       },
 
+      #  @title Assert a directory exists on disk
+      #
+      #  @param x [path] A directory path
+      #
+      #  @return none
       assert_dir_exists = function(x){
          private$assert_scalar(x)
          root <- suppressWarnings(normalizePath(x))
          if(!dir.exists(root)) stop("root does not exist: ", x)
       },
 
+      #  Validate whether a directory exists
+      #
+      #  @param x [path] A directory path
+      #  @param verbose [lgl] message to std_out?
+      #
+      #  @return [lgl] TRUE if directory exists, FALSE otherwise
       validate_dir_exists = function(x, verbose = TRUE){
          private$assert_scalar(x)
          root <- suppressWarnings(normalizePath(x))
@@ -397,6 +440,20 @@ SLT <- R6::R6Class(
          }
       },
 
+      #  Assert the date_selector shorthand is valid.
+      #
+      #  Examples:
+      #  gt = 'greater_than'
+      #  gte = 'greater_than_equal_to'
+      #  lt = 'less_than'
+      #  lte = 'less_than_equal_to'
+      #  e = 'equal'
+      #
+      #  Used by `roundup_by_date`
+      #
+      #  @param date_selector [chr] One of 'gt', 'gte', 'lt', 'lte', 'e'
+      #
+      #  @return none
       assert_date_selector = function(date_selector){
          # format and validate inputs
          valid_date_selectors <- c("gt", "gte", "lt", "lte", "e")
@@ -414,7 +471,17 @@ SLT <- R6::R6Class(
          }
       },
 
-      assert_user_date = function(user_date){
+      #  Assert the user_date is valid class and format
+      #
+      #  Stop if:
+      #   - user_date is not one of the valid classes
+      #   - user_date is not formatted as 'YYYY MM DD' with one of the delimiters [-/_]
+      #
+      #
+      #  @param user_date [chr] a date string of class `c('character', 'Date', 'POSIXct', 'POSIXt')`
+      #
+      #  @return none
+      assert_user_date_class_and_format = function(user_date){
          # user date should be formatted as YYYY MM DD with select delimiters between
          valid_date_classes <- c("character", "Date", "POSIXct", "POSIXt")
          if(!any(class(user_date) %in% valid_date_classes)){
@@ -428,8 +495,13 @@ SLT <- R6::R6Class(
          }
       },
 
+      #  Assert the user_date is in the PST timezone
+      #
+      #  @param date [chr] a date string
+      #
+      #  @return none
       assert_PST_date = function(date){
-         private$assert_user_date(user_date = date)
+         private$assert_user_date_class_and_format(user_date = date)
          valid_tz = c("America/Los_Angeles", "US/Pacific", "PST8PDT")
          if(!lubridate::tz(date) %in% valid_tz){
             stop("Invalid timezone.\n",
@@ -443,12 +515,12 @@ SLT <- R6::R6Class(
 
       # Utils ------------------------------------------------------------------
 
+      #  Determine if an object is an error
+      #
+      #  @param x [obj] some R object
+      #
+      #  @return [lgl] TRUE / FALSE
       is_an_error = function(x) {
-         #' Determine if an object is an error
-         #'
-         #' @param x [obj] some R object
-         #'
-         #' @return [lgl] TRUE / FALSE
 
          (inherits(x, "simpleError") | inherits(x, "try-error"))
       },
@@ -459,17 +531,14 @@ SLT <- R6::R6Class(
 
       ## Symlinks --------------------------------------------------------------
 
-      #' Find and count symlinks by gbd round, date_version, and symlink_type
-      #'
-      #' @param root [path] full path to gbd round data
-      #' @param date_version [chr] e.g. "2023_01_01"
-      #' @param symlink_type [chr] e.g. "best"
-      #'
-      #' @return [list] two elements symlinks - symlink path names (unresolved)
-      #'   and symlink_count of symlinks matching private$DICT$`symlink_types`
-      #' @export
-      #'
-      #' @examples
+      #  Find and count symlinks by gbd round, date_version, and symlink_type
+      #
+      #  @param root [path] full path to gbd round data
+      #  @param date_version [chr] e.g. "2023_01_01"
+      #  @param symlink_type [chr] e.g. "best"
+      #
+      #  @return [list] two elements symlinks - symlink path names (unresolved)
+      #    and symlink_count of symlinks matching private$DICT$`symlink_types`
       find_count_symlinks = function(root, date_version, symlink_type){
 
          # validate inputs
@@ -515,19 +584,16 @@ SLT <- R6::R6Class(
          ))
       },
 
-      #' assert that some number of symlinks exist for some date_version - sums symlinks across all symlink_types specified
-      #' use case: ensure you don't have the same date marked 'best' and 'remove' at the same time
-      #'
-      #' @param root [path] full path to gbdxxxx data folder
-      #' @param date_version [chr] a run date for the model
-      #' @param symlink_type [chr] one of: c(private$DICT$symlink_types, "all")
-      #' @param n_sym [int] number of symlinks to assert
-      #' @param allow_fewer [lgl] if TRUE, allow fewer symlinks than n_sym symlinks (i.e. 0 is OK)
-      #'
-      #' @return none
-      #' @export
-      #'
-      #' @examples
+      #  assert that some number of symlinks exist for some date_version - sums symlinks across all symlink_types specified
+      #  use case: ensure you don't have the same date marked 'best' and 'remove' at the same time
+      #
+      #  @param root [path] full path to gbdxxxx data folder
+      #  @param date_version [chr] a run date for the model
+      #  @param symlink_type [chr] one of: c(private$DICT$symlink_types, "all")
+      #  @param n_sym [int] number of symlinks to assert
+      #  @param allow_fewer [lgl] if TRUE, allow fewer symlinks than n_sym symlinks (i.e. 0 is OK)
+      #
+      #  @return none
       assert_n_symlinks = function(root, date_version, symlink_type = "all", n_sym = 1L, allow_fewer = TRUE){
 
          # validate inputs
@@ -572,6 +638,11 @@ SLT <- R6::R6Class(
       },
 
 
+      #  Resolve a symlink to its full path
+      #
+      #  @param path [chr] a path to a symlink
+      #
+      #  @return [chr] the full path of the symlink
       resolve_symlink = function(path){
          path_resolved <- system(paste("realpath", path), intern = TRUE)
          if(file.exists(path_resolved)) {
@@ -581,7 +652,13 @@ SLT <- R6::R6Class(
          }
       },
 
-      # make a symlink string of a certain type for a folder
+      #
+      #  Make a symlink string of a certain type for a folder
+      #
+      #  @param version_path [chr] full path to a version folder
+      #  @param symlink_type [chr] valid symlink type defined by class, e.g. 'best', 'keep', 'remove'
+      #
+      #  @return [chr] full path to the symlink
       make_symlink_path = function(version_path, symlink_type){
          private$assert_scalar(version_path)
          private$assert_scalar(symlink_type)
@@ -600,10 +677,15 @@ SLT <- R6::R6Class(
          return(file.path(root, paste0(symlink_type, symlink_suffix)))
       },
 
+      #  Pull a symlink from a linux path string
+      #
+      #  e.g. pull "best" from:
+      #  "lrwxrwxrwx 1 USER Domain Users  63 Feb  6 17:04 best -> /mnt/share/some/path"
+      #
+      #  @param symlink_string [chr] a string from a linux path e.g. "lrwxrwxrwx 1 USER Domain Users  63 Feb  6 17:04 best -> /mnt/share/some/path"
+      #
+      #  @return [chr] the symlink string
       extract_symlink = function(symlink_string){
-         # pull a symlink from a linux path string e.g. pull "best" from:
-         # "lrwxrwxrwx 1 USER Domain Users  63 Feb  6 17:04 best -> /mnt/share/some/path"
-
          arrow_rgx <- " -> " # used by linux to show symlinks
          if(!grepl(arrow_rgx, symlink_string)) stop("No arrow found in symlink_string: ", symlink_string)
          match_idx <- regexpr(arrow_rgx, symlink_string)
@@ -632,7 +714,14 @@ SLT <- R6::R6Class(
       #    return(str_post_arrow)
       # },
 
-      # remove one symlink and message about which type was removed, append to log
+      #  Remove one symlink and message about which type was removed, append to log
+      #
+      #  @param root [chr] path to the root folder
+      #  @param date_version [chr] date_version of the user's folder
+      #  @param symlink_type [chr] valid symlink type defined by class, e.g. 'best', 'keep', 'remove'
+      #  @param user_entry [named list] user entry from the user's folder
+      #
+      #  @return [none] side effect of removing a symlink
       remove_one_symlink = function(root, date_version, symlink_type, user_entry){
          private$assert_dir_exists(root)
          private$assert_scalar(date_version)
@@ -674,7 +763,15 @@ SLT <- R6::R6Class(
          }
       },
 
-      # remove all symlinks for a date_version
+      #  Remove all symlinks for a date_version
+      #
+      #  Loops through all symlink types and removes them with `remove_one_symlink()`
+      #
+      #  @param root [chr] path to the root folder
+      #  @param date_version [chr] date_version of the user's folder
+      #  @param user_entry [named list] user entry from the user's folder
+      #
+      #  @return [none] removes symlinks on disk
       remove_all_symlinks = function(root, date_version, user_entry){
          private$assert_scalar(date_version)
          message("Removing symlinks for: ", date_version)
@@ -694,6 +791,12 @@ SLT <- R6::R6Class(
 
       # Create a new real directory, not a symlink, to a versioned output folder, with new log
       # I want messages, not dir.create's default warning
+
+      #  Create a new folder with a log file
+      #
+      #  @param vers_path [chr] path to the versioned folder
+      #
+      #  @return [none] side effect of creating a log file on disk
       create_folder_with_log = function(vers_path){
 
          dir_exists <- private$validate_dir_exists(vers_path, verbose = FALSE)
@@ -707,6 +810,14 @@ SLT <- R6::R6Class(
 
       },
 
+      #  Delete a folder that's been marked `remove_`
+      #
+      #  @param root [chr] path to the root folder
+      #  @param date_version [chr] date_version of the user's folder
+      #  @param user_entry [named list] user entry from the user's folder
+      #  @param require_user_input [lgl] TRUE if the user should be prompted to confirm deletion, FALSE if deletion should be automated e.g. in a loop.
+      #
+      #  @return [lgl] TRUE if the folder was deleted, FALSE if it was not
       delete_remove_folder = function(root, date_version, user_entry, require_user_input){
          private$assert_dir_exists(root)
          private$assert_scalar(date_version)
@@ -781,7 +892,11 @@ SLT <- R6::R6Class(
 
       ## Logs ------------------------------------------------------------------
 
-      # empty one-row dt to fill by user
+      #  Make an empty data.table schema from a named list
+      #
+      #  @param schema [named list] named list of column names and data types
+      #
+      #  @return [data.table] empty data.table with schema columns and types
       make_schema_dt = function(schema){
          private$assert_named_list(schema)
          dt_schema <- data.table::data.table()
@@ -792,28 +907,43 @@ SLT <- R6::R6Class(
          return(dt_schema)
       },
 
+      #  Write a new log file with the schema defined in `private$DICT$log_schema`
+      #
+      #  Write a 'create' row if there are 0 rows in the log.
+      #
+      #  @param fpath [chr] path to the log file
+      #  @param log_schema [named list] named list of column names and data types
+      #
+      #  @return none
       write_new_log = function(fpath, log_schema = private$DICT$log_schema){
          dt_log <- private$make_schema_dt(log_schema)
          # Safely write first 'create' row if it doesn't exist
-         dt_log <- private$write_log_creation_entry(dt_log)
+         dt_log <- private$ensure_log_creation_entry(dt_log)
          data.table::fwrite(dt_log, fpath)
       },
 
-      # Return a time-stamp in "%Y_%m_%d_%H%M%S" format, e.g. "2024_02_21_104202"
+      #   Return a time-stamp in "%Y_%m_%d_%H%M%S" format, e.g. "2024_02_21_104202"
+      #
+      #  @return [chr] time-stamp in "%Y_%m_%d_%H%M%S" format
       make_current_timestamp = function(){
          return(format(lubridate::with_tz(Sys.time(), tzone="America/Los_Angeles"), "%Y_%m_%d_%H%M%S"))
       },
 
-      # Write a log creation row IF the log is empty
-      write_log_creation_entry = function(dt_log){
-         if(is.na(private$DYNAMIC$LOG$date_version)) stop("date_version not set - check how you've initialized the date_version, if at all")
+      #   Write a log creation row IF the log is empty
+      #
+      #  @param dt_log [data.table] log data.table
+      #  @param date_version [chr] date version in format 'YYYY_MM_DD' default private$DYNAMIC$LOG$date_version
+      #
+      #  @return [data.table] log data.table with creation row if it was empty
+      ensure_log_creation_entry = function(dt_log, date_version = private$DYNAMIC$LOG$date_version){
+         if(is.na(date_version)) stop("date_version not set - check how you've initialized the date_version, if at all")
          # This will not rewrite the first log line if only that row was deleted - that's misleading
          if(nrow(dt_log) == 0) {
             first_row <- data.table(
                log_id       = 0L,
                timestamp    = private$make_current_timestamp(),
                user         = Sys.info()[["user"]],
-               date_version = private$DYNAMIC$LOG$date_version,
+               date_version = date_version,
                action       = "create",
                comment      = "log created"
 
@@ -823,7 +953,12 @@ SLT <- R6::R6Class(
          return(dt_log)
       },
 
-      # safely write an expected log with creation entry if it doesn't exist
+      #  Safely write an expected log with creation entry if it doesn't exist.
+      #
+      #  @param fpath [chr] path to the log file
+      #  @param log_schema [named list] named list of column names and data types
+      #
+      #  @return none
       write_expected_log = function(fpath, log_schema = private$DICT$log_schema){
          private$assert_scalar(fpath)
          if(!file.exists(fpath)) {
@@ -831,22 +966,37 @@ SLT <- R6::R6Class(
          } else {
             dt_log <- private$read_log(fpath, log_schema)
             # Safely write first 'create' row if it doesn't exist
-            dt_log <- private$write_log_creation_entry(dt_log)
+            dt_log <- private$ensure_log_creation_entry(dt_log)
             data.table::fwrite(dt_log, fpath)
          }
       },
 
-      # safely correct a null log, if found (all dim == 0)
+      #  Safely correct a null log, if found (all dim == 0).
+      #
+      #  If log is null (all dim == 0), rebuild schema and write a new 'create' row.
+      #
+      #  Helper for `read_log()`
+      #
+      #  @param dt_log [data.table] log data.table
+      #
+      #  @return [data.table] log data.table
       correct_null_log = function(dt_log){
          if(all(dim(dt_log) == 0)){
             message("NULL log found (all dim = 0) - rebuilding schema and writing a new 'create' row.")
             dt_log <- private$make_schema_dt(private$DICT$log_schema)
-            dt_log <- private$write_log_creation_entry(dt_log)
+            dt_log <- private$ensure_log_creation_entry(dt_log)
          }
          return(dt_log)
       },
 
-      # reads log if it exists, makes a blank one if it doesn't
+      #  Reads log if it exists, makes a blank one if it doesn't.
+      #
+      #  Ensure correct schema.
+      #
+      #  @param fpath [chr] path to the log file
+      #  @param log_schema [named list] named list of column names and data types
+      #
+      #  @return [data.table] log data.table
       read_log = function(fpath, log_schema = private$DICT$log_schema){
 
          fpath              <- file.path(fpath)
@@ -856,7 +1006,7 @@ SLT <- R6::R6Class(
             {
                data.table::fread(fpath, colClasses = col_classes)
             }, warning = function(w) message(
-               "Warning reading log: \n ||----- ",
+               "Warning - reading log: \n ||----- ",
                w)
          )
 
@@ -866,6 +1016,12 @@ SLT <- R6::R6Class(
          return(dt_log)
       },
 
+      #  Append a one-row entry to a log and write to disk
+      #
+      #  @param version_path [chr] path to a date_version folder
+      #  @param user_entry [named list] named list of user entry values
+      #
+      #  @return none
       append_to_log = function(version_path, user_entry) {
 
          # validate inputs
@@ -873,13 +1029,13 @@ SLT <- R6::R6Class(
          private$assert_scalar(version_path)
 
          # needs to read a log to bump the log_id number
-         fpath    <- file.path(version_path, private$DICT$log_name)
+         fpath  <- file.path(version_path, private$DICT$log_name)
          private$write_expected_log(fpath, log_schema = private$DICT$log_schema)
-         dt_log   <- private$read_log(fpath)
+         dt_log <- private$read_log(fpath)
          private$assert_schema_vs_user_entry(user_entry)
 
          # Safely write first 'create' row if it doesn't exist
-         dt_log <- private$write_log_creation_entry(dt_log)
+         dt_log <- private$ensure_log_creation_entry(dt_log)
 
          last_row <- tail(dt_log, 1)
 
@@ -904,9 +1060,17 @@ SLT <- R6::R6Class(
 
       ### Central Log ----------------------------------------------------------
 
-      # This differs from a date_version log since the first entry DOES NOT
-      # have a date_version by definition - we'll define it as "CENTRAL_LOG" for
-      # clarity, and write an append process to match
+
+      #  Safely write an expected central log with creation entry if it doesn't exist.
+      #
+      #  This differs from a date_version log since the first entry DOES NOT
+      #  have a date_version by definition - we'll define it as "CENTRAL_LOG" for
+      #  clarity, and write an append process to match
+      #
+      #  @param fpath [chr] path to the log file
+      #  @param log_schema [named list] named list of column names and data types
+      #
+      #  @return none
       write_expected_central_log = function(fpath, log_schema = private$DICT$log_schema){
          private$assert_scalar(fpath)
          if(!file.exists(fpath)) {
@@ -919,6 +1083,12 @@ SLT <- R6::R6Class(
          }
       },
 
+      #  Write a new central log with a 'create' row.
+      #
+      #  @param fpath [chr] path to the central log file
+      #  @param log_schema [named list] named list of column names and data types
+      #
+      #  @return none
       write_new_central_log = function(fpath, log_schema = private$DICT$log_schema){
          dt_log <- private$make_schema_dt(log_schema)
          # Safely write first 'create' row if it doesn't exist
@@ -926,6 +1096,13 @@ SLT <- R6::R6Class(
          data.table::fwrite(dt_log, fpath)
       },
 
+      #  Ensure a 'create' row exists in the central log.
+      #
+      #  Write a 'create' row if there are 0 rows in the log.
+      #
+      #  @param dt_log [data.table] log data.table
+      #
+      #  @return [data.table] log data.table with creation row
       write_central_log_creation_entry = function(dt_log){
          # This will not rewrite the first log line if only that row was deleted - that's misleading
          if(nrow(dt_log) == 0) {
@@ -943,6 +1120,15 @@ SLT <- R6::R6Class(
          return(dt_log)
       },
 
+      #  Append a one-row entry to the central log and write to disk
+      #
+      #  Differs from `append_to_log` in that only promotions/deletions are recorded, not demotions.
+      #  e.g. `demote_best` is not recorded, only the next `promote_best` will be.
+      #  This helps keeps from cluttering the central log.
+      #
+      #  @param user_entry [named list] named list of user entry values
+      #
+      #  @return none
       append_to_central_log = function(user_entry) {
 
          # validate inputs
@@ -1001,6 +1187,11 @@ SLT <- R6::R6Class(
       # the '_query_' function family is for reporting on the state of the symlinks
       # they differ from 'read_log', which is for promotion/demotion, and will create a new log
 
+      #  Query the folder types (bare of symlink) of all date_version folders in one `root`.
+      #
+      #  @param root [chr] path to a root folder defined at instantiation (`STL$new()`)
+      #
+      #  @return [data.table] table of all date_version folders and their folder types (e.g. bare folder or symlink)
       query_root_folder_types = function(root){
          # Find all first-level folders in the root (non-recursive)
          dir_name <- list.dirs(root, full.names = TRUE, recursive = FALSE)
@@ -1032,20 +1223,30 @@ SLT <- R6::R6Class(
          return(folder_dt)
       },
 
-      # `try()` to find logs for all folders, read them if they exist, in a consistent format
+      #  `tryCatch()` to find logs for all folders, read them if they exist, in a consistent format
+      #
+      #  @param version_path [chr] path to a date_version folder
+      #  @param verbose [lgl] print message if no log found
+      #
+      #  @return [data.table] log data.table if found, else NULL
       try_query_log = function(version_path, verbose = TRUE){
          tryCatch(
             {
                data.table::fread(
                   file.path(version_path, private$DICT$log_name)
-                  , colClasses = unlist(private$DICT$log_schema
-                  ))
+                  , colClasses = unlist(private$DICT$log_schema)
+               )
             },
             error = function(e) if(verbose) message("No log found for folder: ", version_path)
          )
       },
 
-      # safely remove null logs, and account for zero-length logs if none are found for a date_version folder
+
+      #  Safely remove null logs, and account for zero-length logs if none are found for a date_version folder
+      #
+      #  @param log_list [list] list of log data.tables
+      #
+      #  @return [list] list of non-NULL log data.tables
       filter_null_logs_safely = function(log_list){
          if(length(log_list) == 0 || all(is.null(unlist(log_list)))){
             return(list(no_logs_found = private$make_schema_dt(schema = private$DICT$log_schema)))
@@ -1054,6 +1255,11 @@ SLT <- R6::R6Class(
          }
       },
 
+      #  Query all logs in a single `root`
+      #
+      #  @param root [chr] path to a root folder defined at instantiation (`STL$new()`)
+      #
+      #  @return [list] list of all non-NULL logs in the root, with the folder path as the list name
       query_all_logs = function(root){
          # find all folders and their types
          folder_dt            <- private$query_root_folder_types(root)
@@ -1068,6 +1274,14 @@ SLT <- R6::R6Class(
          return(log_list)
       },
 
+      #  Query all logs for any active symlinks in a single `root`
+      #
+      #  This finds symlinks _not_ made by the Symlink Tool (useful for diagnostics).
+      #  E.g. if the user makes their own symlink not defined in private`$DICT$symlink_types`, this will find it.
+      #
+      #  @param root [chr] path to a root folder defined at instantiation (`STL$new()`)
+      #
+      #  @return [list] list of all non-NULL logs in the root, with the folder path as the list name
       query_all_logs_symlink = function(root){
          # find all folders and their types
          folder_dt <- private$query_root_folder_types(root)
@@ -1081,6 +1295,15 @@ SLT <- R6::R6Class(
          return(log_list)
       },
 
+      #  Query all logs for active symlinks made by the tool in a single `root`
+      #
+      #  This finds symlinks _made_ by the Symlink Tool (useful for diagnostics).
+      #  E.g. finds symlink patterns defined by `private$DICT$symlink_types`, this will find it.
+      #
+      #  @param root [chr] path to a root folder defined at instantiation (`STL$new()`)
+      #  @param verbose [lgl] std_err message if no log found
+      #
+      #  @return [list] list of all non-NULL logs in the root, with the folder path as the list name
       query_all_logs_tool_symlink = function(root, verbose = TRUE){
          # find all folders and their types
          folder_dt            <- private$query_root_folder_types(root)
@@ -1097,13 +1320,20 @@ SLT <- R6::R6Class(
          return(log_list)
       },
 
-      # This one is a little different - requires a setdiff, so has some different variable naming patterns
+      #  Query all logs for non-symlink folders in a single `root`
+      #
+      #  This finds folders _not_ targeted by any symlink.
+      #
+      #  @param root [chr] path to a root folder defined at instantiation (`STL$new()`)
+      #
+      #  @return [list] list of all non-NULL logs in the root, with the folder path as the list name
       query_all_logs_non_symlink = function(root){
          # find all folders and their types
          folder_dt                 <- private$query_root_folder_types(root)
          # find unique paths not targeted by any symlink
          unique_dir_names_resolved <- unique(folder_dt$dir_name_resolved)
          unique_symlink_targets    <- unique(folder_dt[is_symlink == TRUE, dir_name_resolved])
+         # This one is a little different - requires a setdiff, so has some different variable naming patterns
          unique_non_symlink_paths  <- setdiff(unique_dir_names_resolved, unique_symlink_targets)
          # query logs
          log_list                  <- lapply(unique_non_symlink_paths, private$try_query_log)
@@ -1114,6 +1344,13 @@ SLT <- R6::R6Class(
          return(log_list)
       },
 
+      #  Return the last row from each log.
+      #
+      #  Does not rely on the log entry index, uses `tail()`
+      #
+      #  @param log_list [list] list of logs, each log is a data.table
+      #
+      #  @return [data.table] a data.table with the last row of each log
       query_logs_last_row = function(log_list){
          # find the last row of each log
          return(
@@ -1121,6 +1358,13 @@ SLT <- R6::R6Class(
          )
       },
 
+      #  Return the row with the highest log_id from each log.
+      #
+      #  Does not pull the last row, relies on the log index.
+      #
+      #  @param log_list [list] list of logs, each log is a data.table
+      #
+      #  @return [data.table] a data.table with the row with the highest log_id of each log
       query_log_id_max = function(log_list){
          # find the row with highest non-missing log_id of each log
          return(
@@ -1128,6 +1372,11 @@ SLT <- R6::R6Class(
          )
       },
 
+      #  Query all folders with a "remove_" symlink in a single `root`
+      #
+      #  @param root [chr] path to a root folder defined at instantiation (`STL$new()`)
+      #
+      #  @return [data.table] a data.table with the folder path, symlink name, and resolved path
       query_all_remove_symlinks = function(root){
          # find all folders and their types
          folder_dt            <- private$query_root_folder_types(root)
@@ -1137,12 +1386,26 @@ SLT <- R6::R6Class(
          return(remove_dirs_dt)
       },
 
+      #  Query the first row of all logs in a list
+      #
+      #  Does not rely on the log entry index, uses `head()`
+      #
+      #  @param log_list [list] list of logs, each log is a data.table
+      #
+      #  @return [data.table] a data.table with the first row of each log
       query_logs_first_row = function(log_list){
          return(
             data.table::rbindlist(lapply(log_list, function(x) head(x, 1)))
          )
       },
 
+      #  Query the row with log_id == 0 from all logs in a list
+      #
+      #  This should be the creation line for each log.
+      #
+      #  @param log_list [list] list of logs, each log is a data.table
+      #
+      #  @return [data.table] a data.table with the row with log_id == 0 of each log
       query_log_id_0 = function(log_list){
          return(
             data.table::rbindlist(lapply(log_list, function(x) x[log_id == 0, ]))
@@ -1150,6 +1413,21 @@ SLT <- R6::R6Class(
 
       },
 
+      #  Query all logs in one root by a date selector
+      #
+      #  This relies on date_version folders being formatted a certain way.  This
+      #  formatting is enforced `assert_user_date_class_and_format()` and
+      #  `assert_date_selector()`.
+      #
+      #  Returns date_version folders less than, greater than, and/or equal to a date.
+      #
+      #  @param root [chr] path to a root folder defined at instantiation
+      #    (`STL$new()`)
+      #  @param user_date_parsed [chr] a date in a format allowed by
+      #    `assert_user_date_class_and_format()`
+      #  @param date_selector [chr] a selector allowed by `assert_date_selector()`
+      #
+      #  @return [data.table] a data.table with the first row of each log
       query_by_date = function(root, user_date_parsed, date_selector){
          private$assert_dir_exists(root)
          private$assert_date_selector(date_selector)
@@ -1204,6 +1482,13 @@ SLT <- R6::R6Class(
 
       # each report function must have a corresponding query_all_logs_* function
 
+      #  Report last row of all logs in one root
+      #
+      #  Writes a file to disk in `root`
+      #
+      #  @param root [chr] path to a root folder defined at instantiation
+      #
+      #  @return none
       report_all_logs = function(root){
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs(root)
@@ -1211,6 +1496,13 @@ SLT <- R6::R6Class(
          data.table::fwrite(last_row_dt, file.path(root, "report_all_logs.csv"))
       },
 
+      #  Report last row of all symlinked folder logs in one root
+      #
+      #  Writes a file to disk in `root`
+      #
+      #  @param root [chr] path to a root folder defined at instantiation
+      #
+      #  @return none
       report_all_logs_symlink = function(root){
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs_symlink(root)
@@ -1218,10 +1510,18 @@ SLT <- R6::R6Class(
          data.table::fwrite(last_row_dt, file.path(root, "report_all_logs_symlink.csv"))
       },
 
-      # This runs each time a user runs a 'mark' function
-      # - Invoked by handler_post_mark
-      # - It must provide an updated report of the current state of the symlinks
-      # - It must provide a discrepancy report as well
+      #  Report last row of all tool-symlinked folder logs in one root
+      #
+      #  Writes a file to disk in `root`
+      #
+      #  This runs each time a user runs a 'mark' function
+      #  - Invoked by `handler_post_mark()`
+      #  - It must provide an updated report of the current state of the symlinks
+      #  - It must provide a discrepancy report as well
+      #
+      #  @param root [chr] path to a root folder defined at instantiation
+      #
+      #  @return none
       report_all_logs_tool_symlink = function(root){
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs_tool_symlink(root, verbose = FALSE)
@@ -1232,6 +1532,13 @@ SLT <- R6::R6Class(
 
       },
 
+      #  Report last row of all non-symlinked folder logs in one root
+      #
+      #  Writes a file to disk in `root`
+      #
+      #  @param root [chr] path to a root folder defined at instantiation
+      #
+      #  @return none
       report_all_logs_non_symlink = function(root){
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs_non_symlink(root)
@@ -1239,7 +1546,12 @@ SLT <- R6::R6Class(
          data.table::fwrite(last_row_dt, file.path(root, "report_all_logs_non_symlink.csv"))
       },
 
-      # add a discrepancy column to a data.table if it has rows
+      #  Add a discrepancy column to a data.table if it has rows
+      #
+      #  @param report_dt [data.table] a data.table of discrepancies found with some log
+      #  @param discrepancy_reason [chr] a string describing the discrepancy
+      #
+      #  @return a data.table with a new column `discrepancy` added
       add_discrepancy_to_dt = function(report_dt, discrepancy_reason){
          if(nrow(report_dt) > 0){
             report_dt[, discrepancy := discrepancy_reason]
@@ -1248,8 +1560,13 @@ SLT <- R6::R6Class(
          return(report_dt)
       },
 
-      # for discrepancies related to paths, build an empty report schema
-      make_report_schema_for_discrepant_paths = function(path_dt, discrepancy_reason){
+      #  For discrepancies related to paths, build an empty report schema
+      #
+      #  @param path_dt [data.table] a data.table of paths
+      #  @param discrepancy_reason [chr] a string describing the discrepancy
+      #
+      #  @return an empty data.table with a new column `discrepancy` added
+      make_report_schema_for_discrepant_paths = function(path_dt, discrepancy_reason, log_schema = private$DICT$log_schema){
          # input validation
          if(!data.table::is.data.table(path_dt)) stop("path_dt must be a data.table")
          if(!is.character(discrepancy_reason))   stop("discrepancy_reason must be a character string")
@@ -1259,7 +1576,7 @@ SLT <- R6::R6Class(
          # FIXME SB - 2024 Feb 23 - OUTPUT A ZERO-ROW DATA TABLE IF THERE ARE NOT PATHS TO REPORT
 
          # add an all NA row to schema_dt
-         schema_dt             <- private$make_schema_dt(private$DICT$log_schema)
+         schema_dt             <- private$make_schema_dt(log_schema)
          if(nrow(path_dt) > 0) {
             nan_row               <- as.data.table(t(rep(NA, ncol(schema_dt))))
             names(nan_row)        <- names(schema_dt)
@@ -1275,8 +1592,16 @@ SLT <- R6::R6Class(
          return(report_dt)
       },
 
-      # Catch-all report for any reason you can think a symlink or log is inaccurate
-      # - start with the folder_dt, since we're looking both for weird folders and weird logs
+      #  Report discrepancies for any reason you can think a symlink or log is inaccurate
+      #
+      #  Writes a file to disk in `root`
+      #
+      #  Catch-all report for any reason you can think a symlink or log is inaccurate
+      #  - start with the folder_dt, since we're looking both for weird folders and weird logs
+      #
+      #  @param root [chr] path to a root folder defined at instantiation
+      #
+      #  @return none
       report_discrepancies = function(root){
 
          # find all folders in the `root` and their types
@@ -1365,18 +1690,32 @@ SLT <- R6::R6Class(
       # - after marking and/or folder deletion
       # - managing the DYNAMIC field list
 
-      # Handle pre-mark operation validations and updates
-      # - mostly all `mark`, `create` and `delete` public functions should invoke this
-      handler_pre_mark = function(date_version, user_entry){
+      #  Handle pre-mark operation validations and updates
+      #
+      #  Mostly all `mark`, `create` and `delete` public functions should invoke this.
+      #  - This invokes the Symlink Tool's `state machine`, only allowing one symlink type per date_version folder.
+      #  - resets DYNAMIC private fields
+      #  - updates DYNAMIC private fields
+      #
+      #  @param date_version [chr] Date version folder to mark
+      #  @param user_entry [named list] User-supplied log entry
+      #  @param roots [named list] All user-defined `root`s defined at instantiation
+      #
+      #  @return [none] Machine-state updates only
+      #
+      #
+      #
+      handler_pre_mark = function(date_version, user_entry, roots = private$DICT$ROOTS){
          # validate inputs
          private$assert_scalar(date_version)
          private$assert_named_list(user_entry)
          private$assert_schema_vs_user_entry(user_entry)
 
+         # This is the 'state machine' of the Symlink Tool
          # enforce one symlink per date_version
          # we do this to ensure users haven't hand-made symlinks
          # of the same form we expect to use with this tool
-         for(root in private$DICT$ROOTS){
+         for(root in roots){
             private$assert_n_symlinks(root         = root,
                                       date_version = date_version,
                                       n_sym        = 1L,
@@ -1393,9 +1732,21 @@ SLT <- R6::R6Class(
          private$handler_update_dynamic_fields(date_version = date_version)
       },
 
-      # Handle post-mark operation validations and updates
-      # - handle central log updates
-      # - mostly all `mark`, `create` and `delete` public functions should invoke this
+      #  Handle post-mark operation validations and updates
+      #
+      #  **NOTE:** DYNAMIC fields are _not_ updated in this function - that is done by `handler_pre_mark()`.
+      #  - This means the state of the machine is viewable by the user after every mark operation
+      #  - DYNAMIC fields only reset when a new mark operation is underway
+      #
+      #  Mostly all `mark`, `create` and `delete` public functions should invoke this
+      #  - This invokes the Symlink Tool's `state machine`, only allowing one symlink type per date_version folder.
+      #  - ensure the tool_symlink report is up-to-date
+      #  - handle central log updates
+      #
+      #  @param date_version [chr] Date version folder to mark
+      #  @param user_entry [named list] User-supplied log entry
+      #
+      #  @return [none] no machine-state updates, only write to disk
       handler_post_mark = function(date_version, user_entry){
          # validate inputs
          private$assert_scalar(date_version)
@@ -1421,7 +1772,13 @@ SLT <- R6::R6Class(
 
       },
 
-      # build versioned paths from roots, assert existence
+      #  Update the `private$DYNAMIC$VERS_PATHS` fields
+      #
+      #  Build versioned paths from roots, assert existence
+      #
+      #  @param date_version [chr] Date version folder to mark
+      #
+      #  @return [none] Updates `private$DYNAMIC$VERS_PATHS`
       handler_update_version_paths = function(date_version){
          private$assert_scalar(date_version)
          private$DYNAMIC$VERS_PATHS <- lapply(private$DICT$ROOTS, function(root) file.path(root, date_version))
@@ -1430,7 +1787,13 @@ SLT <- R6::R6Class(
          lapply(private$DYNAMIC$VERS_PATHS, private$validate_dir_exists, verbose = FALSE)
       },
 
-      # update all dynamic fields except log action
+      #  Update all `private$DYNAMIC` fields
+      #
+      #  update all dynamic fields except log action
+      #
+      #  @param date_version [chr] Date version folder
+      #
+      #  @return [none] Updates `private$DYNAMIC$LOG` and `private$DYNAMIC$VERS_PATHS`
       handler_update_dynamic_fields = function(date_version){
          private$assert_scalar(date_version)
          # Update dictionaries
@@ -1438,6 +1801,11 @@ SLT <- R6::R6Class(
          private$handler_update_version_paths(date_version = date_version)
       },
 
+      #  Set dynamic fields to NA/blank to prepare for a new `mark_` operation
+      #
+      #  @param field_types [chr] Field types to reset e.g. 'log', 'vers_paths'
+      #
+      #  @return [none] Resets `private$DYNAMIC$LOG` and `private$DYNAMIC$VERS_PATHS`
       handler_reset_dynamic_fields = function(field_types){
 
          # validate inputs
@@ -1461,12 +1829,25 @@ SLT <- R6::R6Class(
 
       ## Promote / Demote ------------------------------------------------------
 
-      # 'promote' and 'demote' are consistent terms to say 'carry out this action from the log schema'
+      # 'promote' and 'demote' are consistent terms 'elevate this folder to xxx status' or 'lower this folder from xxx status'
+      # - xxx status is defined by `private$DICT$symlink_types`
 
-      demote_existing_symlinks = function(version_path, date_version, user_entry){
+      #  Demote a date_version folder from a symlink status.
+      #
+      #  Unlinks the symlink to a date_version folder.
+      #
+      #  @param version_path [chr] Path to a date_version folder
+      #  @param date_version [chr] Date version folder to demote
+      #  @param user_entry [named list] User-supplied log entry
+      #  @param symlink_types [chr] `private$DICT$symlink_types`
+      #
+      #  @return [none] Unlinks the symlink on disk
+      demote_existing_symlinks = function(version_path, date_version, user_entry, symlink_types = private$DICT$symlink_types){
+         private$assert_scalar(version_path)
+         private$assert_scalar(date_version)
+         private$assert_named_list(user_entry)
          # find existing symlinks for a date_version
-         symlink_types <- private$DICT$symlink_types
-         names(symlink_types) <- symlink_types # names for lapply
+         names(symlink_types) <- symlink_types # names for `lapply()`
 
          root <- sub(date_version, "", version_path)
 
@@ -1480,7 +1861,7 @@ SLT <- R6::R6Class(
          if(length(symlink) > 1) {
             stop("More than one symlink found for ", date_version, " in: ", root, "\n  ",
                  paste(symlink, collapse = "\n  "),
-                 "Please select one ", paste(private$DICT$symlink_types, collapse = "/"),  " symlink and delete all others manually.")
+                 "Please select one ", paste(symlink_types, collapse = "/"),  " symlink and delete all others manually.")
          }
 
          if(length(symlink) > 0) {
@@ -1497,11 +1878,19 @@ SLT <- R6::R6Class(
 
       },
 
-      #> Best symlinks are trickier than others
-      #> - there can be only one per GBD round
-      #> - we're demoting a different version than we're promoting
-      #> - we need to specifically update the demoted verion's log
-      #> - we need to simultaneously demote and promote
+      #  Demote an existing 'best' symlink
+      #
+      #  Best symlinks are trickier than others
+      #  - there can be only _one_ per GBD round
+      #  - we're demoting a different version than we're promoting
+      #  - we need to specifically update the demoted version's log
+      #  - we need to simultaneously demote and promote
+      #
+      #  @param version_path [chr] Path to a date_version folder for `best_` demotion
+      #  @param date_version [chr] Date version folder to demote from `best_`
+      #  @param user_entry [named list] User-supplied log entry
+      #
+      #  @return [none] Unlinks the 'best' symlink on disk
       demote_previous_best = function(version_path, date_version, user_entry){
          private$assert_scalar(version_path)
          private$assert_dir_exists(version_path)
@@ -1526,6 +1915,13 @@ SLT <- R6::R6Class(
          }
       },
 
+      #  Promote a date_version folder to 'best' status.
+      #
+      #  @param version_path [chr] Path to a date_version folder for `best_` promotion
+      #  @param date_version [chr] Date version folder to promote to `best_`
+      #  @param user_entry [named list] User-supplied log entry
+      #
+      #  @return [none] Creates a symlink on disk
       promote_best = function(version_path, date_version, user_entry){
          private$assert_dir_exists(version_path)
          path_best_sym <- private$make_symlink_path(version_path, "best")
@@ -1540,6 +1936,12 @@ SLT <- R6::R6Class(
          system(paste0("ln -nsf ", path_best_new, " ", path_best_sym))
       },
 
+      #  Promote a date_version folder to 'keep' status.
+      #
+      #  @param version_path [chr] Path to a date_version folder for `keep_` promotion
+      #  @param user_entry [named list] User-supplied log entry
+      #
+      #  @return [none] Creates a symlink on disk
       promote_keep = function(version_path, user_entry){
          private$DYNAMIC$LOG$action <- "promote_keep"
          path_keep_sym <- private$make_symlink_path(version_path = version_path, symlink_type = "keep")
@@ -1552,6 +1954,12 @@ SLT <- R6::R6Class(
          }
       },
 
+      #  Promote a date_version folder to 'remove' status.
+      #
+      #  @param version_path [chr] Path to a date_version folder for `remove_` promotion
+      #  @param user_entry [named list] User-supplied log entry
+      #
+      #  @return [none] Creates a symlink on disk
       promote_remove = function(version_path, user_entry){
          private$DYNAMIC$LOG$action <- "promote_remove"
          path_remove_sym <- private$make_symlink_path(version_path = version_path, symlink_type = "remove")
@@ -1589,26 +1997,19 @@ SLT <- R6::R6Class(
       #' per round if you need more than one
       #'
       #'
-      #' @param user_root_list [list] Named list of root directories for
-      #'   pipeline outputs. This is where `date_version` folders live (these
-      #'   are iterative runs of an analysis pipeline.)
-      #' @param user_central_log_root [path] Root directory for the central log.
-      #'   If you have multiple roots in the `user_root_list`, you probably want
-      #'   the central log to live one level above those roots.
+      #' @param user_root_list [list] Named list of root directories for pipeline outputs. This is where `date_version` folders live (these are iterative runs of an analysis pipeline.)
+      #' @param user_central_log_root [path] Root directory for the central log. If you have multiple roots in the `user_root_list`, you probably want the central log to live one level above those roots.
       #'
-      #' @return [symlink_tool] A symlink tool object.  You can instantiate
-      #'   (create) multiple version, each of which has different roots and
-      #'   central logs.
+      #' @return [symlink_tool] A symlink tool object.  You can instantiate  (create) multiple version, each of which has different roots and central logs.
+      #'
       #' @export
-      #'
-      #' @examples See the symlink_tool_vignette.
       initialize = function(user_root_list = NULL, user_central_log_root = NULL) {
 
          # useful start up feedback
          if(is.null(user_root_list)){
             message("\n\nThis tool expects `user_root_list` to be a named list of root directories for pipeline outputs. \n\n  ",
 
-                 "e.g.
+                    "e.g.
                  list( input_root = '/mnt/share/my_team/input_data',
                       output_root = '/mnt/share/my_team/output_data' ) \n\n  ",
 
@@ -1625,7 +2026,7 @@ SLT <- R6::R6Class(
          if(is.null(user_central_log_root)){
             message("\n\nThis tool expects `user_central_log_root` to be a single directory for the central log. \n\n  ",
 
-                 "e.g.
+                    "e.g.
                  '/mnt/share/my_team' \n\n  ",
 
                  "The central log is a summary record of all *promotion* (marking) actions done by this tool, \n  ",
@@ -1683,9 +2084,9 @@ SLT <- R6::R6Class(
       #'   see.
       #'
       #' @return [std_out] Print static field values to std_out.
-      #' @export
       #'
-      #' @examples
+      #'
+      #'
       return_dictionaries = function(item_names = NULL){
          dict_names <- names(private$DICT)
          return_list <- data.table::copy(private$DICT)
@@ -1704,9 +2105,9 @@ SLT <- R6::R6Class(
       #'   to see.
       #'
       #' @return [std_out] Print dynamic field values to std_out.
-      #' @export
       #'
-      #' @examples
+      #'
+      #'
       return_dynamic_fields = function(item_names = NULL){
          dict_names <- names(private$DYNAMIC)
          return_list <- data.table::copy(private$DYNAMIC)
@@ -1741,9 +2142,9 @@ SLT <- R6::R6Class(
       #'   for them.
       #'
       #' @return [ste_err] Messages about actions taken.
-      #' @export
       #'
-      #' @examples
+      #'
+      #'
       mark_best = function(date_version, user_entry){
 
          # For all date_version folders, do the following:
@@ -1801,9 +2202,9 @@ SLT <- R6::R6Class(
       #'   for them.
       #'
       #' @return [std_err] Messages about actions taken.
-      #' @export
       #'
-      #' @examples
+      #'
+      #'
       mark_keep = function(date_version, user_entry){
 
          # 1. make a new keep model symlink
@@ -1858,9 +2259,9 @@ SLT <- R6::R6Class(
       #'   for them.
       #'
       #' @return [std_err] Messages about actions taken.
-      #' @export
       #'
-      #' @examples
+      #'
+      #'
       mark_remove = function(date_version, user_entry){
 
          # 1. make a new remove model symlink
@@ -1911,10 +2312,10 @@ SLT <- R6::R6Class(
       #'   you may update `log_schema` in the `private$DICT` section to allow
       #'   for them.
       #'
-      #' @return
-      #' @export [std_err] Messages about the symlinks removed.
+      #' @return [std_err] Messages about the symlinks removed.
       #'
-      #' @examples
+      #'
+      #'
       unmark = function(date_version, user_entry){
 
          # 1. remove all symlinks associated with a date_version
@@ -1939,9 +2340,9 @@ SLT <- R6::R6Class(
       #' points to)
       #'
       #' @return [list] list of data.tables - one for each `root`
-      #' @export
       #'
-      #' @examples
+      #'
+      #'
       roundup_remove = function(){
          return(lapply(private$DICT$ROOTS, private$query_all_remove_symlinks))
       },
@@ -1963,9 +2364,9 @@ SLT <- R6::R6Class(
       #' @param verbose [lgl] If `TRUE`, std_err message.
       #'
       #' @return [list] list of data.tables - one for each `root`
-      #' @export
       #'
-      #' @examples
+      #'
+      #'
       roundup_by_date = function(user_date, date_selector, verbose = TRUE){
 
 
@@ -1973,7 +2374,7 @@ SLT <- R6::R6Class(
          date_selector <- tolower(date_selector)
          # assert inputs
          private$assert_date_selector(date_selector)
-         private$assert_user_date(user_date)
+         private$assert_user_date_class_and_format(user_date)
 
          if(verbose){
             message(paste0("Finding all folders with log creation dates that are", " '", date_selector, "' ", user_date), ". \n  ",
@@ -2012,9 +2413,9 @@ SLT <- R6::R6Class(
       #'   instantiate the tool.
       #'
       #' @return [std_err] Messages about the folder creation.
-      #' @export
       #'
-      #' @examples
+      #'
+      #'
       create_date_version_folders_with_logs = function(date_version){
 
          private$assert_scalar(x = date_version)
@@ -2039,9 +2440,9 @@ SLT <- R6::R6Class(
       #'   instantiate the tool.
       #'
       #' @return [std_err] Messages about the log creation.
-      #' @export
       #'
-      #' @examples
+      #'
+      #'
       make_new_log = function(date_version){
 
          private$handler_update_dynamic_fields(date_version = date_version)
@@ -2088,9 +2489,9 @@ SLT <- R6::R6Class(
       #'   deletion.
       #'
       #' @return [std_err] Messages about deletion events.
-      #' @export
       #'
-      #' @examples
+      #'
+      #'
       delete_date_version_folders = function(date_version, user_entry, require_user_input = TRUE){
 
          private$handler_pre_mark(
@@ -2124,9 +2525,9 @@ SLT <- R6::R6Class(
       #' tool.
       #'
       #' @return [std_err] Messages about where reports were written.
-      #' @export
       #'
-      #' @examples
+      #'
+      #'
       reports = function(){
 
          for(root in private$DICT$ROOTS){
