@@ -2,11 +2,11 @@
 % Please edit documentation in R/symlink_tool.R
 \name{SLT}
 \alias{SLT}
-\title{Assert a directory exists on disk}
+\title{Initialize a symlink tool by GBD round}
 \description{
-Assert a directory exists on disk
+Initialize a symlink tool by GBD round
 
-Assert a directory exists on disk
+Initialize a symlink tool by GBD round
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -31,7 +31,8 @@ Assert a directory exists on disk
 \if{html}{\out{<a id="method-Symlink_Tool-new"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-new}{}}}
 \subsection{Method \code{new()}}{
-Assert an element is atomic and length 1
+Any time the tool is made, the tool is GBD-round specific.  Create one
+per round if you need more than one
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$new(user_root_list = NULL, user_central_log_root = NULL)}\if{html}{\out{</div>}}
 }
@@ -42,246 +43,11 @@ Assert an element is atomic and length 1
 \item{\code{user_root_list}}{[list] Named list of root directories for pipeline outputs. This is where `date_version` folders live (these are iterative runs of an analysis pipeline.)}
 
 \item{\code{user_central_log_root}}{[path] Root directory for the central log. If you have multiple roots in the `user_root_list`, you probably want the central log to live one level above those roots.}
-
-\item{\code{x}}{[any] Element to check}
-
-\item{\code{x}}{[list] List to check}
-
-\item{\code{user_entry}}{[named list] User's entry for a mark operation}
-
-\item{\code{log_fields_user}}{[character] Names of fields in the log schema}
-
-\item{\code{log_schema}}{[named list] Log schema}
-
-\item{\code{my_dt}}{[data.table] your data}
-
-\item{\code{varnames_strict}}{[chr] strictly required vector of column names - all required, no others allowed}
-
-\item{\code{strict_order_req}}{[lgl] if varnames_strict is not NULL, should the order of columns be asserted?}
-
-\item{\code{varnames_req}}{[chr] vector of column names required in my_dt (include)}
-
-\item{\code{varnames_forbid}}{[chr] vector of column names forbidden in my_dt (exclude)}
-
-\item{\code{regex_req}}{[chr] regex pattern for required column names}
-
-\item{\code{regex_forbid}}{[chr] regex pattern for forbidden coumn names (default `\.x` and `\.y` to guard against invalid merges)}
-
-\item{\code{data_types}}{[named list] `key=value` pair list of column names and required data type}
-
-\item{\code{verbose}}{[lgl] confirmation message if passing all assertions}
-
-\item{\code{x}}{[path] A directory path}
-
-\item{\code{x}}{[path] A directory path}
-
-\item{\code{verbose}}{[lgl] message to std_out?}
-
-\item{\code{date_selector}}{[chr] One of 'gt', 'gte', 'lt', 'lte', 'e'}
-
-\item{\code{user_date}}{[chr] a date string of class `c('character', 'Date', 'POSIXct', 'POSIXt')`}
-
-\item{\code{date}}{[chr] a date string}
-
-\item{\code{x}}{[obj] some R object}
-
-\item{\code{root}}{[path] full path to gbd round data}
-
-\item{\code{date_version}}{[chr] e.g. "2023_01_01"}
-
-\item{\code{symlink_type}}{[chr] e.g. "best"}
-
-\item{\code{root}}{[path] full path to gbdxxxx data folder}
-
-\item{\code{date_version}}{[chr] a run date for the model}
-
-\item{\code{symlink_type}}{[chr] one of: c(private$DICT$symlink_types, "all")}
-
-\item{\code{n_sym}}{[int] number of symlinks to assert}
-
-\item{\code{allow_fewer}}{[lgl] if TRUE, allow fewer symlinks than n_sym symlinks (i.e. 0 is OK)}
-
-\item{\code{path}}{[chr] a path to a symlink}
-
-\item{\code{version_path}}{[chr] full path to a version folder}
-
-\item{\code{symlink_type}}{[chr] valid symlink type defined by class, e.g. 'best', 'keep', 'remove'}
-
-\item{\code{symlink_string}}{[chr] a string from a linux path e.g. "lrwxrwxrwx 1 USER Domain Users  63 Feb  6 17:04 best -> /mnt/share/some/path"}
-
-\item{\code{root}}{[chr] path to the root folder}
-
-\item{\code{date_version}}{[chr] date_version of the user's folder}
-
-\item{\code{symlink_type}}{[chr] valid symlink type defined by class, e.g. 'best', 'keep', 'remove'}
-
-\item{\code{user_entry}}{[named list] user entry from the user's folder}
-
-\item{\code{root}}{[chr] path to the root folder}
-
-\item{\code{date_version}}{[chr] date_version of the user's folder}
-
-\item{\code{user_entry}}{[named list] user entry from the user's folder}
-
-\item{\code{vers_path}}{[chr] path to the versioned folder}
-
-\item{\code{root}}{[chr] path to the root folder}
-
-\item{\code{date_version}}{[chr] date_version of the user's folder}
-
-\item{\code{user_entry}}{[named list] user entry from the user's folder}
-
-\item{\code{require_user_input}}{[lgl] TRUE if the user should be prompted to confirm deletion, FALSE if deletion should be automated e.g. in a loop.}
-
-\item{\code{schema}}{[named list] named list of column names and data types}
-
-\item{\code{fpath}}{[chr] path to the log file}
-
-\item{\code{log_schema}}{[named list] named list of column names and data types}
-
-\item{\code{dt_log}}{[data.table] log data.table}
-
-\item{\code{date_version}}{[chr] date version in format 'YYYY_MM_DD' default private$DYNAMIC$LOG$date_version}
-
-\item{\code{fpath}}{[chr] path to the log file}
-
-\item{\code{log_schema}}{[named list] named list of column names and data types}
-
-\item{\code{dt_log}}{[data.table] log data.table}
-
-\item{\code{fpath}}{[chr] path to the log file}
-
-\item{\code{log_schema}}{[named list] named list of column names and data types}
-
-\item{\code{version_path}}{[chr] path to a date_version folder}
-
-\item{\code{user_entry}}{[named list] named list of user entry values}
-
-\item{\code{fpath}}{[chr] path to the log file}
-
-\item{\code{log_schema}}{[named list] named list of column names and data types}
-
-\item{\code{fpath}}{[chr] path to the central log file}
-
-\item{\code{log_schema}}{[named list] named list of column names and data types}
-
-\item{\code{dt_log}}{[data.table] log data.table}
-
-\item{\code{user_entry}}{[named list] named list of user entry values}
-
-\item{\code{root}}{[chr] path to a root folder defined at instantiation (`STL$new()`)}
-
-\item{\code{version_path}}{[chr] path to a date_version folder}
-
-\item{\code{verbose}}{[lgl] print message if no log found}
-
-\item{\code{log_list}}{[list] list of log data.tables}
-
-\item{\code{root}}{[chr] path to a root folder defined at instantiation (`STL$new()`)}
-
-\item{\code{root}}{[chr] path to a root folder defined at instantiation (`STL$new()`)}
-
-\item{\code{root}}{[chr] path to a root folder defined at instantiation (`STL$new()`)}
-
-\item{\code{verbose}}{[lgl] std_err message if no log found}
-
-\item{\code{root}}{[chr] path to a root folder defined at instantiation (`STL$new()`)}
-
-\item{\code{log_list}}{[list] list of logs, each log is a data.table}
-
-\item{\code{log_list}}{[list] list of logs, each log is a data.table}
-
-\item{\code{root}}{[chr] path to a root folder defined at instantiation (`STL$new()`)}
-
-\item{\code{log_list}}{[list] list of logs, each log is a data.table}
-
-\item{\code{log_list}}{[list] list of logs, each log is a data.table}
-
-\item{\code{root}}{[chr] path to a root folder defined at instantiation
-(`STL$new()`)}
-
-\item{\code{user_date_parsed}}{[chr] a date in a format allowed by
-`assert_user_date_class_and_format()`}
-
-\item{\code{date_selector}}{[chr] a selector allowed by `assert_date_selector()`}
-
-\item{\code{root}}{[chr] path to a root folder defined at instantiation}
-
-\item{\code{root}}{[chr] path to a root folder defined at instantiation}
-
-\item{\code{root}}{[chr] path to a root folder defined at instantiation}
-
-\item{\code{root}}{[chr] path to a root folder defined at instantiation}
-
-\item{\code{report_dt}}{[data.table] a data.table of discrepancies found with some log}
-
-\item{\code{discrepancy_reason}}{[chr] a string describing the discrepancy}
-
-\item{\code{path_dt}}{[data.table] a data.table of paths}
-
-\item{\code{discrepancy_reason}}{[chr] a string describing the discrepancy}
-
-\item{\code{root}}{[chr] path to a root folder defined at instantiation}
-
-\item{\code{date_version}}{[chr] Date version folder to mark}
-
-\item{\code{user_entry}}{[named list] User-supplied log entry}
-
-\item{\code{roots}}{[named list] All user-defined `root`s defined at instantiation}
-
-\item{\code{date_version}}{[chr] Date version folder to mark}
-
-\item{\code{user_entry}}{[named list] User-supplied log entry}
-
-\item{\code{date_version}}{[chr] Date version folder to mark}
-
-\item{\code{date_version}}{[chr] Date version folder}
-
-\item{\code{field_types}}{[chr] Field types to reset e.g. 'log', 'vers_paths'}
-
-\item{\code{version_path}}{[chr] Path to a date_version folder}
-
-\item{\code{date_version}}{[chr] Date version folder to demote}
-
-\item{\code{user_entry}}{[named list] User-supplied log entry}
-
-\item{\code{symlink_types}}{[chr] `private$DICT$symlink_types`}
-
-\item{\code{version_path}}{[chr] Path to a date_version folder for `best_` demotion}
-
-\item{\code{date_version}}{[chr] Date version folder to demote from `best_`}
-
-\item{\code{user_entry}}{[named list] User-supplied log entry}
-
-\item{\code{version_path}}{[chr] Path to a date_version folder for `best_` promotion}
-
-\item{\code{date_version}}{[chr] Date version folder to promote to `best_`}
-
-\item{\code{user_entry}}{[named list] User-supplied log entry}
-
-\item{\code{version_path}}{[chr] Path to a date_version folder for `keep_` promotion}
-
-\item{\code{user_entry}}{[named list] User-supplied log entry}
-
-\item{\code{version_path}}{[chr] Path to a date_version folder for `remove_` promotion}
-
-\item{\code{user_entry}}{[named list] User-supplied log entry}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-none
-
-
-Assert an object is a list with named elements
-
-- Stops if:
- - x is not a list
- - x is a data.table
- - x has no names
- - x has any NA names
- - x has any zero-length names
- - x has any whitespace-only names
+[symlink_tool] A symlink tool object.  You can instantiate  (create) multiple version, each of which has different roots and central logs.
 }
 }
 \if{html}{\out{<hr>}}
