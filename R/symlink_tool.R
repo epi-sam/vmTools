@@ -43,7 +43,12 @@
 # TODO SB - 2024 Feb 15 -
 # - [x] public function for empty log (for first pipeline outputs)
 # - [x] allow user to set root(s) at initialization
-# - [ ] clean up function args that only pass around private$DICT values - use private$DICT directly
+# TODO SB - 2024 Jun 07
+# - [x] fully document the package
+# - [ ] consistent strategy to pass around private$DICT values
+#     PICK ONE:
+#     - [ ] use private$DICT directly
+#     - [ ] submit private$DICT through all function args
 
 
 # LATER stuff - v2.0
@@ -51,16 +56,14 @@
 # - [ ] don't demote if the symlink is already the desired type
 #       - clutters up the logs, but not a deal-breaker
 
-# .username <- Sys.info()[["user"]]
-# for assert_data_schema
-# source(file.path("/share/code/vaccines", .username, "vaccines/vaccination_pipeline_functions/validations.R"))
-
-# library(R6)
-# library(DescTools)
-# library(data.table)
-# library(lubridate)
-
-
+#> NOTE:
+#> These are required, but all namespaced within:
+#>
+#> library(R6)
+#> library(DescTools)
+#> library(data.table)
+#> library(lubridate)
+#>
 #> WARNING: DO NOT touch '.__enclos_env__' unless you want the tool to break
 #>
 #> NOTES:
@@ -70,11 +73,14 @@
 #>     - See https://r6.r-lib.org/articles/Debugging.html
 #>
 #>   LIBRARIES
-#>     - Depends on vaccines/vaccination_pipeline_functions/validations.R for assert_data_schema
 #>     - Relies on libraries declared above, but calls on all functions by package namespace for clarity and robustness
-
-# Required for vignette to work in Rmarkdown
-# Known error: https://github.com/rstudio/rmarkdown/issues/187
+#>     - data.tables themselves cannot be namespaced
+#>
+#>   ROXYGEN
+#>     - Roxygen docstrings cannot be added to private methods, because reasons
+#>
+#> Required for vignette to work in Rmarkdown
+#> Known issue: https://github.com/rstudio/rmarkdown/issues/187
 .datatable.aware = TRUE
 
 SLT <- R6::R6Class(
@@ -199,7 +205,7 @@ SLT <- R6::R6Class(
 
       # Validations ------------------------------------------------------------
 
-      # Two types:
+      # Two types of check functions:
       # 1. assert_x - stop if conditions are unmet
       # 2. validate_x - warn if conditions are unmet
       #               - Return TRUE/FALSE
