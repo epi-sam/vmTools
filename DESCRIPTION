@@ -1,7 +1,7 @@
 Package: vmTools
 Type: Package
 Title: Version Management Tools For Data Science Projects
-Version: 0.1.0
+Version: 0.2.0
 Author: Sam Byrne
 Maintainer: Sam Byrne <ssbyrne@uw.edu>
 Description: Set of tools for managing pipeline output folders
@@ -10,6 +10,10 @@ License: What license is it under?
 Encoding: UTF-8
 LazyData: true
 Suggests: 
+    R6,
+    DescTools,
+    data.table,
+    lubridate,
     knitr,
     rmarkdown,
     testthat (>= 3.0.0)
