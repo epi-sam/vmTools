@@ -4,3 +4,4 @@
 .Ruserdata
 inst/doc
 troubleshooting/symlink_tool_tester.R
+troubleshooting/local_installer.R
