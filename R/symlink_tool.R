@@ -216,9 +216,51 @@ SLT <- R6::R6Class(
       #
       #  @return none
       assert_scalar = function(x){
+         x_name <- deparse(substitute(x))
          if(!(is.atomic(x) && length(x) == 1L)){
-            stop("x must be atomic and length 1L")
+            stop(x_name, " must be atomic and length 1L")
          }
+      },
+
+      # Ensure an object is not length 0, empty, blank etc.
+      #
+      # @param arg [any]
+      #
+      # @return [lgl] FALSE if empty in some way, TRUE otherwise
+      # @export
+      #
+      # @examples
+      validate_not_empty = function(arg) {
+         # Check for missing arguments
+         if (missing(arg)) return(FALSE)
+         # Check for zero-length vectors or empty lists
+         if (length(arg) == 0) return(FALSE)
+         # Check for NULL, NA
+         if (is.null(arg) || is.na(arg)) return(FALSE)
+         # Check if the argument is only whitespace
+         if (is.character(arg) && trimws(arg) == "") return(FALSE)
+         # Check if the argument is a numeric value that is not finite (NaN, Inf, -Inf)
+         if (is.numeric(arg) && !is.finite(arg)) return(FALSE)
+         # Check for empty data frames
+         if (is.data.frame(arg) && nrow(arg) == 0 && ncol(arg) == 0) return(FALSE)
+         return(TRUE)
+      },
+
+      # Assert x is a scalar, and not empty in some way
+      #
+      # @param x [any]
+      #
+      # @return [none] stop if assertion fails
+      # @export
+      #
+      # @examples
+      assert_scalar_not_empty = function(x){
+         private$assert_scalar(x)
+         if(!private$validate_not_empty(x)){
+            x_name <- deparse(substitute(x))
+            stop(x_name, " is empty in some way.")
+         }
+
       },
 
       #  Assert an object is a list with named elements
@@ -1710,6 +1752,7 @@ SLT <- R6::R6Class(
          private$assert_scalar(date_version)
          private$assert_named_list(user_entry)
          private$assert_schema_vs_user_entry(user_entry)
+         for(user_entry_item in user_entry) private$assert_scalar_not_empty(user_entry_item)
 
          # This is the 'state machine' of the Symlink Tool
          # enforce one symlink per date_version
