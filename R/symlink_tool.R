@@ -1378,7 +1378,7 @@ SLT <- R6::R6Class(
          # This one is a little different - requires a setdiff, so has some different variable naming patterns
          unique_non_symlink_paths  <- setdiff(unique_dir_names_resolved, unique_symlink_targets)
          # query logs
-         log_list                  <- lapply(unique_non_symlink_paths, private$try_query_log)
+         log_list                  <- lapply(unique_non_symlink_paths, private$try_query_log, verbose = FALSE)
          names(log_list)           <- unique_non_symlink_paths
          # remove any NULLs, result of the tryCatch in try_query_log
          log_list                  <- private$filter_null_logs_safely(log_list)
