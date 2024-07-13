@@ -362,3 +362,30 @@ slt <- SLT$new(
 #
 # undebug(slt$mark_best)
 # slt$mark_best(date_version = "2024_02_02", user_entry = list(comment = "testing mark_best"))
+
+# 2024 Jul 12 ------------------------------------------------------------------
+# the discrepancy report seems buggy in the J drive
+# 2024 Jul 12 18:45:42 - nope, there's probably just something wrong with the discrepancy report, darn
+
+devtools::load_all()
+root_base  <- file.path("/snfs1/WORK/01_covariates/02_inputs/vaccines/test")
+slt <- SLT$new(
+   user_root_list = list(
+      root_input = file.path(root_base, "to_model"),
+      root_ouput = file.path(root_base, "modeled"),
+      root_third = file.path(root_base, "third_root")
+   )
+   , user_central_log_root = root_base
+)
+
+# Go through all this again
+slt$create_date_version_folders_with_logs(date_version = "20240229_1")
+slt$create_date_version_folders_with_logs(date_version = "20240229_2")
+slt$create_date_version_folders_with_logs(date_version = "20240229_3")
+# Ensure validation performs correctly
+slt$mark_best(date_version = "20240229_1", user_entry = list(comment = ""))
+# Now mark each one best in turn
+slt$mark_best(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_best(date_version = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_best(date_version = "20240229_3", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_best(date_version = "20240229_4", user_entry = list(comment = "testing mark on new folder")) # expect nothing to happen
