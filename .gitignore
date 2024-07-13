@@ -3,4 +3,4 @@
 .RData
 .Ruserdata
 inst/doc
-/troubleshooting/symlink_tool_tester.R
+troubleshooting/symlink_tool_tester.R
