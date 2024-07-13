@@ -161,16 +161,16 @@
 # slt$delete_date_version_folders(date_version = "20240228_delete_test", user_entry = list(comment = "testing folder removal"))
 
 # testing folder creation - whole folder life-cycle works as expected
-slt <- SLT$new(gbd_round = 'gbd2021')
-slt$create_date_version_folders_with_logs(date_version = "20240228_test_creation")
-slt$make_new_log(date_version = "20240228_test_creation") # should already exist
-slt$mark_best(date_version = "20240228_test_creation", user_entry = list(comment = "testing mark on new folder"))
-slt$mark_best(date_version = "20240228_test_creation", user_entry = list(comment = "testing mark on new folder", junk_field = "should not exist")) # expect error
-slt$mark_keep(date_version = "20240228_test_creation", user_entry = list(comment = "testing mark on new folder"))
-slt$unmark(date_version = "20240228_test_creation", user_entry = list(comment = "testing mark on new folder"))
-slt$delete_date_version_folders(date_version = "20240228_test_creation", user_entry = list(comment = "testing folder removal on new folder")) # expect a "no remove" message - yes
-slt$mark_remove(date_version = "20240228_test_creation", user_entry = list(comment = "testing mark on new folder"))
-slt$delete_date_version_folders(date_version = "20240228_test_creation", user_entry = list(comment = "testing folder removal on new folder")) # expect deletion
+# slt <- SLT$new(gbd_round = 'gbd2021')
+# slt$create_date_version_folders_with_logs(date_version = "20240228_test_creation")
+# slt$make_new_log(date_version = "20240228_test_creation") # should already exist
+# slt$mark_best(date_version = "20240228_test_creation", user_entry = list(comment = "testing mark on new folder"))
+# slt$mark_best(date_version = "20240228_test_creation", user_entry = list(comment = "testing mark on new folder", junk_field = "should not exist")) # expect error
+# slt$mark_keep(date_version = "20240228_test_creation", user_entry = list(comment = "testing mark on new folder"))
+# slt$unmark(date_version = "20240228_test_creation", user_entry = list(comment = "testing mark on new folder"))
+# slt$delete_date_version_folders(date_version = "20240228_test_creation", user_entry = list(comment = "testing folder removal on new folder")) # expect a "no remove" message - yes
+# slt$mark_remove(date_version = "20240228_test_creation", user_entry = list(comment = "testing mark on new folder"))
+# slt$delete_date_version_folders(date_version = "20240228_test_creation", user_entry = list(comment = "testing folder removal on new folder")) # expect deletion
 
 
 
@@ -257,6 +257,8 @@ slt <- SLT$new(
 slt$create_date_version_folders_with_logs(date_version = "20240229_1")
 slt$create_date_version_folders_with_logs(date_version = "20240229_2")
 slt$create_date_version_folders_with_logs(date_version = "20240229_3")
+# Ensure validation performs correctly
+slt$mark_best(date_version = "20240229_1", user_entry = list(comment = ""))
 # Now mark each one best in turn
 slt$mark_best(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
 slt$mark_best(date_version = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
