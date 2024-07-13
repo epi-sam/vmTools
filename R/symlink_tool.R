@@ -1428,6 +1428,20 @@ SLT <- R6::R6Class(
          return(remove_dirs_dt)
       },
 
+      #  Query all folders with a "keep_" symlink in a single `root`
+      #
+      #  @param root [chr] path to a root folder defined at instantiation (`STL$new()`)
+      #
+      #  @return [data.table] a data.table with the folder path, symlink name, and resolved path
+      query_all_keep_symlinks = function(root){
+         # find all folders and their types
+         folder_dt            <- private$query_root_folder_types(root)
+         # find all resolved paths attached to a "keep_" symlink, and their symlink names
+         # allow the user to decide how to deal with removal
+         keep_dirs_dt <- unique(folder_dt[is_symlink == TRUE & grepl("keep_", dir_leaf), .(dir_date_version, dir_name, dir_name_resolved)])
+         return(keep_dirs_dt)
+      },
+
       #  Query the first row of all logs in a list
       #
       #  Does not rely on the log entry index, uses `head()`
@@ -2388,6 +2402,19 @@ SLT <- R6::R6Class(
       #'
       roundup_remove = function(){
          return(lapply(private$DICT$ROOTS, private$query_all_remove_symlinks))
+      },
+
+      #' Find all `keep_` symlinks in all `roots`
+      #'
+      #' Return both the symlink and the resolved symlink (folder the symlink
+      #' points to)
+      #'
+      #' @return [list] list of data.tables - one for each `root`
+      #'
+      #'
+      #'
+      roundup_keep = function(){
+         return(lapply(private$DICT$ROOTS, private$query_all_keep_symlinks))
       },
 
       #' Find all `date_version` folders by creation date
