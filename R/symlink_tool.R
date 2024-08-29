@@ -686,7 +686,7 @@ SLT <- R6::R6Class(
       #
       #  @return [chr] the full path of the symlink
       resolve_symlink = function(path){
-         path_resolved <- system(paste("realpath", path), intern = TRUE)
+         path_resolved <- normalizePath(path, mustWork = FALSE)
          if(file.exists(path_resolved)) {
             return(path_resolved)
          } else {
