@@ -3,7 +3,7 @@
 #> - using as an intermediate option for version management since log_tool is more complex than anticipated
 #>
 
-# TODS for v 1.0
+# TODOS for v 1.0
 # ~TODO~ SB - 2024 Jan 18 - ensure each date_version can only have one symlink (ls -l | grep ); DONE 2024 Feb 05
 # ~TODO~ SB - 2024 Feb 05 - User function get declarative interior
 # ~TODO~ SB - 2024 Feb 06 - Fix phantom symlink showing up on log creation
@@ -56,6 +56,7 @@
 # - [ ] Remove dependency on all packags except R6
 #     - [ ] lubridate will make this tricky
 # - [ ] Move private method docstrings inside functions so they can be seen when called anonymously
+# - [ ] Convert messages to std_out?
 
 
 #> NOTE:
