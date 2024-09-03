@@ -37,7 +37,7 @@
 #       - this would show reveal if a symlink were deleted by hand, rather than with the tool, but leave the central log a bit more readable
 #       - this would also make the central log a bit more "high level" and less "fine-grained"
 #       - THIS IS FINE for v 1.0
-# TODO SB - 2024 Feb 28 -
+# TODO SB - 2024 Feb 28
 # - [x] option to delete `remove_` folders and symlink and append action to central log
 # - [x] option to create new folders with new log
 # TODO SB - 2024 Feb 15 -
@@ -49,12 +49,14 @@
 #     PICK ONE:
 #     - [ ] use private$DICT directly
 #     - [ ] submit private$DICT through all function args
-
-
-# LATER stuff - v2.0
 # TODO SB - 2024 Feb 06
 # - [ ] don't demote if the symlink is already the desired type
 #       - clutters up the logs, but not a deal-breaker
+# TODO SB - 2024 Sep 03
+# - [ ] Remove dependency on all packags except R6
+#     - [ ] lubridate will make this tricky
+# - [ ] Move private method docstrings inside functions so they can be seen when called anonymously
+
 
 #> NOTE:
 #> These are required, but all namespaced within:
