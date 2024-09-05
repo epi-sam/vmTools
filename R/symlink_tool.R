@@ -597,7 +597,7 @@ SLT <- R6::R6Class(
          replace(x, is.na(x), blank)
       },
 
-      ZeroIfNA <- function (x) {
+      ZeroIfNA = function (x) {
          #' Replace NAs by 0
          #'
          #' DescTools::ZeroIfNA
@@ -613,7 +613,7 @@ SLT <- R6::R6Class(
          replace(x, is.na(x), 0L)
       },
 
-      StrExtract <- function (x, pattern, ...) {
+      StrExtract = function (x, pattern, ...) {
          #' Extract Part of a String
          #'
          #' DescTools::StrExtract
@@ -636,12 +636,12 @@ SLT <- R6::R6Class(
          m                    <- regexpr(pattern, x, ...)
          regmatches(x, m)
          res                  <- rep(NA_character_, length(m))
-         res[ZeroIfNA(m) > 0] <- regmatches(x, m)
+         res[private$ZeroIfNA(m) > 0] <- regmatches(x, m)
          return(res)
       },
 
 
-      split_path = function(path, last.is.file = NULL) {
+      SplitPath = function(path, last.is.file = NULL) {
          #' Split Path In Drive, Path, Filename
          #'
          #' DescTools::split_path
@@ -655,11 +655,12 @@ SLT <- R6::R6Class(
          #' (default), the last entry will be interpreted if the last character is
          #' either \ or / and as filename else.
          if (is.null(last.is.file)) {
-            last.is.file <- (length(grep(pattern = "[/\\]$", path)) ==
-                                0)
+            last.is.file <- (length(grep(pattern = "[/\\]$", path)) == 0)
          }
-         path <- normalizePath(path, mustWork = FALSE)
 
+         path         <- normalizePath(path, mustWork = FALSE)
+         lst          <- list()
+         lst$normpath <- path
 
          if (.Platform$OS.type == "windows") {
             lst$drive   <- regmatches(path, regexpr("^([[:alpha:]]:)|(\\\\[[:alnum:]]+)",path))
@@ -669,13 +670,11 @@ SLT <- R6::R6Class(
             lst$dirname <- dirname(path)
          }
 
-         lst              <- list()
-         lst$normpath     <- path
          lst$dirname      <- paste(lst$dirname, "/", sep = "")
          lst$fullfilename <- basename(path)
-         lst$fullpath     <- paste0(BlankIfNA(lst$drive), lst$dirname)
+         lst$fullpath     <- paste0(private$BlankIfNA(lst$drive), lst$dirname)
          lst$filename     <- gsub(pattern = "(.*)\\.(.*)$", "\\1", lst$fullfilename)
-         lst$extension    <- StrExtract(pattern = "(?<=\\.)[^\\.]+$", lst$fullfilename, perl = TRUE)
+         lst$extension    <- private$StrExtract(pattern = "(?<=\\.)[^\\.]+$", lst$fullfilename, perl = TRUE)
 
          if (!last.is.file) {
             lst$dirname <- paste(lst$dirname, lst$fullfilename, "/", sep = "")
