@@ -596,11 +596,17 @@ SLT <- R6::R6Class(
          # Define all eligible symlink regex patterns by type
          arrow_rgx <- " -> " # used in bash to show symlinks
          # We're ONLY monitoring symlinks of a certain pattern - users are free to make others
-         symlink_rgx <- list(
-            best        = paste0("best", arrow_rgx, ".*", date_version)
-            , keep      = paste0("keep_", date_version, arrow_rgx, ".*", date_version)
-            , remove    = paste0("remove_", date_version, arrow_rgx, ".*", date_version)
+         symlink_rgx <- switch(
+            symlink_type,
+            best   = paste0("best", arrow_rgx, ".*", date_version)
+            , keep = paste0("keep_", date_version, arrow_rgx, ".*", date_version)
+            , remove = paste0("remove_", date_version, arrow_rgx, ".*", date_version)
          )
+         # symlink_rgx <- list(
+         #    best        = paste0("best", arrow_rgx, ".*", date_version)
+         #    , keep      = paste0("keep_", date_version, arrow_rgx, ".*", date_version)
+         #    , remove    = paste0("remove_", date_version, arrow_rgx, ".*", date_version)
+         # )
 
          # validate
          if(!all(names(symlink_rgx) %in% private$DICT$symlink_types)){
@@ -610,7 +616,7 @@ SLT <- R6::R6Class(
          }
 
          # subset to user's chosen symlink_type
-         symlink_rgx <- symlink_rgx[names(symlink_rgx) %in% symlink_type]
+         # symlink_rgx <- symlink_rgx[names(symlink_rgx) %in% symlink_type]
 
          folder_contents <- system(paste("ls -l", root), intern = TRUE)
          folder_contents <- folder_contents[-1] # remove "total xxx"
@@ -629,6 +635,23 @@ SLT <- R6::R6Class(
             symlinks      = symlinks,
             symlink_count = symlink_count
          ))
+      },
+
+      # Check if a date_version is already marked with a symlink of a certain type
+      #
+      # @param version_path [chr] full path to a version folder, e.g. /mnt/share/gbdxxxx/2023_01_01
+      # @param symlink_type [chr] one of: private$DICT$symlink_types
+      #
+      # @return
+      already_marked = function(version_path, symlink_type){
+         # validate inputs
+         private$assert_scalar(version_path)
+         private$assert_scalar(symlink_type)
+         root         <- dirname(version_path)
+         date_version <- basename(version_path)
+
+         symlink_list <- private$find_count_symlinks(root = root, date_version = date_version, symlink_type = symlink_type)
+         ifelse(symlink_list$symlink_count > 0, TRUE, FALSE)
       },
 
       #  assert that some number of symlinks exist for some date_version - sums symlinks across all symlink_types specified
@@ -1922,8 +1945,9 @@ SLT <- R6::R6Class(
             private$find_count_symlinks(root = root, date_version = date_version, symlink_type = x)
          })
 
-         symlink      <- unlist(unname(purrr::map_depth(symlink_list, 1, "symlinks")))
+         symlink      <- unlist(purrr::map_depth(symlink_list, 1, "symlinks"))
          symlink_type <- names(symlink)
+         symlink      <- unname(symlink)
 
          if(length(symlink) > 1) {
             stop("More than one symlink found for ", date_version, " in: ", root, "\n  ",
@@ -2236,6 +2260,10 @@ SLT <- R6::R6Class(
          for(version_path in private$DYNAMIC$VERS_PATHS){
 
             if(!private$validate_dir_exists(version_path)) next()
+            if(private$already_marked(version_path, "best")) {
+               message("-- ", version_path, " - already marked best - moving on.")
+               next()
+            }
 
             private$demote_existing_symlinks(
                version_path = version_path,
@@ -2291,6 +2319,10 @@ SLT <- R6::R6Class(
          for(version_path in private$DYNAMIC$VERS_PATHS){
 
             if(!private$validate_dir_exists(version_path)) next()
+            if(private$already_marked(version_path, "keep")) {
+               message("-- ", version_path, " - already marked keep - moving on.")
+               next()
+            }
 
             private$demote_existing_symlinks(
                version_path = version_path,
@@ -2348,6 +2380,10 @@ SLT <- R6::R6Class(
          for(version_path in private$DYNAMIC$VERS_PATHS){
 
             if(!private$validate_dir_exists(version_path)) next()
+            if(private$already_marked(version_path, "remove")) {
+               message("-- ", version_path, " - already marked remove - moving on.")
+               next()
+            }
 
             private$demote_existing_symlinks(
                version_path = version_path,
