@@ -748,19 +748,6 @@ SLT <- R6::R6Class(
          return(str_symlink)
       },
 
-      # FIXME SB - 2024 Feb 06 - unused, maybe useful in the future
-      # extract_symlink_target = function(symlink_string){
-      #    # pull a symlink target from a linux path string e.g. pull "/mnt/share/some/path" from:
-      #    # "lrwxrwxrwx 1 USER Domain Users  63 Feb  6 17:04 best -> /mnt/share/some/path"
-      #
-      #    arrow_rgx <- " -> " # used by linux to show symlinks
-      #    if(!grepl(arrow_rgx, symlink_string)) stop("No arrow found in symlink_string: ", symlink_string)
-      #    match_idx <- regexpr(arrow_rgx, symlink_string)
-      #    start_idx <- as.integer(match_idx) + attr(match_idx, "match.length")
-      #    str_post_arrow <- substr(symlink_string, start_idx, nchar(symlink_string))
-      #    return(str_post_arrow)
-      # },
-
       #  Remove one symlink and message about which type was removed, append to log
       #
       #  @param root [chr] path to the root folder
