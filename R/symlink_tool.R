@@ -1450,18 +1450,18 @@ SLT <- R6::R6Class(
          )
       },
 
-      #  Query all folders with a "remove_" symlink in a single `root`
+      # Query all folders with a "best_" symlink in a single `root`
       #
-      #  @param root [chr] path to a root folder defined at instantiation (`STL$new()`)
+      # @param root [chr] path to a root folder defined at instantiation (`STL$new()`)
       #
-      #  @return [data.table] a data.table with the folder path, symlink name, and resolved path
-      query_all_remove_symlinks = function(root){
+      # @return [data.table] a data.table with the folder path, symlink name, and resolved path
+      query_all_best_symlinks = function(root){
          # find all folders and their types
-         folder_dt            <- private$query_root_folder_types(root)
-         # find all resolved paths attached to a "remove_" symlink, and their symlink names
+         folder_dt <- private$query_root_folder_types(root)
+         # find all resolved paths attached to a "best_" symlink, and their symlink names
          # allow the user to decide how to deal with removal
-         remove_dirs_dt <- unique(folder_dt[is_symlink == TRUE & grepl("remove_", dir_leaf), .(dir_date_version, dir_name, dir_name_resolved)])
-         return(remove_dirs_dt)
+         best_dirs_dt <- unique(folder_dt[is_symlink == TRUE & grepl("^best$", dir_leaf), .(dir_date_version, dir_name, dir_name_resolved)])
+         return(best_dirs_dt)
       },
 
       #  Query all folders with a "keep_" symlink in a single `root`
@@ -1471,17 +1471,31 @@ SLT <- R6::R6Class(
       #  @return [data.table] a data.table with the folder path, symlink name, and resolved path
       query_all_keep_symlinks = function(root){
          # find all folders and their types
-         folder_dt            <- private$query_root_folder_types(root)
+         folder_dt <- private$query_root_folder_types(root)
          # find all resolved paths attached to a "keep_" symlink, and their symlink names
          # allow the user to decide how to deal with removal
-         keep_dirs_dt <- unique(folder_dt[is_symlink == TRUE & grepl("keep_", dir_leaf), .(dir_date_version, dir_name, dir_name_resolved)])
+         keep_dirs_dt <- unique(folder_dt[is_symlink == TRUE & grepl("^keep_", dir_leaf), .(dir_date_version, dir_name, dir_name_resolved)])
          return(keep_dirs_dt)
+      },
+
+      #  Query all folders with a "remove_" symlink in a single `root`
+      #
+      #  @param root [chr] path to a root folder defined at instantiation (`STL$new()`)
+      #
+      #  @return [data.table] a data.table with the folder path, symlink name, and resolved path
+      query_all_remove_symlinks = function(root){
+         # find all folders and their types
+         folder_dt <- private$query_root_folder_types(root)
+         # find all resolved paths attached to a "remove_" symlink, and their symlink names
+         # allow the user to decide how to deal with removal
+         remove_dirs_dt <- unique(folder_dt[is_symlink == TRUE & grepl("^remove_", dir_leaf), .(dir_date_version, dir_name, dir_name_resolved)])
+         return(remove_dirs_dt)
       },
 
       query_all_unmarked = function(root){
          # find all folders and their types
-         folder_dt            <- private$query_root_folder_types(root)
-         marked_dirs <- folder_dt[is_symlink == TRUE, dir_name_resolved]
+         folder_dt     <- private$query_root_folder_types(root)
+         marked_dirs   <- folder_dt[is_symlink == TRUE, dir_name_resolved]
          unmarked_dirs <- folder_dt[!dir_name_resolved %in% marked_dirs, dir_name_resolved]
          return(folder_dt[dir_name_resolved %in% unmarked_dirs, .(dir_date_version, dir_name, dir_name_resolved)])
       },
@@ -2450,14 +2464,14 @@ SLT <- R6::R6Class(
 
       ## Path Roundups ---------------------------------------------------------
 
-      #' Find all `remove_` symlinks in all `roots`
+      #' Find all `best_` symlinks in all `roots`
       #'
       #' Return both the symlink and the resolved symlink (folder the symlink
       #' points to)
       #'
       #' @return [list] list of data.tables - one for each `root`
-      roundup_remove = function(){
-         return(lapply(private$DICT$ROOTS, private$query_all_remove_symlinks))
+      roundup_best = function(){
+         return(lapply(private$DICT$ROOTS, private$query_all_best_symlinks))
       },
 
       #' Find all `keep_` symlinks in all `roots`
@@ -2468,6 +2482,16 @@ SLT <- R6::R6Class(
       #' @return [list] list of data.tables - one for each `root`
       roundup_keep = function(){
          return(lapply(private$DICT$ROOTS, private$query_all_keep_symlinks))
+      },
+
+      #' Find all `remove_` symlinks in all `roots`
+      #'
+      #' Return both the symlink and the resolved symlink (folder the symlink
+      #' points to)
+      #'
+      #' @return [list] list of data.tables - one for each `root`
+      roundup_remove = function(){
+         return(lapply(private$DICT$ROOTS, private$query_all_remove_symlinks))
       },
 
       #' Find all folders without symlinks in all `roots`
