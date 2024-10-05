@@ -2,8 +2,10 @@
 title: "Symlink Tool Technical Vignette"
 output: 
   html_document:
-    toc: true
-    toc_float: true
+     highlight: zenburn
+     theme: readable # simplex # readable
+     toc: true
+     toc_float: true
 # This is lighter weight, but doesn't support TOC
 # output: rmarkdown::html_vignette
 # vignette: >
@@ -759,18 +761,18 @@ You can audit the internal state of the tool with the `print_` functions.
 
 ```{r print, out.lines = 22}
 # Print all static fields (output truncated)
-slt$print_dictionaries()
+slt$return_dictionaries()
 ```
 
 ```{r print2}
 # ROOTS are likely most interesting to the user.
-slt$print_dictionaries(item_names = "ROOTS")
+slt$return_dictionaries(item_names = "ROOTS")
 ```
 
 ```{r print3}
 # Show the last 'action' the tool performed
 # - these fields are set as part of each 'marking' new action.
-slt$print_dynamic_fields()
+slt$return_dynamic_fields()
 ```
 
 
