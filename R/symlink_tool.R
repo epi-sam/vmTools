@@ -1478,6 +1478,14 @@ SLT <- R6::R6Class(
          return(keep_dirs_dt)
       },
 
+      query_all_unmarked = function(root){
+         # find all folders and their types
+         folder_dt            <- private$query_root_folder_types(root)
+         marked_dirs <- folder_dt[is_symlink == TRUE, dir_name_resolved]
+         unmarked_dirs <- folder_dt[!dir_name_resolved %in% marked_dirs, dir_name_resolved]
+         return(folder_dt[dir_name_resolved %in% unmarked_dirs, .(dir_date_version, dir_name, dir_name_resolved)])
+      },
+
       #  Query the first row of all logs in a list
       #
       #  Does not rely on the log entry index, uses `head()`
@@ -2448,9 +2456,6 @@ SLT <- R6::R6Class(
       #' points to)
       #'
       #' @return [list] list of data.tables - one for each `root`
-      #'
-      #'
-      #'
       roundup_remove = function(){
          return(lapply(private$DICT$ROOTS, private$query_all_remove_symlinks))
       },
@@ -2461,11 +2466,18 @@ SLT <- R6::R6Class(
       #' points to)
       #'
       #' @return [list] list of data.tables - one for each `root`
-      #'
-      #'
-      #'
       roundup_keep = function(){
          return(lapply(private$DICT$ROOTS, private$query_all_keep_symlinks))
+      },
+
+      #' Find all folders without symlinks in all `roots`
+      #'
+      #' Useful if you're rapidly iterating, have only marked a couple folders,
+      #' and want to remove the rest.
+      #'
+      #' @return [list] list of data.tables - one for each `root`
+      roundup_unmarked = function(){
+         return(lapply(private$DICT$ROOTS, private$query_all_unmarked))
       },
 
       #' Find all `date_version` folders by creation date
