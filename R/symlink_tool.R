@@ -1056,14 +1056,7 @@ SLT <- R6::R6Class(
       read_log = function(fpath, log_schema = private$DICT$log_schema){
 
          col_classes        <- unlist(log_schema)
-         # FIXME SB - 2024 Oct 04 - warnings from missing columns would lead to a complete overwrite of the log - not good
-         # dt_log             <- tryCatch(
-         #    {
          dt_log <- data.table::fread(fpath, colClasses = col_classes)
-         #    }, warning = function(w) message(
-         #       "Warning - reading log: \n ||----- ",
-         #       w)
-         # )
 
          # safely correct a null log, if found (all dim == 0)
          dt_log <- private$correct_null_log(dirname(fpath), dt_log)
@@ -1133,9 +1126,6 @@ SLT <- R6::R6Class(
             private$write_new_central_log(fpath, log_schema)
          } else {
             dt_log <- private$read_central_log(fpath, log_schema)
-            # FIXME SB - 2024 Oct 04 - now redundant - handled within `read_central_log`
-            # Safely write first 'create' row if it doesn't exist
-            # dt_log <- private$make_central_log_creation_entry(dt_log)
             data.table::fwrite(dt_log, fpath)
          }
       },
@@ -1152,14 +1142,7 @@ SLT <- R6::R6Class(
 
          col_classes        <- unlist(log_schema)
 
-         # FIXME SB - warnings from missing columns would lead to a complete overwrite of the log - not good
-         # dt_log             <- tryCatch(
-         # {
          dt_log <- data.table::fread(fpath, colClasses = col_classes)
-         #    }, warning = function(w) message(
-         #       "Warning - reading log: \n ||----- ",
-         #       w)
-         # )
 
          # safely correct a null log, if found (all dim == 0)
          if(all(dim(dt_log) == 0)){
