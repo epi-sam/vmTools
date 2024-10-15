@@ -132,6 +132,8 @@ SLT <- R6::R6Class(
             , comment      = "character"
          ),
 
+         log_sort_varname = "timestamp",
+
          valid_log_field_types = c(
             "integer"
             , "character"
@@ -1276,6 +1278,47 @@ SLT <- R6::R6Class(
       # the '_query_' function family is for reporting on the state of the symlinks
       # they differ from 'read_log', which is for promotion/demotion, and will create a new log
 
+      #  Query the first row of all logs in a list
+      #
+      #  Does not rely on the log entry index, uses `head()`
+      #
+      #  @param log_list [list] list of logs, each log is a data.table
+      #
+      #  @return [data.table] a data.table with the first row of each log
+      query_logs_first_row = function(log_list){
+         dt_query <- data.table::rbindlist(lapply(log_list, function(x) head(x, 1)))
+         setorderv(dt_query, private$DICT$log_sort_varname)
+         return(dt_query)
+      },
+
+      #  Return the last row from each log.
+      #
+      #  Does not rely on the log entry index, uses `tail()`
+      #  - sort according to some variable
+      #
+      #  @param log_list [list] list of logs, each log is a data.table
+      #
+      #  @return [data.table] a data.table with the last row of each log
+      query_logs_last_row = function(log_list){
+         dt_query <- data.table::rbindlist(lapply(log_list, function(x) tail(x, 1)))
+         setorderv(dt_query, private$DICT$log_sort_varname)
+         return(dt_query)
+      },
+
+      #  Query the row with log_id == 0 from all logs in a list
+      #
+      #  This should be the creation line for each log.
+      #
+      #  @param log_list [list] list of logs, each log is a data.table
+      #
+      #  @return [data.table] a data.table with the row with log_id == 0 of each log
+      query_log_id_0 = function(log_list){
+         dt_query <- data.table::rbindlist(lapply(log_list, function(x) x[log_id == 0, ]))
+         setorderv(dt_query, private$DICT$log_sort_varname)
+         return(dt_query)
+
+      },
+
       #  Query the folder types (bare of symlink) of all date_version folders in one `root`.
       #
       #  @param root [chr] path to a root folder defined at instantiation (`STL$new()`)
@@ -1433,20 +1476,6 @@ SLT <- R6::R6Class(
          return(log_list)
       },
 
-      #  Return the last row from each log.
-      #
-      #  Does not rely on the log entry index, uses `tail()`
-      #
-      #  @param log_list [list] list of logs, each log is a data.table
-      #
-      #  @return [data.table] a data.table with the last row of each log
-      query_logs_last_row = function(log_list){
-         # find the last row of each log
-         return(
-            data.table::rbindlist(lapply(log_list, function(x) tail(x, 1)))
-         )
-      },
-
       #  Return the row with the highest log_id from each log.
       #
       #  Does not pull the last row, relies on the log index.
@@ -1509,33 +1538,6 @@ SLT <- R6::R6Class(
          marked_dirs   <- folder_dt[is_symlink == TRUE, dir_name_resolved]
          unmarked_dirs <- folder_dt[!dir_name_resolved %in% marked_dirs, dir_name_resolved]
          return(folder_dt[dir_name_resolved %in% unmarked_dirs, .(dir_date_version, dir_name, dir_name_resolved)])
-      },
-
-      #  Query the first row of all logs in a list
-      #
-      #  Does not rely on the log entry index, uses `head()`
-      #
-      #  @param log_list [list] list of logs, each log is a data.table
-      #
-      #  @return [data.table] a data.table with the first row of each log
-      query_logs_first_row = function(log_list){
-         return(
-            data.table::rbindlist(lapply(log_list, function(x) head(x, 1)))
-         )
-      },
-
-      #  Query the row with log_id == 0 from all logs in a list
-      #
-      #  This should be the creation line for each log.
-      #
-      #  @param log_list [list] list of logs, each log is a data.table
-      #
-      #  @return [data.table] a data.table with the row with log_id == 0 of each log
-      query_log_id_0 = function(log_list){
-         return(
-            data.table::rbindlist(lapply(log_list, function(x) x[log_id == 0, ]))
-         )
-
       },
 
       #  Query all logs in one root by a date selector
