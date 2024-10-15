@@ -111,16 +111,14 @@ SLT <- R6::R6Class(
 
          ROOTS = NULL,
 
+
+         ## Logs
+
          LOG_CENTRAL = list(
             root  = NULL,
             fname = "log_symlinks_central.csv",
             path  = NULL
          ),
-
-
-
-         ## Logs
-
 
          log_name = "log_version_history.csv",
 
@@ -148,10 +146,23 @@ SLT <- R6::R6Class(
             , "action"
          ),
 
+
          ## Initialize: internally-defined
          # In `initialize()`, defined as `setdiff(names(private$DICT$log_schema), private$DICT$log_fields_auto)`
          # e.g. c("comment") at time of writing
          log_fields_user = NULL,
+
+
+         # Reports - summary of last log entries across date-versioned folders
+         # - Since these are the most visible/useful user summary, these could be set by `initialize()` in the future.
+
+         report_fnames = list(
+              all_logs_tool_symlink = "report_key_versions.csv"
+            , all_logs              = "report_all_logs.csv"
+            , all_logs_symlink      = "report_all_logs_symlink.csv"
+            , all_logs_non_symlink  = "report_all_logs_non_symlink.csv"
+            , discrepancies         = "report_DISCREPANCIES.csv"
+         ),
 
 
          ## Status updates / symlinks
@@ -1607,7 +1618,7 @@ SLT <- R6::R6Class(
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs(root)
          last_row_dt <- private$query_logs_last_row(log_list)
-         data.table::fwrite(last_row_dt, file.path(root, "report_all_logs.csv"))
+         data.table::fwrite(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs))
       },
 
       #  Report last row of all symlinked folder logs in one root
@@ -1621,7 +1632,7 @@ SLT <- R6::R6Class(
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs_symlink(root)
          last_row_dt <- private$query_logs_last_row(log_list)
-         data.table::fwrite(last_row_dt, file.path(root, "report_all_logs_symlink.csv"))
+         data.table::fwrite(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs_symlink))
       },
 
       #  Report last row of all tool-symlinked folder logs in one root
@@ -1640,7 +1651,7 @@ SLT <- R6::R6Class(
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs_tool_symlink(root, verbose = FALSE)
          last_row_dt <- private$query_logs_last_row(log_list)
-         data.table::fwrite(last_row_dt, file.path(root, "report_all_logs_tool_symlink.csv"))
+         data.table::fwrite(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs_tool_symlink))
 
          private$report_discrepancies(root = root)
 
@@ -1657,7 +1668,7 @@ SLT <- R6::R6Class(
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs_non_symlink(root)
          last_row_dt <- private$query_logs_last_row(log_list)
-         data.table::fwrite(last_row_dt, file.path(root, "report_all_logs_non_symlink.csv"))
+         data.table::fwrite(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs_non_symlink))
       },
 
       #  Add a discrepancy column to a data.table if it has rows
@@ -1785,10 +1796,10 @@ SLT <- R6::R6Class(
          discrepancy_report_dt <- rbindlist(discrepant_list, fill = TRUE)
 
          # If no discrepancies are found, then delete the current discrepancy report so it doesn't cause confusion
-         path_discrepancy_report <- file.path(root, "REPORT_DISCREPANCIES.csv")
+         path_discrepancy_report <- file.path(root, private$DICT$report_fnames$discrepancies)
 
          if(nrow(discrepancy_report_dt) == 0) {
-            message("No discrepancies found in ", root, ", removing REPORT_DISCREPANCIES.csv (if it exists now)")
+            message("No discrepancies found in ", root, ", removing ", private$DICT$report_fnames$discrepancies, " (if it exists now)")
             suppressWarnings(file.remove(path_discrepancy_report))
          } else {
             data.table::fwrite(discrepancy_report_dt, path_discrepancy_report)
