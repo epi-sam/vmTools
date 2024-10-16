@@ -60,7 +60,7 @@ suppressMessages(
 
 # Test private methods ---------------------------------------------------------
 
-# 2024 Oct 16 - let's put this off for now and focus on some integration tests first
+# 2024 Oct 16 - put this off for now and focus on some integration tests first
 
 
 # Integration Tests ------------------------------------------------------------
@@ -79,6 +79,10 @@ test_that("SLT creates new folders",
              )
           }
 )
+
+
+
+# Integration - Marking operations  --------------------------------------------
 
 test_that("Mark best works",
           {
@@ -121,7 +125,17 @@ test_that("Expected folders exist after marking and unmarking",
              )
           })
 
+# TODO SB - 2024 Oct 16
+# - test that the log files are created and have the expected content
+# - test that the report file has expected content
+
+
+
+
 # Clean up ---------------------------------------------------------------------
+
+# need files to persist over the tests, so cannot use `withr::local_file()`
+
 test_that(
    "Cleanup is complete",
    {
