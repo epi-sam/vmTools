@@ -229,6 +229,10 @@ SLT <- R6::R6Class(
 
       # PRIVATE METHODS --------------------------------------------------------
 
+      # Redefined functions ---------------------------------------------------
+
+      csv_reader = NULL,
+
       # Validations ------------------------------------------------------------
 
       # Types of check functions:
@@ -1116,7 +1120,7 @@ SLT <- R6::R6Class(
       read_log = function(fpath, log_schema = private$DICT$log_schema){
 
          col_classes        <- unlist(log_schema)
-         dt_log <- self$csv_reader(fpath, colClasses = col_classes)
+         dt_log <- private$csv_reader(fpath, colClasses = col_classes)
 
          # safely correct a null log, if found (all dim == 0)
          dt_log <- private$correct_null_log(dirname(fpath), dt_log)
@@ -1202,7 +1206,7 @@ SLT <- R6::R6Class(
 
          col_classes        <- unlist(log_schema)
 
-         dt_log <- self$csv_reader(fpath, colClasses = col_classes)
+         dt_log <- private$csv_reader(fpath, colClasses = col_classes)
 
          # safely correct a null log, if found (all dim == 0)
          if(all(dim(dt_log) == 0)){
@@ -1326,7 +1330,7 @@ SLT <- R6::R6Class(
       try_query_log = function(version_path, verbose = TRUE){
          tryCatch(
             {
-               log <- self$csv_reader(
+               log <- private$csv_reader(
                   file.path(version_path, private$DICT$log_name)
                   , colClasses = unlist(private$DICT$log_schema)
                )
@@ -2220,12 +2224,6 @@ SLT <- R6::R6Class(
    public = list(
 
 
-      # Redefined functions ---------------------------------------------------
-
-      csv_reader = NULL,
-
-
-
       # NEW -----------------------------------------------------------------------
 
 
@@ -2300,7 +2298,7 @@ SLT <- R6::R6Class(
          # libraries
          library(data.table)
          # only fread is currently supported due to how data types are defined when reading in logs
-         self$csv_reader <- switch(
+         private$csv_reader <- switch(
             csv_reader
             , "fread" = function(...) return(data.table::fread(...))
             , "fread_quiet" = function(...) return(suppressWarnings(data.table::fread(...)))

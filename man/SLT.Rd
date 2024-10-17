@@ -2,11 +2,11 @@
 % Please edit documentation in R/symlink_tool.R
 \name{SLT}
 \alias{SLT}
-\title{Initialize a symlink tool by GBD round}
+\title{Initialize the SymlinkTool (an R6 object)}
 \description{
-Initialize a symlink tool by GBD round
+Initialize the SymlinkTool (an R6 object)
 
-Initialize a symlink tool by GBD round
+Initialize the SymlinkTool (an R6 object)
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -18,7 +18,10 @@ Initialize a symlink tool by GBD round
 \item \href{#method-Symlink_Tool-mark_keep}{\code{SLT$mark_keep()}}
 \item \href{#method-Symlink_Tool-mark_remove}{\code{SLT$mark_remove()}}
 \item \href{#method-Symlink_Tool-unmark}{\code{SLT$unmark()}}
+\item \href{#method-Symlink_Tool-roundup_best}{\code{SLT$roundup_best()}}
+\item \href{#method-Symlink_Tool-roundup_keep}{\code{SLT$roundup_keep()}}
 \item \href{#method-Symlink_Tool-roundup_remove}{\code{SLT$roundup_remove()}}
+\item \href{#method-Symlink_Tool-roundup_unmarked}{\code{SLT$roundup_unmarked()}}
 \item \href{#method-Symlink_Tool-roundup_by_date}{\code{SLT$roundup_by_date()}}
 \item \href{#method-Symlink_Tool-create_date_version_folders_with_logs}{\code{SLT$create_date_version_folders_with_logs()}}
 \item \href{#method-Symlink_Tool-make_new_log}{\code{SLT$make_new_log()}}
@@ -31,23 +34,43 @@ Initialize a symlink tool by GBD round
 \if{html}{\out{<a id="method-Symlink_Tool-new"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-new}{}}}
 \subsection{Method \code{new()}}{
-Any time the tool is made, the tool is GBD-round specific.  Create one
-per round if you need more than one
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$new(user_root_list = NULL, user_central_log_root = NULL)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$new(
+  user_root_list = NULL,
+  user_central_log_root = NULL,
+  schema_repair = TRUE,
+  csv_reader = "fread_quiet"
+)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{user_root_list}}{[list] Named list of root directories for pipeline outputs. This is where `date_version` folders live (these are iterative runs of an analysis pipeline.)}
+\item{\code{user_root_list}}{[list] Named list of root directories for
+pipeline outputs. This is where `date_version` folders live (these
+are iterative runs of an analysis pipeline.)}
 
-\item{\code{user_central_log_root}}{[path] Root directory for the central log. If you have multiple roots in the `user_root_list`, you probably want the central log to live one level above those roots.}
+\item{\code{user_central_log_root}}{[path] Root directory for the central log.
+If you have multiple roots in the `user_root_list`, you probably want
+the central log to live one level above those roots.}
+
+\item{\code{schema_repair}}{[logical] Default `TRUE`.  If `TRUE`, the tool
+will attempt to repair any schema mismatches it finds in the logs
+when reading and writing (e.g.) add new columns if the tool schema
+has columns that existing logs do not. If `FALSE`, the tool will stop and
+throw an error if it finds a schema mismatch.}
+
+\item{\code{csv_reader}}{[chr] Default `fread_quiet`.  The CSV reader to use.
+Options:
+- 'fread_quiet' - suppress warnings (rely on tool's messaging instead)
+- 'fread' - data.table standard}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[symlink_tool] A symlink tool object.  You can instantiate  (create) multiple version, each of which has different roots and central logs.
+[symlink_tool] A symlink tool object.  You can instantiate
+  (create) multiple version, each of which has different roots and
+  central logs.
 }
 }
 \if{html}{\out{<hr>}}
@@ -249,6 +272,38 @@ for them.}
 
 
 
+Find all `best_` symlinks in all `roots`
+
+Return both the symlink and the resolved symlink (folder the symlink
+points to)
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Symlink_Tool-roundup_best"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Tool-roundup_best}{}}}
+\subsection{Method \code{roundup_best()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_best()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+[list] list of data.tables - one for each `root`
+Find all `keep_` symlinks in all `roots`
+
+Return both the symlink and the resolved symlink (folder the symlink
+points to)
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Symlink_Tool-roundup_keep"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Tool-roundup_keep}{}}}
+\subsection{Method \code{roundup_keep()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_keep()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+[list] list of data.tables - one for each `root`
 Find all `remove_` symlinks in all `roots`
 
 Return both the symlink and the resolved symlink (folder the symlink
@@ -265,9 +320,22 @@ points to)
 
 \subsection{Returns}{
 [list] list of data.tables - one for each `root`
+Find all folders without symlinks in all `roots`
 
+Useful if you're rapidly iterating, have only marked a couple folders,
+and want to remove the rest.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Symlink_Tool-roundup_unmarked"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Tool-roundup_unmarked}{}}}
+\subsection{Method \code{roundup_unmarked()}}{
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_unmarked()}\if{html}{\out{</div>}}
+}
 
-
+\subsection{Returns}{
+[list] list of data.tables - one for each `root`
 Find all `date_version` folders by creation date
 
 Only finds folders that _have a log_, and reads creation date on first
