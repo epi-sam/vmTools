@@ -1165,10 +1165,10 @@ SLT <- R6::R6Class(
             log_entry[[varname]] <- user_entry[[varname]]
          }
 
-         log_dt <- rbindlist(list(dt_log, log_entry), fill = private$DICT$FLAGS$allow_schema_repair)
+         dt_log <- rbindlist(list(dt_log, log_entry), fill = private$DICT$FLAGS$allow_schema_repair)
 
          message("---- Writing log to ", fpath)
-         data.table::fwrite(log_dt, fpath)
+         data.table::fwrite(dt_log, fpath)
       },
 
 
@@ -1298,7 +1298,7 @@ SLT <- R6::R6Class(
                log_entry[[varname]] <- user_entry[[varname]]
             }
 
-            log_dt <- rbindlist(list(dt_log, log_entry), fill = private$DICT$FLAGS$allow_schema_repair)
+            dt_log <- rbindlist(list(dt_log, log_entry), fill = private$DICT$FLAGS$allow_schema_repair)
 
             message("---- Writing central log to ", fpath)
             data.table::fwrite(dt_log, fpath)
