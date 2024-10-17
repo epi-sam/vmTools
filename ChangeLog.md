@@ -2,6 +2,20 @@
 
 --------------------------------------------------------------------------------
 
+## v.0.3.1
+
+2024-10-16
+
+Bugfixes:
+
+- extensive repairs to logs and reports 
+- allowances for mismatched logs on disk 
+   - user may choose for strict or flexible control when writing logs 
+   - reporting is flexible by default
+- option for csv reader to suppress warnings (rely on tool's messging)
+
+
+
 ## v.0.3.0
 
 2024-10-15 
