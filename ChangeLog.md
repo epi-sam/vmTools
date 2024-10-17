@@ -12,7 +12,7 @@ Bugfixes:
 - allowances for mismatched logs on disk 
    - user may choose for strict or flexible control when writing logs 
    - reporting is flexible by default
-- option for csv reader to suppress warnings (rely on tool's messging)
+- option for csv reader to suppress warnings (rely on tool's messaging)
 
 
 
