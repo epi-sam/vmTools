@@ -912,6 +912,7 @@ SLT <- R6::R6Class(
       delete_remove_folder = function(root, date_version, user_entry, require_user_input){
          private$assert_dir_exists(root)
          private$assert_scalar(date_version)
+         version_path <- file.path(root, date_version)
 
          folder_dt <- private$query_root_folder_types(root = root)
 
@@ -949,6 +950,7 @@ SLT <- R6::R6Class(
             # Prompt user input to confirm deletion
             if(user_input == 2){
                private$DYNAMIC$LOG$action <- "delete_remove_folder"
+               private$append_to_central_log(version_path = version_path, user_entry = user_entry)
                for(dir_name in dirnames_to_unlink){
                   message("Deleting ", dir_name)
                   unlink(x = dir_name, recursive = TRUE, force = TRUE)
@@ -964,12 +966,14 @@ SLT <- R6::R6Class(
             message("") # newline for visual clarity
 
             private$DYNAMIC$LOG$action <- "delete_remove_folder"
+            private$append_to_central_log(version_path = version_path, user_entry = user_entry)
             for(dir_name in dirnames_to_unlink){
                message("Deleting ", dir_name)
                unlink(x = dir_name, recursive = TRUE, force = TRUE)
             }
 
             ret_val_deleted_TF <- TRUE
+
          } else {
             stop("Unforeseen error in `delete_remove_folder` function. Please contact the developer.")
          }
