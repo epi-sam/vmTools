@@ -1,6 +1,8 @@
 
 # Setup ------------------------------------------------------------------------
 
+library(data.table)
+
 make_directory <- function(path) dir.create(path, recursive = TRUE, showWarnings = FALSE)
 print_tree     <- function(root) {fs::dir_tree(root, recurse = TRUE)}
 root_base      <- file.path(tempdir(), "slt")
@@ -16,6 +18,8 @@ dv_list <- list(
    , dv2 = "1990_01_02"
    , dv3 = "1990_01_03"
 )
+
+dv_list_fullpath <- lapply(root_list, function(root) file.path(root, dv_list))
 
 ue_list <- list(
    best = list(comment = "Testing mark best")
@@ -125,9 +129,44 @@ test_that("Expected folders exist after marking and unmarking",
              )
           })
 
-# TODO SB - 2024 Oct 16
-# - test that the log files are created and have the expected content
-# - test that the report file has expected content
+test_that("Only logs exist so far",
+          {
+             dv_content_list <- lapply(dv_list_fullpath, list.files, full.names = TRUE)
+
+             dv_log_list <- lapply(dv_list_fullpath, function(dv_content){
+                fnames_logs <- list.files(dv_content, pattern = "log", full.names = TRUE)
+             })
+             expect_equal(dv_content_list, dv_log_list)
+          })
+
+test_that("Marked logs have correct structure",
+          {
+             expect_no_error(
+                log_list <- lapply(dv_log_list, function(logs) lapply(logs, fread))
+             )
+             # First log should go through best, keep, remove and finally unmark steps correctly
+             for(root in names(root_list)){
+                expect_equal(
+                   log_list[[root]][[1]][, .(log_id, user, date_version, version_path, action, comment)],
+                   data.table(
+                    log_id = 0:6
+                    , user = rep(Sys.info()[["user"]], 7)
+                    , date_version = rep(dv_list[[1]], 7)
+                    , version_path = rep(file.path(root_list[[root]], dv_list[[1]]), 7)
+                    , action = c("create", "promote_best", "demote_best", "promote_keep", "demote_keep", "promote_remove", "demote_remove")
+                    , comment = c("log created", "Testing mark best", "Testing mark keep", "Testing mark keep", "Testing mark remove", "Testing mark remove", "Testing mark unmark")
+                   )
+                )
+             }
+          })
+
+#>  TODO SB - 2024 Oct 16
+#> - test that:
+#> - [ ] the log files are created and have the expected content
+#> - [ ] the report file has expected content
+#> - [ ] there's no discrepancy report after some manual edits
+#>    - don't worry about minor issues, focus on log order issues, things related to report building
+#> - [ ] there is an appropriate discrepancy report after some key edits
 
 
 
