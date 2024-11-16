@@ -1170,6 +1170,7 @@ SLT <- R6::R6Class(
          }
 
          dt_log <- rbindlist(list(dt_log, log_entry), fill = private$DICT$FLAGS$allow_schema_repair)
+         data.table::setcolorder(dt_log, names(private$DICT$log_schema))
 
          message("---- Writing log to ", fpath)
          data.table::fwrite(dt_log, fpath)
@@ -1303,6 +1304,7 @@ SLT <- R6::R6Class(
             }
 
             dt_log <- rbindlist(list(dt_log, log_entry), fill = private$DICT$FLAGS$allow_schema_repair)
+            data.table::setcolorder(dt_log, names(private$DICT$log_schema))
 
             message("---- Writing central log to ", fpath)
             data.table::fwrite(dt_log, fpath)
@@ -1655,6 +1657,25 @@ SLT <- R6::R6Class(
 
       ## Reports ---------------------------------------------------------------
 
+      # Write a report, with special handling
+      #
+      # @param dt_report [data.table] the report
+      # @param write_path [chr] full path with ext
+      # @param order_cols_tf [lgl] (default = TRUE) order columns by log_schema?
+      # @param schema [named_list] named list of column names and data types - used if `order_cols_tf` = TRUE
+      #
+      # @return [none] write to disk
+      write_report = function(dt_report, write_path, order_cols_tf = TRUE, schema = private$DICT$log_schema){
+
+          if(order_cols_tf){
+            private$assert_named_list(schema)
+            sortable_colnames <- intersect(names(schema), names(dt_report))
+            data.table::setcolorder(dt_report, sortable_colnames)
+          }
+
+         data.table::fwrite(dt_report, write_path)
+      },
+
       # each report function must have a corresponding query_all_logs_* function
 
       #  Report last row of all logs in one root
@@ -1668,7 +1689,7 @@ SLT <- R6::R6Class(
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs(root)
          last_row_dt <- private$query_logs_last_row(log_list)
-         data.table::fwrite(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs))
+         private$write_report(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs))
       },
 
       #  Report last row of all symlinked folder logs in one root
@@ -1682,7 +1703,7 @@ SLT <- R6::R6Class(
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs_symlink(root)
          last_row_dt <- private$query_logs_last_row(log_list)
-         data.table::fwrite(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs_symlink))
+         private$write_report(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs_symlink))
       },
 
       #  Report last row of all tool-symlinked folder logs in one root
@@ -1701,7 +1722,7 @@ SLT <- R6::R6Class(
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs_tool_symlink(root, verbose = FALSE)
          last_row_dt <- private$query_logs_last_row(log_list)
-         data.table::fwrite(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs_tool_symlink))
+         private$write_report(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs_tool_symlink))
 
          private$report_discrepancies(root = root)
 
@@ -1718,7 +1739,7 @@ SLT <- R6::R6Class(
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs_non_symlink(root)
          last_row_dt <- private$query_logs_last_row(log_list)
-         data.table::fwrite(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs_non_symlink))
+         private$write_report(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs_non_symlink))
       },
 
       #  Add a discrepancy column to a data.table if it has rows
@@ -1899,7 +1920,7 @@ SLT <- R6::R6Class(
             }
          } else {
             if(verbose) message("-- DISCREPANCIES FOUND: Writing discrepancy report to ", path_discrepancy_report)
-            data.table::fwrite(discrepancy_report_dt, path_discrepancy_report)
+            private$write_report(discrepancy_report_dt, path_discrepancy_report)
          }
       },
 

@@ -657,13 +657,13 @@ Check the central log - since the folder is gone, this will maintain a record of
 
 ## Reports
 
-**Note:** As soon as we marked a folder, there was a report ready in our folder. The `report_all_logs_tool_symlink.csv` file will scan every run-version with a Tool-created Symlink for a log, and show its last row (current status).
+**Note:** As soon as we marked a folder, there was a report ready in our folder. The `report_key_versions.csv` file will scan every run-version with a Tool-created Symlink for a log, and show its last row (current status).
 
 - Recall, the 'source of truth' log is within each folder, not the central log.
 - We should not see the second model run, since it was deleted.
 
 ```{r reports_display_2}
-(fread(file.path(root_to_model, "report_all_logs_tool_symlink.csv")))
+(fread(file.path(root_to_model, "report_key_versions.csv")))
 ```
 
 
