@@ -2,6 +2,16 @@
 
 --------------------------------------------------------------------------------
 
+## v.0.3.5
+
+2024-11-15
+
+Update:
+
+- Logs and reports sort columns according to internal log schema before writing to disk.
+
+
+
 ## v.0.3.4
 
 2024-10-16
