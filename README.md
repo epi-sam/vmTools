@@ -16,6 +16,8 @@
 ## Can you show me how it works?
 
 - See the vignettes folder for examples of how to use the package.
+   - 2024-11-19 Having issues building with installation - you can copy the 
+     vignette source and run for yourself after you install the package.
 
 
 
