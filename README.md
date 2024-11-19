@@ -2,7 +2,7 @@
 
 ## What is it?
 
-- Version Management Tools For Data Science Projects
+- Version Management Tools For Data Science Projects using R6 classes.
    - Lightweight data versioning with the file system
       - No database required
    - User-control of important versions with notes
@@ -34,11 +34,14 @@
 ## How do I install it?
 
 ```r
+# Setup
+library(callr) # may be necessary for some users
 # Install to your standard package library
 devtools::install_github("epi-sam/vmTools")
 
 # Install to a team package library
-devtools::install_github("epi-sam/vmTools", lib = "path/to/team/package/library")
+r_team_lib <- "/mnt/share/code/vaccines/R_library"
+withr::with_libpaths(new = r_team_lib, devtools::install_github("epi-sam/vmTools"))
 ```
 
 
@@ -46,7 +49,6 @@ devtools::install_github("epi-sam/vmTools", lib = "path/to/team/package/library"
 ### The newest version doesn't work for me, how do I install an older release?
 
 ```r
-# Install to your standard package library
 devtools::install_github("epi-sam/vmTools@v0.3.0")
 ```
 
