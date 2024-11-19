@@ -894,10 +894,13 @@ SLT <- R6::R6Class(
 
          if(!dir_exists){
             dir.create(version_path, recursive = TRUE)
-            private$write_expected_log(version_path)
          } else {
             message("Directory already exists: ", version_path)
          }
+
+         # Always write a log - if user uses the tool to try to create a folder
+         # that already exists, it's  a signal they want a log to exist
+         private$write_expected_log(version_path)
 
       },
 

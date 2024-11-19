@@ -2,6 +2,18 @@
 
 --------------------------------------------------------------------------------
 
+## v.0.3.6
+
+2024-11-19
+
+Update:
+
+- Attempting folder creation writes a version log, even if the folder already exists
+   - assumption: using the tool to attempt to create a folder assumes the user wants a log
+- README updates
+
+
+
 ## v.0.3.5
 
 2024-11-15
