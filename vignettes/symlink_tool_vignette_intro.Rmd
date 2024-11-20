@@ -1,17 +1,18 @@
 ---
 title: "Symlink Tool Intro Vignette"
-output: 
-  html_document:
-     highlight: zenburn
-     theme: readable # simplex # readable
-     toc: true
-     toc_float: true
-# This is lighter weight, but doesn't support TOC
-# output: rmarkdown::html_vignette
-# vignette: >
-#   %\VignetteIndexEntry{symlink_tool_vignette}
-#   %\VignetteEngine{knitr::rmarkdown}
-#   %\VignetteEncoding{UTF-8}
+# interactive
+# output: 
+#   html_document:
+#      highlight: zenburn
+#      theme: readable # simplex # readable
+#      toc: true
+#      toc_float: true
+# for package builds
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{symlink_tool_vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 
