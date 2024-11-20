@@ -10,7 +10,7 @@ title: "Symlink Tool Intro Vignette"
 # for package builds
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{symlink_tool_vignette}
+  %\VignetteIndexEntry{symlink_tool_vignette_intro}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
