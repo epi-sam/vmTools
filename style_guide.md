@@ -19,6 +19,7 @@ Lean into the [Tidyverse Style Guide](https://style.tidyverse.org) when possible
 - **Be concise**: Names should be concise and to the point. Avoid using long names that are hard to read.
 - **No abbreviations**: Do not abbreviate function argument calls, `TRUE/FALSE`, or other common terms. Avoid abbreviations when naming variables/functions.
 - **Use snake_case**: Use snake_case for files, variable and function names. This means that words are separated by underscores.
+  - **Use noun_adjective order**: This keeps like objects named similarly, and makes it easier to find/group/understand objects by name.
 
 
 
@@ -40,7 +41,7 @@ Lean into the [Tidyverse Style Guide](https://style.tidyverse.org) when possible
 - **Comments**: Reserve comments for code intent, not what the code does. Comments should explain why the code is written the way it is, not what the code does. If the code is not self-explanatory, rewrite the code to be more clear.
 - **Comma-separate lists/vectors on new lines with leading commas**: This makes lists easier to read and edit (SQL standard).
    - **Newline after `(` and `[`**: Except in `data.table` calls, by convention.  Avoid hanging indentation.
-   - **Align list elements**: Align lists by assignment operator, and names when possible. This makes lists easier to read.
+   - **Align list elements**: Align lists by assignment operator, and names when possible. 
 
 ```r
 
@@ -70,7 +71,7 @@ my_list <- list(
 ```
 
 - **Avoid index-based call**: Call variables/list elements etc. by name, not by index.
-- **Avoid use decimal.names**: These imply `object.method()` syntax - only use when relevant (usually S3).
+- **Avoid decimal.names**: These imply `object.method()` syntax - only use when relevant (usually S3).
 
 
 
@@ -81,7 +82,7 @@ my_list <- list(
 
 ## Functions
 
-- **Use verbs**: Functions should be named after the action they perform. Use verbs to name functions.
+- **Use verbs**: Functions should be named after the action they perform.
 - **Returns**: Functions return _once_ at the end of the function; avoid early returns if at all possible.
 
 
