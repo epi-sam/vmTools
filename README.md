@@ -44,6 +44,17 @@ devtools::install_github("epi-sam/vmTools")
 # Install to a team package library
 r_team_lib <- "/mnt/share/code/vaccines/R_library"
 withr::with_libpaths(new = r_team_lib, devtools::install_github("epi-sam/vmTools"))
+
+# Install to a team library and build vignettes (look in the 'doc' subfolder after installation)
+withr::with_libpaths(
+   new = r_team_lib
+   , devtools::install_github(
+      repo              = "epi-sam/vmTools"
+      , depencies       = TRUE # required for vignettes
+      , build_vignettes = TRUE
+   )
+)
+
 ```
 
 
