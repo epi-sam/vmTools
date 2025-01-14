@@ -4,7 +4,6 @@
 library(data.table)
 
 make_directory <- function(path) dir.create(path, recursive = TRUE, showWarnings = FALSE)
-print_tree     <- function(root) {fs::dir_tree(root, recurse = TRUE)}
 root_base      <- file.path(tempdir(), "slt")
 root_list      <- list(
    root_input  = file.path(root_base, "dir_1")
@@ -12,7 +11,7 @@ root_list      <- list(
 )
 make_directory(root_list[["root_input"]])
 make_directory(root_list[["root_output"]])
-print_tree(root_base)
+dir_tree(root_base)
 dv_list <- list(
    dv1 = "1990_01_01"
    , dv2 = "1990_01_02"
@@ -141,6 +140,9 @@ test_that("Only logs exist so far",
 
 test_that("Marked logs have correct structure",
           {
+             dv_log_list <- lapply(dv_list_fullpath, function(dv_content){
+                fnames_logs <- list.files(dv_content, pattern = "log", full.names = TRUE)
+             })
              expect_no_error(
                 log_list <- lapply(dv_log_list, function(logs) lapply(logs, fread))
              )
@@ -179,7 +181,7 @@ test_that(
    "Cleanup is complete",
    {
       unlink(root_base, recursive = TRUE)
-      expect_error(print_tree(root_base), regexp = "\\[ENOENT\\] Failed to search directory.*no such file or directory")
+      expect_error(fs::dir_tree(root_base), regexp = "\\[ENOENT\\] Failed to search directory.*no such file or directory")
    }
 )
 
