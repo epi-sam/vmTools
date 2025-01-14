@@ -45,9 +45,7 @@ knitr::knit_hooks$set(output = function(x, options) {
 ```
 
 ```{r setup}
-# Installing locally only allows main branch - switching to load_all for development
 devtools::load_all()
-# library(vmTools, lib.loc = file.path("/mnt/share/code", Sys.info()[["user"]], "r_pkgs"))
 library(data.table)
 ```
 
