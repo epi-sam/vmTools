@@ -628,59 +628,59 @@ SLT <- R6::R6Class(
 
       ## Functions borrowed from DescTools to remove dependency
 
+      # Replace NAs by 0
+      #
+      # DescTools::BlankIfNA
+      #
+      # Replace NAs in a numeric vector x with 0. This function has the same
+      # logic as the zeroifnull function in SQL. NAIfZero() does replace zeros
+      # with NA. BlankIfNA() and NAIfBlank() do the same, but for character
+      # vectors.
+      #
+      # @param x [vector] whose NAs should be overwritten with 0s.
+      # @param blank [chr] the value to replace NAs with.
+      #
+      # @return [vector] edited vector x
       BlankIfNA = function (x, blank = "") {
-         #' Replace NAs by 0
-         #'
-         #' DescTools::BlankIfNA
-         #'
-         #' Replace NAs in a numeric vector x with 0. This function has the same
-         #' logic as the zeroifnull function in SQL. NAIfZero() does replace zeros
-         #' with NA. BlankIfNA() and NAIfBlank() do the same, but for character
-         #' vectors.
-         #'
-         #' @param x [vector] whose NAs should be overwritten with 0s.
-         #' @param blank [chr] the value to replace NAs with.
-         #'
-         #' @returnthe [vector] edited vector x
          replace(x, is.na(x), blank)
       },
 
+      # Replace NAs by 0
+      #
+      # DescTools::ZeroIfNA
+      #
+      # Replace NAs in a numeric vector x with 0. This function has the same
+      # logic as the zeroifnull function in SQL. NAIfZero() does replace zeros
+      # with NA. BlankIfNA() and NAIfBlank() do the same, but for character
+      # vectors.
+      #
+      # @param x [vector] whose NAs should be overwritten with 0s.
+      #
+      # @return [vector] edited vector x
       ZeroIfNA = function (x) {
-         #' Replace NAs by 0
-         #'
-         #' DescTools::ZeroIfNA
-         #'
-         #' Replace NAs in a numeric vector x with 0. This function has the same
-         #' logic as the zeroifnull function in SQL. NAIfZero() does replace zeros
-         #' with NA. BlankIfNA() and NAIfBlank() do the same, but for character
-         #' vectors.
-         #'
-         #' @param x [vector] whose NAs should be overwritten with 0s.
-         #'
-         #' @return [vector] edited vector x
          replace(x, is.na(x), 0L)
       },
 
+      # Extract Part of a String
+      #
+      # DescTools::StrExtract
+      #
+      # Extract a part of a string, defined as regular expression.
+      # StrExtractBetween() is a convenience function used to extract parts
+      # between a left and right delimiter.
+      #
+      # @param x [chr] vector where matches are sought, or an object which can
+      #   be coerced by as.character to a character vector.
+      # @param pattern [chr]  string containing a regular expression (or
+      #   character string for fixed = TRUE) to be matched in the given
+      #   character vector. Coerced by as.character to a character string if
+      #   possible. If a character vector of length 2 or more is supplied, the
+      #   first element is used with a warning. Missing values are not allowed.
+      # @param ... the dots are passed to the the internally used function
+      #   regexpr(), which allows to use e.g. Perl-like regular expressions.
+      #
+      # @return [chr] A character vector.
       StrExtract = function (x, pattern, ...) {
-         #' Extract Part of a String
-         #'
-         #' DescTools::StrExtract
-         #'
-         #' Extract a part of a string, defined as regular expression.
-         #' StrExtractBetween() is a convenience function used to extract parts
-         #' between a left and right delimiter.
-         #'
-         #' @param x [chr] vector where matches are sought, or an object which can
-         #'   be coerced by as.character to a character vector.
-         #' @param pattern [chr]  string containing a regular expression (or
-         #'   character string for fixed = TRUE) to be matched in the given
-         #'   character vector. Coerced by as.character to a character string if
-         #'   possible. If a character vector of length 2 or more is supplied, the
-         #'   first element is used with a warning. Missing values are not allowed.
-         #' @param ... the dots are passed to the the internally used function
-         #'   regexpr(), which allows to use e.g. Perl-like regular expressions.
-         #'
-         #' @return [chr] A character vector.
          m                    <- regexpr(pattern, x, ...)
          regmatches(x, m)
          res                  <- rep(NA_character_, length(m))
@@ -689,19 +689,19 @@ SLT <- R6::R6Class(
       },
 
 
+      # Split Path In Drive, Path, Filename
+      #
+      # DescTools::split_path
+      #
+      # Split a full path in its components. This is specifically an issue in
+      # Windows and not really interesting for other OSs.
+      #
+      # @param path [chr] a path
+      # @param last.is.file [lgl] logical, determining if the basename should be
+      # interpreted as filename or as last directory. If set to NULL
+      # (default), the last entry will be interpreted if the last character is
+      # either \ or / and as filename else.
       SplitPath = function(path, last.is.file = NULL) {
-         #' Split Path In Drive, Path, Filename
-         #'
-         #' DescTools::split_path
-         #'
-         #' Split a full path in its components. This is specifically an issue in
-         #' Windows and not really interesting for other OSs.
-         #'
-         #' @param path [chr] a path
-         #' @param last.is.file [lgl] logical, determining if the basename should be
-         #' interpreted as filename or as last directory. If set to NULL
-         #' (default), the last entry will be interpreted if the last character is
-         #' either \ or / and as filename else.
          if (is.null(last.is.file)) {
             last.is.file <- (length(grep(pattern = "[/\\]$", path)) == 0)
          }
