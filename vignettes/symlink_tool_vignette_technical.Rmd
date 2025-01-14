@@ -58,7 +58,7 @@ library(fs)
 # Defining a couple vignette utilities
 
 # Print the folder output 'tree' structure
-print_tree <- function() {fs::dir_tree(root_base, recurse = TRUE)}
+print_tree <- function() {dir_tree(root_base, recurse = TRUE)}
 
 # print a symlink's target from the file system 
 print_symlink <- function(symlink_type){
