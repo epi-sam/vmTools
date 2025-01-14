@@ -53,7 +53,7 @@
 
 # LATER stuff - v2.0
 # TODO SB - 2024 Feb 06
-# - [ ] don't demote if the symlink is already the desired type
+# - [x] don't demote if the symlink is already the desired type
 #       - clutters up the logs, but not a deal-breaker
 
 #> NOTE:
@@ -107,6 +107,14 @@ SLT <- R6::R6Class(
          #>
          #> Every time the tool runs a 'mark' operation, it will update the report on tool-generated active symlinks
 
+
+         # Control-flow flags
+         FLAGS = list(
+            # TRUE if logs formats may differ over time
+            # FALSE if user requires logs formats to be consistent
+            allow_schema_repair = NULL
+         ),
+
          ## Initialize: user-defined
 
          ROOTS = NULL,
@@ -159,7 +167,7 @@ SLT <- R6::R6Class(
          # - Since these are the most visible/useful user summary, these could be set by `initialize()` in the future.
 
          report_fnames = list(
-              all_logs_tool_symlink = "report_key_versions.csv"
+            all_logs_tool_symlink = "report_key_versions.csv"
             , all_logs              = "report_all_logs.csv"
             , all_logs_symlink      = "report_all_logs_symlink.csv"
             , all_logs_non_symlink  = "report_all_logs_non_symlink.csv"
@@ -218,9 +226,16 @@ SLT <- R6::R6Class(
          VERS_PATHS = list()
       ),
 
+
+      # PRIVATE METHODS --------------------------------------------------------
+
+      # Redefined functions ---------------------------------------------------
+
+      csv_reader = NULL,
+
       # Validations ------------------------------------------------------------
 
-      # Two types of check functions:
+      # Types of check functions:
       # 1. assert_x - stop if conditions are unmet
       # 2. validate_x - warn if conditions are unmet
       #               - Return TRUE/FALSE
@@ -278,6 +293,21 @@ SLT <- R6::R6Class(
 
       },
 
+      # Assert an object is a scalar of a certain type
+      #
+      # @param x [any] Object to check
+      # @param type [chr] Type to check against
+      #
+      # @return [none] stop if assertion fails
+      assert_type = function(x, type){
+         private$assert_scalar(type)
+         stopifnot(is.character(type))
+         if(!inherits(x, type)){
+            x_name <- deparse(substitute(x))
+            stop(x_name, " must be of type ", type)
+         }
+      },
+
       #  Assert an object is a list with named elements
       #
       #  Stops if:
@@ -293,7 +323,7 @@ SLT <- R6::R6Class(
       #  @return none
       assert_named_list = function(x){
          if(!is.null(x)){
-            err_msg <- "x must be a named list, not vector (list names may not be whitespace)"
+            err_msg <- "x must be a named list, not vector or data.table (list names may not be whitespace)"
             if(!is.list(x))               stop(err_msg)
             if(is.data.table(x))          stop(err_msg)
             if(is.null(names(x)))         stop(err_msg)
@@ -454,7 +484,7 @@ SLT <- R6::R6Class(
             if(any(unlist(lapply(names(data_types), nchar)) == 0)) stop(my_dt_name, ": ", "data_types may only contain named `key = value` pairs")
             if(!all(names(data_types) %in% names(x))) {
                missing_varnames <- setdiff(names(data_types), names(x))
-               stop(my_dt_name, ": ", "`names(data_types)` must all be columns in `x` - missing: ", toString(missing_varnames))
+               stop(my_dt_name, ": ", "`names(data_types)` must all be columns in `my_dt` - missing: ", toString(missing_varnames))
             }
 
             coltypes_actual        <- unlist(lapply(names(data_types), function(dtype) typeof(x[[dtype]])))
@@ -864,10 +894,13 @@ SLT <- R6::R6Class(
 
          if(!dir_exists){
             dir.create(version_path, recursive = TRUE)
-            private$write_expected_log(version_path)
          } else {
             message("Directory already exists: ", version_path)
          }
+
+         # Always write a log - if user uses the tool to try to create a folder
+         # that already exists, it's  a signal they want a log to exist
+         private$write_expected_log(version_path)
 
       },
 
@@ -882,6 +915,7 @@ SLT <- R6::R6Class(
       delete_remove_folder = function(root, date_version, user_entry, require_user_input){
          private$assert_dir_exists(root)
          private$assert_scalar(date_version)
+         version_path <- file.path(root, date_version)
 
          folder_dt <- private$query_root_folder_types(root = root)
 
@@ -919,6 +953,7 @@ SLT <- R6::R6Class(
             # Prompt user input to confirm deletion
             if(user_input == 2){
                private$DYNAMIC$LOG$action <- "delete_remove_folder"
+               private$append_to_central_log(version_path = version_path, user_entry = user_entry)
                for(dir_name in dirnames_to_unlink){
                   message("Deleting ", dir_name)
                   unlink(x = dir_name, recursive = TRUE, force = TRUE)
@@ -934,12 +969,14 @@ SLT <- R6::R6Class(
             message("") # newline for visual clarity
 
             private$DYNAMIC$LOG$action <- "delete_remove_folder"
+            private$append_to_central_log(version_path = version_path, user_entry = user_entry)
             for(dir_name in dirnames_to_unlink){
                message("Deleting ", dir_name)
                unlink(x = dir_name, recursive = TRUE, force = TRUE)
             }
 
             ret_val_deleted_TF <- TRUE
+
          } else {
             stop("Unforeseen error in `delete_remove_folder` function. Please contact the developer.")
          }
@@ -970,16 +1007,27 @@ SLT <- R6::R6Class(
 
       # Repair a log table to match the schema
       #
-      # Bind the log to the schema to fill it out with correct columns, in order
+      # Intended only for the `read` family of functions for reading/writing
+      # logs - not intended for the `query` family, which is for reading only
+      # and not changing.
+      #
+      # Bind the log to the schema to fill it out with correct columns, in
+      # order. If the SymlinkTool log schema changes, schema assertions cause
+      # tool failure.
+      # - This will NOT repair deleted rows
+      # - There's no way around this unless the user strictly adheres to log schema for all time.
+      # - This really gets in the way more than it helps.
       #
       # @param dt_log [data.table] log data.table
       # @param log_schema [list] e.g. private$DICT$log_schema
       #
       # @return [data.table] log data.table with schema columns in order
-      repair_log_schema = function(dt_log, log_schema = private$DICT$log_schema){
-         private$assert_named_list(log_schema)
-         dt_schema <- private$make_schema_dt(log_schema)
-         dt_log <- data.table::rbindlist(list(dt_schema, dt_log), fill = TRUE)
+      repair_log_schema = function(dt_log, log_schema = private$DICT$log_schema, allow_schema_repair = private$DICT$FLAGS$allow_schema_repair){
+         if(allow_schema_repair){
+            private$assert_named_list(log_schema)
+            dt_schema <- private$make_schema_dt(log_schema)
+            dt_log <- data.table::rbindlist(list(dt_schema, dt_log), fill = TRUE)
+         }
          return(dt_log)
       },
 
@@ -1079,7 +1127,7 @@ SLT <- R6::R6Class(
       read_log = function(fpath, log_schema = private$DICT$log_schema){
 
          col_classes        <- unlist(log_schema)
-         dt_log <- data.table::fread(fpath, colClasses = col_classes)
+         dt_log <- private$csv_reader(fpath, colClasses = col_classes)
 
          # safely correct a null log, if found (all dim == 0)
          dt_log <- private$correct_null_log(dirname(fpath), dt_log)
@@ -1124,10 +1172,11 @@ SLT <- R6::R6Class(
             log_entry[[varname]] <- user_entry[[varname]]
          }
 
-         log_dt_new <- rbind(dt_log, log_entry)
+         dt_log <- rbindlist(list(dt_log, log_entry), fill = private$DICT$FLAGS$allow_schema_repair)
+         data.table::setcolorder(dt_log, names(private$DICT$log_schema))
 
          message("---- Writing log to ", fpath)
-         data.table::fwrite(log_dt_new, fpath)
+         data.table::fwrite(dt_log, fpath)
       },
 
 
@@ -1165,7 +1214,7 @@ SLT <- R6::R6Class(
 
          col_classes        <- unlist(log_schema)
 
-         dt_log <- data.table::fread(fpath, colClasses = col_classes)
+         dt_log <- private$csv_reader(fpath, colClasses = col_classes)
 
          # safely correct a null log, if found (all dim == 0)
          if(all(dim(dt_log) == 0)){
@@ -1257,7 +1306,8 @@ SLT <- R6::R6Class(
                log_entry[[varname]] <- user_entry[[varname]]
             }
 
-            dt_log <- rbind(dt_log, log_entry)
+            dt_log <- rbindlist(list(dt_log, log_entry), fill = private$DICT$FLAGS$allow_schema_repair)
+            data.table::setcolorder(dt_log, names(private$DICT$log_schema))
 
             message("---- Writing central log to ", fpath)
             data.table::fwrite(dt_log, fpath)
@@ -1275,8 +1325,29 @@ SLT <- R6::R6Class(
 
       # each query_all_logs_* function should have a corresponding report
 
-      # the '_query_' function family is for reporting on the state of the symlinks
-      # they differ from 'read_log', which is for promotion/demotion, and will create a new log
+      # The 'query' function family is for reporting on the state of the symlinks.
+      # It differs from the 'read' family, which is for promotion/demotion, and will create a new log
+
+      #  Query one date-version folder for a log
+      #
+      #  `tryCatch()` to find a folder's log, read it if it exists, in a consistent format
+      #
+      #  @param version_path [chr] path to a date_version folder
+      #  @param verbose [lgl] print message if no log found
+      #
+      #  @return [data.table] log data.table if found, else NULL
+      try_query_log = function(version_path, verbose = TRUE){
+         tryCatch(
+            {
+               log <- private$csv_reader(
+                  file.path(version_path, private$DICT$log_name)
+                  , colClasses = unlist(private$DICT$log_schema)
+               )
+            },
+            error = function(e) if(verbose) message("No log found for folder: ", version_path)
+         )
+
+      },
 
       #  Query the first row of all logs in a list
       #
@@ -1286,7 +1357,7 @@ SLT <- R6::R6Class(
       #
       #  @return [data.table] a data.table with the first row of each log
       query_logs_first_row = function(log_list){
-         dt_query <- data.table::rbindlist(lapply(log_list, function(x) head(x, 1)))
+         dt_query <- data.table::rbindlist(lapply(log_list, function(x) head(x, 1)), fill = TRUE)
          setorderv(dt_query, private$DICT$log_sort_varname)
          return(dt_query)
       },
@@ -1300,7 +1371,7 @@ SLT <- R6::R6Class(
       #
       #  @return [data.table] a data.table with the last row of each log
       query_logs_last_row = function(log_list){
-         dt_query <- data.table::rbindlist(lapply(log_list, function(x) tail(x, 1)))
+         dt_query <- data.table::rbindlist(lapply(log_list, function(x) tail(x, 1)), fill = TRUE)
          setorderv(dt_query, private$DICT$log_sort_varname)
          return(dt_query)
       },
@@ -1313,7 +1384,7 @@ SLT <- R6::R6Class(
       #
       #  @return [data.table] a data.table with the row with log_id == 0 of each log
       query_log_id_0 = function(log_list){
-         dt_query <- data.table::rbindlist(lapply(log_list, function(x) x[log_id == 0, ]))
+         dt_query <- data.table::rbindlist(lapply(log_list, function(x) x[log_id == 0, ]), fill = TRUE)
          setorderv(dt_query, private$DICT$log_sort_varname)
          return(dt_query)
 
@@ -1355,24 +1426,6 @@ SLT <- R6::R6Class(
          return(folder_dt)
       },
 
-      #  `tryCatch()` to find logs for all folders, read them if they exist, in a consistent format
-      #
-      #  @param version_path [chr] path to a date_version folder
-      #  @param verbose [lgl] print message if no log found
-      #
-      #  @return [data.table] log data.table if found, else NULL
-      try_query_log = function(version_path, verbose = TRUE){
-         tryCatch(
-            {
-               data.table::fread(
-                  file.path(version_path, private$DICT$log_name)
-                  , colClasses = unlist(private$DICT$log_schema)
-               )
-            },
-            error = function(e) if(verbose) message("No log found for folder: ", version_path)
-         )
-      },
-
 
       #  Safely remove null logs, and account for zero-length logs if none are found for a date_version folder
       #
@@ -1402,7 +1455,7 @@ SLT <- R6::R6Class(
          names(log_list)      <- unique_version_paths
          # remove any NULLs, result of the tryCatch in try_query_log
          log_list             <- private$filter_null_logs_safely(log_list)
-         lapply(log_list, private$assert_data_schema, data_types = private$DICT$log_schema)
+         # lapply(log_list, private$assert_data_schema, data_types = private$DICT$log_schema)
          return(log_list)
       },
 
@@ -1423,7 +1476,7 @@ SLT <- R6::R6Class(
          names(log_list)      <- unique_version_paths
          # remove any NULLs, result of the tryCatch in try_query_log
          log_list             <- private$filter_null_logs_safely(log_list)
-         lapply(log_list, private$assert_data_schema, data_types = private$DICT$log_schema)
+         # lapply(log_list, private$assert_data_schema, data_types = private$DICT$log_schema)
          return(log_list)
       },
 
@@ -1448,7 +1501,7 @@ SLT <- R6::R6Class(
          names(log_list)      <- unique_version_paths
          # remove any NULLs, result of the tryCatch in try_query_log
          log_list             <- private$filter_null_logs_safely(log_list)
-         lapply(log_list, private$assert_data_schema, data_types = private$DICT$log_schema)
+         # lapply(log_list, private$assert_data_schema, data_types = private$DICT$log_schema)
          return(log_list)
       },
 
@@ -1472,7 +1525,7 @@ SLT <- R6::R6Class(
          names(log_list)           <- unique_non_symlink_paths
          # remove any NULLs, result of the tryCatch in try_query_log
          log_list                  <- private$filter_null_logs_safely(log_list)
-         lapply(log_list, private$assert_data_schema, data_types = private$DICT$log_schema)
+         # lapply(log_list, private$assert_data_schema, data_types = private$DICT$log_schema)
          return(log_list)
       },
 
@@ -1486,7 +1539,7 @@ SLT <- R6::R6Class(
       query_log_id_max = function(log_list){
          # find the row with highest non-missing log_id of each log
          return(
-            data.table::rbindlist(lapply(log_list, function(x) x[max(x$log_id, na.rm = TRUE)]))
+            data.table::rbindlist(lapply(log_list, function(x) x[max(x$log_id, na.rm = TRUE)]), fill = TRUE)
          )
       },
 
@@ -1607,6 +1660,25 @@ SLT <- R6::R6Class(
 
       ## Reports ---------------------------------------------------------------
 
+      # Write a report, with special handling
+      #
+      # @param dt_report [data.table] the report
+      # @param write_path [chr] full path with ext
+      # @param order_cols_tf [lgl] (default = TRUE) order columns by log_schema?
+      # @param schema [named_list] named list of column names and data types - used if `order_cols_tf` = TRUE
+      #
+      # @return [none] write to disk
+      write_report = function(dt_report, write_path, order_cols_tf = TRUE, schema = private$DICT$log_schema){
+
+          if(order_cols_tf){
+            private$assert_named_list(schema)
+            sortable_colnames <- intersect(names(schema), names(dt_report))
+            data.table::setcolorder(dt_report, sortable_colnames)
+          }
+
+         data.table::fwrite(dt_report, write_path)
+      },
+
       # each report function must have a corresponding query_all_logs_* function
 
       #  Report last row of all logs in one root
@@ -1620,7 +1692,7 @@ SLT <- R6::R6Class(
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs(root)
          last_row_dt <- private$query_logs_last_row(log_list)
-         data.table::fwrite(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs))
+         private$write_report(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs))
       },
 
       #  Report last row of all symlinked folder logs in one root
@@ -1634,7 +1706,7 @@ SLT <- R6::R6Class(
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs_symlink(root)
          last_row_dt <- private$query_logs_last_row(log_list)
-         data.table::fwrite(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs_symlink))
+         private$write_report(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs_symlink))
       },
 
       #  Report last row of all tool-symlinked folder logs in one root
@@ -1653,7 +1725,7 @@ SLT <- R6::R6Class(
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs_tool_symlink(root, verbose = FALSE)
          last_row_dt <- private$query_logs_last_row(log_list)
-         data.table::fwrite(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs_tool_symlink))
+         private$write_report(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs_tool_symlink))
 
          private$report_discrepancies(root = root)
 
@@ -1670,7 +1742,7 @@ SLT <- R6::R6Class(
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs_non_symlink(root)
          last_row_dt <- private$query_logs_last_row(log_list)
-         data.table::fwrite(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs_non_symlink))
+         private$write_report(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs_non_symlink))
       },
 
       #  Add a discrepancy column to a data.table if it has rows
@@ -1719,6 +1791,32 @@ SLT <- R6::R6Class(
          return(report_dt)
       },
 
+      # Report if log and log_schema have different fields
+      #
+      # This function is only used to build the discrepancy report
+      #
+      # @param log [data.table] Log data.table queried from disk
+      # @param log_schema [named list] Log schema
+      #
+      # @return [data.table] Log entries with new columns: vars_missing, vars_extra
+      report_log_vs_schema_diffs = function(log, log_schema = private$DICT$log_schema){
+         # check that log is a named list
+         private$assert_named_list(log_schema)
+
+         # find log varnames not in schema, and vise versa
+         log_fields_user    <- names(log)
+         log_fields_schema  <- names(log_schema)
+         separator <- ";"
+         log_fields_missing <- paste0(setdiff(log_fields_schema, log_fields_user), collapse = separator)
+         log_fields_extra   <- paste0(setdiff(log_fields_user, log_fields_schema), collapse = separator)
+
+         # add extra columns to the log
+         log$vars_missing <- log_fields_missing
+         log$vars_extra <- log_fields_extra
+
+         return(log[nchar(log$vars_missing) > 0 | nchar(log$vars_extra) > 0, ])
+      },
+
       #  Report discrepancies for any reason you can think a symlink or log is inaccurate
       #
       #  Writes a file to disk in `root`
@@ -1729,7 +1827,7 @@ SLT <- R6::R6Class(
       #  @param root [chr] path to a root folder defined at instantiation
       #
       #  @return none
-      report_discrepancies = function(root){
+      report_discrepancies = function(root, verbose = TRUE){
 
          # find all folders in the `root` and their types
          folder_dt <- private$query_root_folder_types(root)
@@ -1766,45 +1864,66 @@ SLT <- R6::R6Class(
          discrepant_dt_promote   <- last_row_dt_non_symlink[action %like% "^promote_"]
          discrepant_dt_promote   <- private$add_discrepancy_to_dt(discrepant_dt_promote, "non-active-symlink logs with final 'promote' line")
 
-         # Rows without `log_id`
+
          log_list_all            <- private$query_all_logs(root)
+
+         # schema differences
+         # - note any logs with columns/types that differ from SLT log schema
+         log_list_schema_diffs <- lapply(log_list_all, private$report_log_vs_schema_diffs)
+         discrepant_dt_schema_diffs <- data.table::rbindlist(log_list_schema_diffs, fill = TRUE)
+         discrepant_dt_schema_diffs <- private$add_discrepancy_to_dt(discrepant_dt_schema_diffs, "log schema differences - see vars_missing and vars_extra")
+
+         # Ensure all logs are in a consistent format (only after checking schema diffs)
+         # - repair_log_schema is OK here - it's just a report, were not actually writing any logs
+         log_list_all            <- lapply(log_list_all, function(x) private$repair_log_schema(x, allow_schema_repair = TRUE))
+
+         # Rows without `log_id`
          log_list_all_no_id      <- lapply(log_list_all, function(x) x[is.na(log_id)])
-         discrepant_dt_no_log_id <- data.table::rbindlist(log_list_all_no_id)
+         discrepant_dt_no_log_id <- data.table::rbindlist(log_list_all_no_id, fill = TRUE)
          discrepant_dt_no_log_id <- private$add_discrepancy_to_dt(discrepant_dt_no_log_id, "rows without log_id")
 
          # Non-sequential log_ids
          # - logs should start at 0 (create line), then go up from there
          log_list_log_id_non_seq      <- lapply(log_list_all, function(x) x[log_id != 0:(.N-1)])
-         discrepant_dt_log_id_non_seq <- data.table::rbindlist(log_list_log_id_non_seq)
+         discrepant_dt_log_id_non_seq <- data.table::rbindlist(log_list_log_id_non_seq, fill = TRUE)
          discrepant_dt_log_id_non_seq <- private$add_discrepancy_to_dt(discrepant_dt_log_id_non_seq, "non-sequential log_ids")
 
          # Invalid log actions
          log_list_invalid_actions      <- lapply(log_list_all, function(x) x[!(action %in% private$DICT$valid_actions)])
-         discrepant_dt_invalid_actions <- data.table::rbindlist(log_list_invalid_actions)
+         discrepant_dt_invalid_actions <- data.table::rbindlist(log_list_invalid_actions, fill = TRUE)
          discrepant_dt_invalid_actions <- private$add_discrepancy_to_dt(discrepant_dt_invalid_actions, "invalid actions")
 
-
-         discrepant_list <- list(
-            discrepant_dt_tool_symlink_no_logs = discrepant_dt_tool_symlink_no_logs
-            , discrepant_dt_non_tool_symlinks  = discrepant_dt_non_tool_symlinks
-            , discrepant_dt_mult_symlinks      = discrepant_dt_mult_symlinks
-            , discrepant_dt_demote             = discrepant_dt_demote
-            , discrepant_dt_promote            = discrepant_dt_promote
-            , discrepant_dt_no_log_id          = discrepant_dt_no_log_id
-            , discrepant_dt_log_id_non_seq     = discrepant_dt_log_id_non_seq
-            , discrepant_dt_invalid_actions    = discrepant_dt_invalid_actions
+         # Combine all discrepancies into one report
+         discrepancy_report_dt <- rbindlist(
+            list(
+               discrepant_dt_tool_symlink_no_logs = discrepant_dt_tool_symlink_no_logs
+               , discrepant_dt_non_tool_symlinks  = discrepant_dt_non_tool_symlinks
+               , discrepant_dt_mult_symlinks      = discrepant_dt_mult_symlinks
+               , discrepant_dt_demote             = discrepant_dt_demote
+               , discrepant_dt_promote            = discrepant_dt_promote
+               , discrepant_dt_no_log_id          = discrepant_dt_no_log_id
+               , discrepant_dt_log_id_non_seq     = discrepant_dt_log_id_non_seq
+               , discrepant_dt_invalid_actions    = discrepant_dt_invalid_actions
+               , discrepant_dt_schema_diffs       = discrepant_dt_schema_diffs
+            )
+            , fill = TRUE
          )
 
-         discrepancy_report_dt <- rbindlist(discrepant_list, fill = TRUE)
+         # order columns so discrepancy is last
+         discrepancy_report_dt <- discrepancy_report_dt[, c(setdiff(names(discrepancy_report_dt), "discrepancy"), "discrepancy"), with = FALSE]
 
          # If no discrepancies are found, then delete the current discrepancy report so it doesn't cause confusion
          path_discrepancy_report <- file.path(root, private$DICT$report_fnames$discrepancies)
 
          if(nrow(discrepancy_report_dt) == 0) {
-            message("No discrepancies found in ", root, ", removing ", private$DICT$report_fnames$discrepancies, " (if it exists now)")
-            suppressWarnings(file.remove(path_discrepancy_report))
+            # If there's nothing to report, delete the discrepancy report, otherwise stay quiet
+            if(file.exists(path_discrepancy_report)){
+               if(verbose) message("-- No discrepancies found in ", root, ", removing ", private$DICT$report_fnames$discrepancies, " (if it exists now)")
+               file.remove(path_discrepancy_report)
+            }
          } else {
-            data.table::fwrite(discrepancy_report_dt, path_discrepancy_report)
+            if(verbose) message("-- DISCREPANCIES FOUND: Writing discrepancy report to ", path_discrepancy_report)
+            private$write_report(discrepancy_report_dt, path_discrepancy_report)
          }
       },
 
@@ -1997,6 +2116,8 @@ SLT <- R6::R6Class(
             private$DYNAMIC$LOG$action <- paste0("demote_", symlink_type)
             private$append_to_log(version_path = version_path, user_entry = user_entry)
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
+
+            # only unlink if logging is successful
             system(paste0("unlink ", symlink))
          } else {
             message("-- No existing symlinks found - moving on")
@@ -2037,6 +2158,7 @@ SLT <- R6::R6Class(
             private$append_to_central_log(version_path = path_best_real, user_entry = user_entry)
             private$DYNAMIC$LOG$date_version <- date_version
 
+            # only unlink if logging is successful
             system(paste0("unlink ", path_best_sym))
          } else {
             message("-- No 'best' symlink found - moving on: ", path_best_sym)
@@ -2061,6 +2183,8 @@ SLT <- R6::R6Class(
          private$DYNAMIC$LOG$action <- "promote_best"
          private$append_to_log(version_path = path_best_new, user_entry = user_entry)
          private$append_to_central_log(version_path = path_best_new, user_entry = user_entry)
+
+         # only symlink if logging is successful
          # force symlink to change in case the unlink is glitchy
          system(paste0("ln -nsf ", path_best_new, " ", path_best_sym))
       },
@@ -2078,6 +2202,8 @@ SLT <- R6::R6Class(
          if(!dir.exists(path_keep_sym)){
             private$append_to_log(version_path = version_path, user_entry = user_entry)
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
+
+            # only symlink if logging is successful
             system(paste0("ln -s ", version_path, " ", path_keep_sym))
          } else {
             message("---- Keep symlink already exists - moving on: ", path_keep_sym)
@@ -2097,6 +2223,8 @@ SLT <- R6::R6Class(
          if(!dir.exists(path_remove_sym)){
             private$append_to_log(version_path = version_path, user_entry = user_entry)
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
+
+            # only symlink if logging is successful
             system(paste0("ln -s ", version_path, " ", path_remove_sym))
          } else {
             message("---- Keep symlink already exists - moving on: ", path_remove_sym)
@@ -2116,41 +2244,66 @@ SLT <- R6::R6Class(
 
 
 
-   # User functions ------------------------------------------------------------
+   # PUBLIC METHODS ------------------------------------------------------------
+
 
    # These function names should be named pretty tersely and user-friendly
 
    public = list(
 
-      #' Initialize a symlink tool by GBD round
+
+      # NEW -----------------------------------------------------------------------
+
+
+      #' Initialize the SymlinkTool (an R6 object)
       #'
-      #' Any time the tool is made, the tool is GBD-round specific.  Create one
-      #' per round if you need more than one
+      #' @param user_root_list [list] Named list of root directories for
+      #'   pipeline outputs. This is where `date_version` folders live (these
+      #'   are iterative runs of an analysis pipeline.)
+      #' @param user_central_log_root [path] Root directory for the central log.
+      #'   If you have multiple roots in the `user_root_list`, you probably want
+      #'   the central log to live one level above those roots.
+      #' @param schema_repair [logical] Default `TRUE`.  If `TRUE`, the tool
+      #'   will attempt to repair any schema mismatches it finds in the logs
+      #'   when reading and writing (e.g.) add new columns if the tool schema
+      #'   has columns that existing logs do not. If `FALSE`, the tool will stop and
+      #'   throw an error if it finds a schema mismatch.
+      #' @param csv_reader [chr] Default `fread_quiet`.  The CSV reader to use.
+      #'   Options:
+      #'   - 'fread_quiet' - suppress warnings (rely on tool's messaging instead)
+      #'   - 'fread' - data.table standard
       #'
-      #'
-      #' @param user_root_list [list] Named list of root directories for pipeline outputs. This is where `date_version` folders live (these are iterative runs of an analysis pipeline.)
-      #' @param user_central_log_root [path] Root directory for the central log. If you have multiple roots in the `user_root_list`, you probably want the central log to live one level above those roots.
-      #'
-      #' @return [symlink_tool] A symlink tool object.  You can instantiate  (create) multiple version, each of which has different roots and central logs.
+      #' @return [symlink_tool] A symlink tool object.  You can instantiate
+      #'   (create) multiple version, each of which has different roots and
+      #'   central logs.
       #'
       #' @export
-      initialize = function(user_root_list = NULL, user_central_log_root = NULL) {
+      initialize = function(
+      user_root_list          = NULL
+      , user_central_log_root = NULL
+      , schema_repair         = TRUE
+      , csv_reader            = "fread_quiet"
+      ) {
+
 
          # useful start up feedback
          if(is.null(user_root_list)){
             message("\n\nThis tool expects `user_root_list` to be a named list of root directories for pipeline outputs. \n\n  ",
 
                     "e.g.
-                 list( input_root = '/mnt/share/my_team/input_data',
-                      output_root = '/mnt/share/my_team/output_data' ) \n\n  ",
+                 list(
+                   input_root  = '/mnt/share/my_team/input_data',
+                   output_root = '/mnt/share/my_team/output_data'
+                 ) \n\n  ",
 
-                    "This tool assumes each root has a matching `date_version` output folder. \n  ",
-                    "  You may divert outputs to one root, or many roots in parallel. \n\n  ",
+                    "This tool assumes each root will have a `date_version` output folder (same folder name in each root). \n  ",
+                    "  You may track outputs in one root, or across many roots in parallel (as long as the date_version is the same). \n  ",
+                    "  It's recommended to create these folders with the tool so they get a log at time of creation. \n\n  ",
 
-                    "Each output folder defined by `file.path(user_root_list, date_version)`. \n  ",
-                    "  The `date_version` is defined when the user wants to 'mark' or 'unmark' a folder as best/keep/remove. \n  ",
-                    "  This folder receives a log of all *demotion* and *promotion* actions (marking and unmarking). \n  ",
-                    "  This `date_version` log is used for report generation. \n\n  "
+                    "Each output folder is defined by `file.path(user_root_list, date_version)`. \n  ",
+                    "  The user can 'mark' or 'unmark' any `date_version` folder as best/keep/remove. \n  ",
+                    "  This folder receives a log entry for all *demotion* and *promotion* actions (marking and unmarking). \n  ",
+                    "  All the `date_version` folder logs are used for report generation. \n\n  "
             )
          }
 
@@ -2160,14 +2313,9 @@ SLT <- R6::R6Class(
                     "e.g.
                  '/mnt/share/my_team' \n\n  ",
 
-                    "The central log is a summary record of all *promotion* (marking) actions done by this tool, \n  ",
+                    "The central log receives all the marking actions of all the date-version logs across all roots, \n  ",
                     "  but is not used for report generation. \n\n  ",
-                    "The central log is *created* on initialization i.e. when calling `SLT$new()`. \n\n  ",
-
-                    "Each output folder defined by `file.path(user_root_list, date_version)`. \n  ",
-                    "  The `date_version` is defined when the user wants to 'mark' or 'unmark' a folder as best/keep/remove. \n  ",
-                    "  This folder receives a log of all *demotion* and *promotion* actions (marking and unmarking). \n  ",
-                    "  This `date_version` log is used for report generation. \n\n  "
+                    "The central log is *created* on initialization i.e. when calling `SLT$new()`. \n\n  "
             )
          }
 
@@ -2175,7 +2323,15 @@ SLT <- R6::R6Class(
             stop("You must provide both user_root_list and user_central_log_root")
          }
 
+         # libraries
          library(data.table)
+         # only fread is currently supported due to how data types are defined when reading in logs
+         private$csv_reader <- switch(
+            csv_reader
+            , "fread" = function(...) return(data.table::fread(...))
+            , "fread_quiet" = function(...) return(suppressWarnings(data.table::fread(...)))
+            , stop("csv_reader must be one of: fread, fread_quiet")
+         )
 
          # Users must provide these fields
 
@@ -2183,7 +2339,10 @@ SLT <- R6::R6Class(
          # validate inputs
          private$assert_named_list(user_root_list)
          lapply(user_root_list, private$assert_dir_exists)
-         # set
+         private$assert_scalar(schema_repair)
+         private$assert_type(schema_repair, "logical")
+
+         # set roots
          private$DICT$ROOTS <- user_root_list
 
          ## CENTRAL LOG
@@ -2192,6 +2351,10 @@ SLT <- R6::R6Class(
          private$assert_dir_exists(user_central_log_root)
          # set
          private$DICT$LOG_CENTRAL$root <- user_central_log_root
+
+         ## FLAGS
+         # log schema
+         private$DICT$FLAGS$allow_schema_repair <- schema_repair
 
 
          # User should not interact with these
@@ -2699,13 +2862,14 @@ SLT <- R6::R6Class(
       #'
       reports = function(){
 
+         message("Writing last-row log reports for:\n")
          for(root in private$DICT$ROOTS){
-            message("Writing last-row log reports for ", root)
+            message(root)
             private$report_all_logs(root = root)
             private$report_all_logs_symlink(root = root)
             private$report_all_logs_tool_symlink(root = root)
             private$report_all_logs_non_symlink(root = root)
-            private$report_discrepancies(root = root)
+            private$report_discrepancies(root = root, verbose = FALSE) # runs by default inside report_all_logs_tool_symlink, suppress extra messages
          }
       }
 

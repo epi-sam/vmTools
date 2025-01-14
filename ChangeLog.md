@@ -2,6 +2,82 @@
 
 --------------------------------------------------------------------------------
 
+## v.0.3.7
+
+2024-11-19
+
+Fixes:
+
+- Vignette header fixed to build with package
+
+
+
+## v.0.3.6
+
+2024-11-19
+
+Update:
+
+- Attempting folder creation writes a version log, even if the folder already exists
+   - assumption: using the tool to attempt to create a folder assumes the user wants a log
+- README updates
+
+
+
+## v.0.3.5
+
+2024-11-15
+
+Update:
+
+- Logs and reports sort columns according to internal log schema before writing to disk.
+
+
+
+## v.0.3.4
+
+2024-10-16
+
+Bugfixes:
+
+- deletions now write to central log
+
+
+
+## v.0.3.3
+
+2024-10-16
+
+Bugfixes:
+
+- central log write bug
+
+
+
+## v.0.3.2
+
+2024-10-16
+
+Bugfixes:
+
+- documented
+
+
+
+## v.0.3.1
+
+2024-10-16
+
+Bugfixes:
+
+- extensive repairs to logs and reports 
+- allowances for mismatched logs on disk 
+   - user may choose for strict or flexible control when writing logs 
+   - reporting is flexible by default
+- option for csv reader to suppress warnings (rely on tool's messaging)
+
+
+
 ## v.0.3.0
 
 2024-10-15 
