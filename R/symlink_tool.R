@@ -3,7 +3,7 @@
 #> - using as an intermediate option for version management since log_tool is more complex than anticipated
 #>
 
-# TODS for v 1.0
+# TODOS for v 1.0
 # ~TODO~ SB - 2024 Jan 18 - ensure each date_version can only have one symlink (ls -l | grep ); DONE 2024 Feb 05
 # ~TODO~ SB - 2024 Feb 05 - User function get declarative interior
 # ~TODO~ SB - 2024 Feb 06 - Fix phantom symlink showing up on log creation
@@ -37,7 +37,7 @@
 #       - this would show reveal if a symlink were deleted by hand, rather than with the tool, but leave the central log a bit more readable
 #       - this would also make the central log a bit more "high level" and less "fine-grained"
 #       - THIS IS FINE for v 1.0
-# TODO SB - 2024 Feb 28 -
+# TODO SB - 2024 Feb 28
 # - [x] option to delete `remove_` folders and symlink and append action to central log
 # - [x] option to create new folders with new log
 # TODO SB - 2024 Feb 15 -
@@ -49,12 +49,20 @@
 #     PICK ONE:
 #     - [ ] use private$DICT directly
 #     - [ ] submit private$DICT through all function args
-
-
-# LATER stuff - v2.0
 # TODO SB - 2024 Feb 06
 # - [x] don't demote if the symlink is already the desired type
 #       - clutters up the logs, but not a deal-breaker
+# TODO SB - 2024 Sep 03
+# - [ ] Remove dependency on all packags except R6
+#     - [x] library(DescTools)
+#     - [ ] library(data.table)
+#        - [ ] replace with library(readr) to avoid quoting issues
+#     - [ ] library(lubridate)
+#     - [ ] library(purr)
+#     - [ ] lubridate will make this tricky
+# - [ ] Move private method docstrings inside functions so they can be seen when called anonymously
+# - [ ] Convert messages to std_out?
+
 
 #> NOTE:
 #> These are required, but all namespaced within:
@@ -63,6 +71,7 @@
 #> library(DescTools)
 #> library(data.table)
 #> library(lubridate)
+#> library(purr)
 #>
 #> WARNING: DO NOT touch '.__enclos_env__' unless you want the tool to break
 #>
@@ -615,6 +624,114 @@ SLT <- R6::R6Class(
          (inherits(x, "simpleError") | inherits(x, "try-error"))
       },
 
+      ## DescTools -------------------------------------------------------------
+
+      ## Functions borrowed from DescTools to remove dependency
+
+      # Replace NAs by 0
+      #
+      # DescTools::BlankIfNA
+      #
+      # Replace NAs in a numeric vector x with 0. This function has the same
+      # logic as the zeroifnull function in SQL. NAIfZero() does replace zeros
+      # with NA. BlankIfNA() and NAIfBlank() do the same, but for character
+      # vectors.
+      #
+      # @param x [vector] whose NAs should be overwritten with 0s.
+      # @param blank [chr] the value to replace NAs with.
+      #
+      # @return [vector] edited vector x
+      BlankIfNA = function (x, blank = "") {
+         replace(x, is.na(x), blank)
+      },
+
+      # Replace NAs by 0
+      #
+      # DescTools::ZeroIfNA
+      #
+      # Replace NAs in a numeric vector x with 0. This function has the same
+      # logic as the zeroifnull function in SQL. NAIfZero() does replace zeros
+      # with NA. BlankIfNA() and NAIfBlank() do the same, but for character
+      # vectors.
+      #
+      # @param x [vector] whose NAs should be overwritten with 0s.
+      #
+      # @return [vector] edited vector x
+      ZeroIfNA = function (x) {
+         replace(x, is.na(x), 0L)
+      },
+
+      # Extract Part of a String
+      #
+      # DescTools::StrExtract
+      #
+      # Extract a part of a string, defined as regular expression.
+      # StrExtractBetween() is a convenience function used to extract parts
+      # between a left and right delimiter.
+      #
+      # @param x [chr] vector where matches are sought, or an object which can
+      #   be coerced by as.character to a character vector.
+      # @param pattern [chr]  string containing a regular expression (or
+      #   character string for fixed = TRUE) to be matched in the given
+      #   character vector. Coerced by as.character to a character string if
+      #   possible. If a character vector of length 2 or more is supplied, the
+      #   first element is used with a warning. Missing values are not allowed.
+      # @param ... the dots are passed to the the internally used function
+      #   regexpr(), which allows to use e.g. Perl-like regular expressions.
+      #
+      # @return [chr] A character vector.
+      StrExtract = function (x, pattern, ...) {
+         m                    <- regexpr(pattern, x, ...)
+         regmatches(x, m)
+         res                  <- rep(NA_character_, length(m))
+         res[private$ZeroIfNA(m) > 0] <- regmatches(x, m)
+         return(res)
+      },
+
+
+      # Split Path In Drive, Path, Filename
+      #
+      # DescTools::split_path
+      #
+      # Split a full path in its components. This is specifically an issue in
+      # Windows and not really interesting for other OSs.
+      #
+      # @param path [chr] a path
+      # @param last.is.file [lgl] logical, determining if the basename should be
+      # interpreted as filename or as last directory. If set to NULL
+      # (default), the last entry will be interpreted if the last character is
+      # either \ or / and as filename else.
+      SplitPath = function(path, last.is.file = NULL) {
+         if (is.null(last.is.file)) {
+            last.is.file <- (length(grep(pattern = "[/\\]$", path)) == 0)
+         }
+
+         path         <- normalizePath(path, mustWork = FALSE)
+         lst          <- list()
+         lst$normpath <- path
+
+         if (.Platform$OS.type == "windows") {
+            lst$drive   <- regmatches(path, regexpr("^([[:alpha:]]:)|(\\\\[[:alnum:]]+)",path))
+            lst$dirname <- gsub(pattern = lst$drive, x = dirname(path), replacement = "")
+         } else {
+            lst$drive   <- NA
+            lst$dirname <- dirname(path)
+         }
+
+         lst$dirname      <- paste(lst$dirname, "/", sep = "")
+         lst$fullfilename <- basename(path)
+         lst$fullpath     <- paste0(private$BlankIfNA(lst$drive), lst$dirname)
+         lst$filename     <- gsub(pattern = "(.*)\\.(.*)$", "\\1", lst$fullfilename)
+         lst$extension    <- private$StrExtract(pattern = "(?<=\\.)[^\\.]+$", lst$fullfilename, perl = TRUE)
+
+         if (!last.is.file) {
+            lst$dirname <- paste(lst$dirname, lst$fullfilename, "/", sep = "")
+            lst$extension <- lst$filename <- lst$fullfilename <- NA
+         }
+
+         return(lst)
+      },
+
 
 
       # Implementations --------------------------------------------------------
@@ -757,7 +874,7 @@ SLT <- R6::R6Class(
       #
       #  @return [chr] the full path of the symlink
       resolve_symlink = function(path){
-         path_resolved <- system(paste("realpath", path), intern = TRUE)
+         path_resolved <- normalizePath(path, mustWork = FALSE)
          if(file.exists(path_resolved)) {
             return(path_resolved)
          } else {
@@ -776,9 +893,9 @@ SLT <- R6::R6Class(
          private$assert_scalar(version_path)
          private$assert_scalar(symlink_type)
          if(!symlink_type %in% private$DICT$symlink_types) stop("Invalid symlink_type: ", symlink_type)
-         root         <- DescTools::SplitPath(version_path)$dirname
+         root         <- private$SplitPath(version_path)$dirname
          root         <- sub("/$", "", root) # remove trailing slash
-         date_version <- DescTools::SplitPath(version_path)$fullfilename
+         date_version <- private$SplitPath(version_path)$fullfilename
 
          symlink_suffix <- switch(
             symlink_type,
