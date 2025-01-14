@@ -56,16 +56,12 @@ knitr::knit_hooks$set(output = function(x, options) {
 devtools::load_all()
 # library(vmTools, lib.loc = file.path("/mnt/share/code", Sys.info()[["user"]], "r_pkgs"))
 library(data.table)
-library(fs)
 ```
 
 
 ```{r utils, include = FALSE}
 
 # Defining a couple vignette utilities
-
-# Print the folder output 'tree' structure
-print_tree <- function(root_base) {dir_tree(root_base, recurse = TRUE)}
 
 # Make a directory with desired defaults without cluttering the vignette
 make_directory <- function(path){

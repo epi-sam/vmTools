@@ -21,6 +21,16 @@ dir_tree <- function(path = ".", level = Inf, prefix = "") {
    bold_blue <- "\033[1;34m"  # Bold blue for top-level folders
    reset <- "\033[0m"  # Reset to default color
 
+   is_markdown <- knitr::is_html_output() || knitr::is_latex_output()
+   if (is_markdown) {
+      # Remove ANSI escape codes for markdown output - they don't render correctly
+      green <- ""
+      bright_white <- ""
+      bold_purple <- ""
+      bold_blue <- ""
+      reset <- ""
+   }
+
    files <- list.files(path, full.names = TRUE)
    n <- length(files)
 
