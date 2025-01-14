@@ -1,17 +1,18 @@
 ---
 title: "Symlink Tool Intro Vignette"
-output: 
-  html_document:
-     highlight: zenburn
-     theme: readable # simplex # readable
-     toc: true
-     toc_float: true
-# This is lighter weight, but doesn't support TOC
-# output: rmarkdown::html_vignette
-# vignette: >
-#   %\VignetteIndexEntry{symlink_tool_vignette}
-#   %\VignetteEngine{knitr::rmarkdown}
-#   %\VignetteEncoding{UTF-8}
+# interactive
+# output: 
+#   html_document:
+#      highlight: zenburn
+#      theme: readable # simplex # readable
+#      toc: true
+#      toc_float: true
+# for package builds
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{symlink_tool_vignette_intro}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 
@@ -24,7 +25,7 @@ knitr::opts_chunk$set(
 # Chunk options
 
 # This is a nice default so log output doesn't wrap
-options(width = 350)
+options(width = 450)
 
 # save the built-in output hook
 hook_output <- knitr::knit_hooks$get("output")
@@ -130,6 +131,14 @@ resolve_symlink <- function(path){
       message("Could not resolve symlink: ", path)
    }
 }
+
+show_vars <- c("log_id",
+               "timestamp",
+               "user",
+               "date_version",
+               # "version_path", # causes ouput to be too wide
+               "action",
+               "comment")
 ```
 
 
@@ -351,13 +360,13 @@ fs::dir_tree(root_to_model)
 Show central log.
 
 ```{r baseline_folder_display_3, echo=FALSE}
-(log_central <- fread(path_log_central))
+(log_central <- fread(path_log_central)[, ..show_vars])
 ```
 
 Show new run version folder log.
 
 ```{r baseline_folder_display_4, echo=FALSE}
-(log_dv1 <- fread(path_log_dv1))
+(log_dv1 <- fread(path_log_dv1)[, ..show_vars])
 ```
 
 
@@ -403,13 +412,13 @@ slt_prep$mark_best(date_version = date_vers1,
 Inspect both the central log and ...
 
 ```{r mark_best_dv1_display_1, echo=FALSE}
-(log_central <- fread(path_log_central))
+(log_central <- fread(path_log_central)[, ..show_vars])
 ```
 
 ...the run version folder log.
 
 ```{r mark_best_dv1_display_2, echo=FALSE}
-(log_dv1 <- fread(path_log_dv1))
+(log_dv1 <- fread(path_log_dv1)[, ..show_vars])
 ```
 
 
@@ -460,7 +469,7 @@ fs::dir_tree(root_to_model)
 ```
 
 ```{r two_new_runs_display_2, echo=FALSE}
-(log_central <- fread(path_log_central))
+(log_central <- fread(path_log_central)[, ..show_vars])
 ```
 
 
@@ -480,8 +489,18 @@ slt_prep$mark_best(date_version = date_vers3,
 Inspect the central log - The third version is now bested.
 
 ```{r mark_best_dv3_display_1, echo=FALSE}
-(log_central <- fread(path_log_central))
+(log_central <- fread(path_log_central)[, ..show_vars])
 ```
+
+
+
+**Note:** Multiple "marks" on the same folder will produce no results (but reports will still run)
+
+```{r mark_best_dv3_second_time}
+slt_prep$mark_best(date_version = date_vers3,
+                   user_entry   = list(comment = "New best model GBD2023"))
+```
+
 
 
 
@@ -497,15 +516,15 @@ Let's also take a look inside each of the run version folder logs.
 Looking at all three run-version logs we see:
 
 ```{r mark_best_dv3_display_2, echo=FALSE}
-(log_dv1 <- fread(path_log_dv1))
+(log_dv1 <- fread(path_log_dv1)[, ..show_vars])
 ```
 
 ```{r mark_best_dv3_display_3, echo=FALSE}
-(log_dv2 <- fread(file.path(root_dv2, fname_dv_log)))
+(log_dv2 <- fread(file.path(root_dv2, fname_dv_log))[, ..show_vars])
 ```
 
 ```{r mark_best_dv3_display_5, echo=FALSE}
-(log_dv3 <- fread(file.path(root_dv3, fname_dv_log)))
+(log_dv3 <- fread(file.path(root_dv3, fname_dv_log))[, ..show_vars])
 ```
 
 ```{r mark_best_dv3_display_4}
@@ -537,13 +556,13 @@ slt_prep$mark_keep(
 The first version is now marked as `keep`.
 
 ```{r mark_keep_dv1_display_1, echo=FALSE}
-(log_central <- fread(path_log_central))
+(log_central <- fread(path_log_central)[, ..show_vars])
 ```
 
 **Note:** Marking a folder `keep_` does not make it unique, like `best_`.  Many folders can be marked `keep_`.
 
 ```{r mark_keep_dv1_display_2, echo=FALSE}
-(log_dv1 <- fread(path_log_dv1))
+(log_dv1 <- fread(path_log_dv1)[, ..show_vars])
 ```
 
 ```{r mark_keep_dv1_display_3}
@@ -576,7 +595,7 @@ Inspect the central log - The second version is now marked as `remove_`.
 - **Note:** Marking a folder `remove_` does not make it unique, like `best_`.  Many folders can be marked `remove`_`.
 
 ```{r mark_remove_dv2_display_1, echo=FALSE}
-(log_central <- fread(path_log_central))
+(log_central <- fread(path_log_central)[, ..show_vars])
 ```
 
 
@@ -627,7 +646,7 @@ for(dir_dv_remove in dt_to_remove$to_model$dir_date_version){
 Check the central log - since the folder is gone, this will maintain a record of when this folder was deleted.
 
 ```{r delete_folders_display_1, echo=FALSE}
-(log_central <- fread(path_log_central))
+(log_central <- fread(path_log_central)[, ..show_vars])
 ```
 
 
@@ -639,13 +658,13 @@ Check the central log - since the folder is gone, this will maintain a record of
 
 ## Reports
 
-**Note:** As soon as we marked a folder, there was a report ready in our folder. The `report_all_logs_tool_symlink.csv` file will scan every run-version with a Tool-created Symlink for a log, and show its last row (current status).
+**Note:** As soon as we marked a folder, there was a report ready in our folder. The `report_key_versions.csv` file will scan every run-version with a Tool-created Symlink for a log, and show its last row (current status).
 
 - Recall, the 'source of truth' log is within each folder, not the central log.
 - We should not see the second model run, since it was deleted.
 
 ```{r reports_display_2}
-(fread(file.path(root_to_model, "report_all_logs_tool_symlink.csv")))
+(fread(file.path(root_to_model, "report_key_versions.csv")))
 ```
 
 
