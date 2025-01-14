@@ -1,15 +1,18 @@
 ---
 title: "Symlink Tool Technical Vignette"
-output: 
-  html_document:
-    toc: true
-    toc_float: true
-# This is lighter weight, but doesn't support TOC
-# output: rmarkdown::html_vignette
-# vignette: >
-#   %\VignetteIndexEntry{symlink_tool_vignette}
-#   %\VignetteEngine{knitr::rmarkdown}
-#   %\VignetteEncoding{UTF-8}
+# interactive
+# output: 
+#   html_document:
+#      highlight: zenburn
+#      theme: readable # simplex # readable
+#      toc: true
+#      toc_float: true
+# for package builds
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{symlink_tool_vignette_technical}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}
@@ -343,11 +346,11 @@ You've probably also noticed a report.  This also shows the current state of all
 - It runs separately for each root, and pulls the last log entry.
 
 ```{r reports}
-fread(file.path(root_input, "report_all_logs_tool_symlink.csv"))
+fread(file.path(root_input, "report_key_versions.csv"))
 ```
 
 ```{r reports2}
-fread(file.path(root_output, "report_all_logs_tool_symlink.csv"))
+fread(file.path(root_output, "report_key_versions.csv"))
 ```
 
 
@@ -429,7 +432,7 @@ fread(file.path(root_input, date_version_today, "log_version_history.csv"))
 ```
 
 ```{r demote_report}
-fread(file.path(root_input, "report_all_logs_tool_symlink.csv"))
+fread(file.path(root_input, "report_key_versions.csv"))
 ```
 
 
@@ -488,7 +491,7 @@ fread(file.path(root_input, date_version_today, "log_version_history.csv"))
 The report should also update to show the new symlink.
 
 ```{r mark_remove5}
-fread(file.path(root_input, "report_all_logs_tool_symlink.csv"))
+fread(file.path(root_input, "report_key_versions.csv"))
 ```
 
 
@@ -552,7 +555,7 @@ Let's look at the report.
 
 
 ```{r delete_folder5}
-fread(file.path(root_input, "report_all_logs_tool_symlink.csv"))
+fread(file.path(root_input, "report_key_versions.csv"))
 ```
 
 
@@ -594,7 +597,7 @@ print_symlink("keep")
 
 ## Reports pt 2
 
-In addition to the `report_all_logs_tool_symlink.csv` file, there are other reports available.
+In addition to the `report_key_versions.csv` file, there are other reports available.
 These will show the status of the last log row for each `date_version` folder in each `root` folder.
 
 You can view things like:
@@ -759,18 +762,18 @@ You can audit the internal state of the tool with the `print_` functions.
 
 ```{r print, out.lines = 22}
 # Print all static fields (output truncated)
-slt$print_dictionaries()
+slt$return_dictionaries()
 ```
 
 ```{r print2}
 # ROOTS are likely most interesting to the user.
-slt$print_dictionaries(item_names = "ROOTS")
+slt$return_dictionaries(item_names = "ROOTS")
 ```
 
 ```{r print3}
 # Show the last 'action' the tool performed
 # - these fields are set as part of each 'marking' new action.
-slt$print_dynamic_fields()
+slt$return_dynamic_fields()
 ```
 
 
