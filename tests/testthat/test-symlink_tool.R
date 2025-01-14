@@ -181,7 +181,7 @@ test_that(
    "Cleanup is complete",
    {
       unlink(root_base, recursive = TRUE)
-      expect_error(fs::dir_tree(root_base), regexp = "Failed to search directory.*no such file or directory")
+      expect_error(dir_tree(root_base), regexp = "Failed to search directory.*no such file or directory")
    }
 )
 
