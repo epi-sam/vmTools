@@ -4,6 +4,15 @@
 
 
 
+## v.0.5.0
+
+2025-01-14
+
+Update:
+
+- Added basic tests
+
+
 ## v.0.4.0
 
 2025-01-14
@@ -82,9 +91,9 @@ Bugfixes:
 
 Bugfixes:
 
-- extensive repairs to logs and reports 
-- allowances for mismatched logs on disk 
-   - user may choose for strict or flexible control when writing logs 
+- extensive repairs to logs and reports
+- allowances for mismatched logs on disk
+   - user may choose for strict or flexible control when writing logs
    - reporting is flexible by default
 - option for csv reader to suppress warnings (rely on tool's messaging)
 
@@ -92,7 +101,7 @@ Bugfixes:
 
 ## v.0.3.0
 
-2024-10-15 
+2024-10-15
 
 Several improvements for consistency and sensible defaults based on trial deployment.
 
@@ -111,7 +120,7 @@ Several improvements for consistency and sensible defaults based on trial deploy
 
 ### Methods
 
-- added `roundup_unmark()` method 
+- added `roundup_unmark()` method
    - Useful for finding folders that are not being tracked for easier bulk-removal.
 - added `roundup_best()` method
    - Back-filling a conspicuously absent option - allows the tool to be used for systematic operations with the `best` version, instead of hand-building file paths.
