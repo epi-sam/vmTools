@@ -62,8 +62,8 @@ throw an error if it finds a schema mismatch.}
 
 \item{\code{csv_reader}}{[chr] Default `fread_quiet`.  The CSV reader to use.
 Options:
-- 'fread_quiet' - suppress warnings (rely on tool's messaging instead)
-- 'fread' - data.table standard}
+- 'fread'       - data.table standard
+- 'fread_quiet' - fread and suppressWarnings() (rely on SLT's messaging instead)}
 }
 \if{html}{\out{</div>}}
 }
