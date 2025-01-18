@@ -62,6 +62,7 @@
 #     - [ ] lubridate will make this tricky
 # - [ ] Move private method docstrings inside functions so they can be seen when called anonymously
 # - [ ] Convert messages to std_out?
+# - [x] Move all utility functions to other files, put under test
 
 
 #> NOTE:
@@ -238,109 +239,19 @@ SLT <- R6::R6Class(
 
       # PRIVATE METHODS --------------------------------------------------------
 
-      # Redefined functions ---------------------------------------------------
+      # Redefined Functions ----------------------------------------------------
+      # Functions under the user's control on instantiation
+      # - requires NULL placeholder
 
       csv_reader = NULL,
 
-      # Validations ------------------------------------------------------------
+      # Check Functions --------------------------------------------------------
 
       # Types of check functions:
-      # 1. assert_x - stop if conditions are unmet
-      # 2. validate_x - warn if conditions are unmet
-      #               - Return TRUE/FALSE
+      # 1. assert_x        - stop() if conditions are unmet
+      # 2. validate_x/is_x - return() TRUE/FALSE
 
-      # Assert an element is atomic and length 1
-      #
-      #  @param x [any] Element to check
-      #
-      #  @return none
-      assert_scalar = function(x){
-         x_name <- deparse(substitute(x))
-         if(!(is.atomic(x) && length(x) == 1L)){
-            stop(x_name, " must be atomic and length 1L")
-         }
-      },
 
-      # Ensure an object is not length 0, empty, blank etc.
-      #
-      # @param arg [any]
-      #
-      # @return [lgl] FALSE if empty in some way, TRUE otherwise
-      # @export
-      #
-      # @examples
-      validate_not_empty = function(arg) {
-         # Check for missing arguments
-         if (missing(arg)) return(FALSE)
-         # Check for zero-length vectors or empty lists
-         if (length(arg) == 0) return(FALSE)
-         # Check for NULL, NA
-         if (is.null(arg) || is.na(arg)) return(FALSE)
-         # Check if the argument is only whitespace
-         if (is.character(arg) && trimws(arg) == "") return(FALSE)
-         # Check if the argument is a numeric value that is not finite (NaN, Inf, -Inf)
-         if (is.numeric(arg) && !is.finite(arg)) return(FALSE)
-         # Check for empty data frames
-         if (is.data.frame(arg) && nrow(arg) == 0 && ncol(arg) == 0) return(FALSE)
-         return(TRUE)
-      },
-
-      # Assert x is a scalar, and not empty in some way
-      #
-      # @param x [any]
-      #
-      # @return [none] stop if assertion fails
-      # @export
-      #
-      # @examples
-      assert_scalar_not_empty = function(x){
-         private$assert_scalar(x)
-         if(!private$validate_not_empty(x)){
-            x_name <- deparse(substitute(x))
-            stop(x_name, " is empty in some way.")
-         }
-
-      },
-
-      # Assert an object is a scalar of a certain type
-      #
-      # @param x [any] Object to check
-      # @param type [chr] Type to check against
-      #
-      # @return [none] stop if assertion fails
-      assert_type = function(x, type){
-         private$assert_scalar(type)
-         stopifnot(is.character(type))
-         if(!inherits(x, type)){
-            x_name <- deparse(substitute(x))
-            stop(x_name, " must be of type ", type)
-         }
-      },
-
-      #  Assert an object is a list with named elements
-      #
-      #  Stops if:
-      #   - x is not a list
-      #   - x is a data.table
-      #   - x has no names
-      #   - x has any NA names
-      #   - x has any zero-length names
-      #   - x has any whitespace-only names
-      #
-      #  @param x [list] List to check
-      #
-      #  @return none
-      assert_named_list = function(x){
-         if(!is.null(x)){
-            err_msg <- "x must be a named list, not vector or data.table (list names may not be whitespace)"
-            if(!is.list(x))               stop(err_msg)
-            if(is.data.table(x))          stop(err_msg)
-            if(is.null(names(x)))         stop(err_msg)
-            if(any(is.na(names(x))))      stop(err_msg)
-            names(x) <- trimws(names(x))
-            if(any(nchar(names(x)) == 0)) stop(err_msg)
-         }
-      },
 
       #  Assert the user's mark-operation entry matches the log schema
       #
@@ -354,8 +265,8 @@ SLT <- R6::R6Class(
                                              log_schema      = private$DICT$log_schema) {
 
          # check that user_entry is a named list
-         private$assert_named_list(user_entry)
-         private$assert_named_list(log_schema)
+         assert_named_list(user_entry)
+         assert_named_list(log_schema)
 
          # check that user_entry names are in log_fields_user
          if(!all(names(user_entry) %in% log_fields_user)){
@@ -511,34 +422,6 @@ SLT <- R6::R6Class(
 
       },
 
-      #  @title Assert a directory exists on disk
-      #
-      #  @param x [path] A directory path
-      #
-      #  @return none
-      assert_dir_exists = function(x){
-         private$assert_scalar(x)
-         root <- suppressWarnings(normalizePath(x))
-         if(!dir.exists(root)) stop("root does not exist: ", x)
-      },
-
-      #  Validate whether a directory exists
-      #
-      #  @param x [path] A directory path
-      #  @param verbose [lgl] message to std_out?
-      #
-      #  @return [lgl] TRUE if directory exists, FALSE otherwise
-      validate_dir_exists = function(x, verbose = TRUE){
-         private$assert_scalar(x)
-         root <- suppressWarnings(normalizePath(x))
-         if(!dir.exists(root)) {
-            if(verbose) message("root does not exist: ", x)
-            return(invisible(FALSE))
-         } else {
-            return(invisible(TRUE))
-         }
-      },
-
       #  Assert the date_selector shorthand is valid.
       #
       #  Examples:
@@ -594,153 +477,31 @@ SLT <- R6::R6Class(
          }
       },
 
+      # FIXME SB - 2025 Jan 17 - deprecate - not good for all users
       #  Assert the user_date is in the PST timezone
       #
       #  @param date [chr] a date string
       #
       #  @return none
-      assert_PST_date = function(date){
-         private$assert_user_date_class_and_format(user_date = date)
-         valid_tz = c("America/Los_Angeles", "US/Pacific", "PST8PDT")
-         if(!lubridate::tz(date) %in% valid_tz){
-            stop("Invalid timezone.\n",
-                 "Allowed:  ", toString(valid_tz), "\n",
-                 "Received: ", lubridate::tz(user_date))
-         }
-
-      },
-
-
-
-      # Utils ------------------------------------------------------------------
-
-      #  Determine if an object is an error
+      # assert_PST_date = function(date){
+      #    private$assert_user_date_class_and_format(user_date = date)
+      #    valid_tz = c("America/Los_Angeles", "US/Pacific", "PST8PDT")
+      #    if(!lubridate::tz(date) %in% valid_tz){
+      #       stop("Invalid timezone.\n",
+      #            "Allowed:  ", toString(valid_tz), "\n",
+      #            "Received: ", lubridate::tz(user_date))
+      #    }
       #
-      #  @param x [obj] some R object
-      #
-      #  @return [lgl] TRUE / FALSE
-      is_an_error = function(x) {
-
-         (inherits(x, "simpleError") | inherits(x, "try-error"))
-      },
-
-      ## DescTools -------------------------------------------------------------
-
-      ## Functions borrowed from DescTools to remove dependency
-
-      # Replace NAs by 0
-      #
-      # DescTools::BlankIfNA
-      #
-      # Replace NAs in a numeric vector x with 0. This function has the same
-      # logic as the zeroifnull function in SQL. NAIfZero() does replace zeros
-      # with NA. BlankIfNA() and NAIfBlank() do the same, but for character
-      # vectors.
-      #
-      # @param x [vector] whose NAs should be overwritten with 0s.
-      # @param blank [chr] the value to replace NAs with.
-      #
-      # @return [vector] edited vector x
-      BlankIfNA = function (x, blank = "") {
-         replace(x, is.na(x), blank)
-      },
-
-      # Replace NAs by 0
-      #
-      # DescTools::ZeroIfNA
-      #
-      # Replace NAs in a numeric vector x with 0. This function has the same
-      # logic as the zeroifnull function in SQL. NAIfZero() does replace zeros
-      # with NA. BlankIfNA() and NAIfBlank() do the same, but for character
-      # vectors.
-      #
-      # @param x [vector] whose NAs should be overwritten with 0s.
-      #
-      # @return [vector] edited vector x
-      ZeroIfNA = function (x) {
-         replace(x, is.na(x), 0L)
-      },
-
-      # Extract Part of a String
-      #
-      # DescTools::StrExtract
-      #
-      # Extract a part of a string, defined as regular expression.
-      # StrExtractBetween() is a convenience function used to extract parts
-      # between a left and right delimiter.
-      #
-      # @param x [chr] vector where matches are sought, or an object which can
-      #   be coerced by as.character to a character vector.
-      # @param pattern [chr]  string containing a regular expression (or
-      #   character string for fixed = TRUE) to be matched in the given
-      #   character vector. Coerced by as.character to a character string if
-      #   possible. If a character vector of length 2 or more is supplied, the
-      #   first element is used with a warning. Missing values are not allowed.
-      # @param ... the dots are passed to the the internally used function
-      #   regexpr(), which allows to use e.g. Perl-like regular expressions.
-      #
-      # @return [chr] A character vector.
-      StrExtract = function (x, pattern, ...) {
-         m                    <- regexpr(pattern, x, ...)
-         regmatches(x, m)
-         res                  <- rep(NA_character_, length(m))
-         res[private$ZeroIfNA(m) > 0] <- regmatches(x, m)
-         return(res)
-      },
-
-
-      # Split Path In Drive, Path, Filename
-      #
-      # DescTools::split_path
-      #
-      # Split a full path in its components. This is specifically an issue in
-      # Windows and not really interesting for other OSs.
-      #
-      # @param path [chr] a path
-      # @param last.is.file [lgl] logical, determining if the basename should be
-      # interpreted as filename or as last directory. If set to NULL
-      # (default), the last entry will be interpreted if the last character is
-      # either \ or / and as filename else.
-      SplitPath = function(path, last.is.file = NULL) {
-         if (is.null(last.is.file)) {
-            last.is.file <- (length(grep(pattern = "[/\\]$", path)) == 0)
-         }
-
-         path         <- normalizePath(path, mustWork = FALSE)
-         lst          <- list()
-         lst$normpath <- path
-
-         if (.Platform$OS.type == "windows") {
-            lst$drive   <- regmatches(path, regexpr("^([[:alpha:]]:)|(\\\\[[:alnum:]]+)",path))
-            lst$dirname <- gsub(pattern = lst$drive, x = dirname(path), replacement = "")
-         } else {
-            lst$drive   <- NA
-            lst$dirname <- dirname(path)
-         }
-
-         lst$dirname      <- paste(lst$dirname, "/", sep = "")
-         lst$fullfilename <- basename(path)
-         lst$fullpath     <- paste0(private$BlankIfNA(lst$drive), lst$dirname)
-         lst$filename     <- gsub(pattern = "(.*)\\.(.*)$", "\\1", lst$fullfilename)
-         lst$extension    <- private$StrExtract(pattern = "(?<=\\.)[^\\.]+$", lst$fullfilename, perl = TRUE)
-
-         if (!last.is.file) {
-            lst$dirname <- paste(lst$dirname, lst$fullfilename, "/", sep = "")
-            lst$extension <- lst$filename <- lst$fullfilename <- NA
-         }
-
-         return(lst)
-      },
-
+      # },
 
 
       # Implementations --------------------------------------------------------
 
       ## Symlinks --------------------------------------------------------------
 
-      #  Find and count symlinks by gbd round, date_version, and symlink_type
+      #  Find and count symlinks by root, date_version, and symlink_type
       #
-      #  @param root [path] full path to gbd round data
+      #  @param root [path] root path with versioned data folders
       #  @param date_version [chr] e.g. "2023_01_01"
       #  @param symlink_type [chr] e.g. "best"
       #
@@ -749,24 +510,19 @@ SLT <- R6::R6Class(
       find_count_symlinks = function(root, date_version, symlink_type){
 
          # validate inputs
-         private$assert_scalar(root)
-         private$assert_scalar(date_version)
-         private$assert_scalar(symlink_type)
+         assert_scalar(root)
+         assert_scalar(date_version)
+         assert_scalar(symlink_type)
 
          # Define all eligible symlink regex patterns by type
          arrow_rgx <- " -> " # used in bash to show symlinks
          # We're ONLY monitoring symlinks of a certain pattern - users are free to make others
          symlink_rgx <- switch(
             symlink_type,
-            best   = paste0("best", arrow_rgx, ".*", date_version)
-            , keep = paste0("keep_", date_version, arrow_rgx, ".*", date_version)
+            best     = paste0("best", arrow_rgx, ".*", date_version)
+            , keep   = paste0("keep_", date_version, arrow_rgx, ".*", date_version)
             , remove = paste0("remove_", date_version, arrow_rgx, ".*", date_version)
          )
-         # symlink_rgx <- list(
-         #    best        = paste0("best", arrow_rgx, ".*", date_version)
-         #    , keep      = paste0("keep_", date_version, arrow_rgx, ".*", date_version)
-         #    , remove    = paste0("remove_", date_version, arrow_rgx, ".*", date_version)
-         # )
 
          # validate
          if(!all(names(symlink_rgx) %in% private$DICT$symlink_types)){
@@ -802,11 +558,11 @@ SLT <- R6::R6Class(
       # @param version_path [chr] full path to a version folder, e.g. /mnt/share/gbdxxxx/2023_01_01
       # @param symlink_type [chr] one of: private$DICT$symlink_types
       #
-      # @return
+      # @return [lgl] TRUE if symlink exists, FALSE if not
       already_marked = function(version_path, symlink_type){
          # validate inputs
-         private$assert_scalar(version_path)
-         private$assert_scalar(symlink_type)
+         assert_scalar(version_path)
+         assert_scalar(symlink_type)
          root         <- dirname(version_path)
          date_version <- basename(version_path)
 
@@ -827,9 +583,9 @@ SLT <- R6::R6Class(
       assert_n_symlinks = function(root, date_version, symlink_type = "all", n_sym = 1L, allow_fewer = TRUE){
 
          # validate inputs
-         private$validate_dir_exists(root, verbose = FALSE)
-         private$assert_scalar(date_version)
-         private$assert_scalar(n_sym)
+         validate_dir_exists(root, verbose = FALSE)
+         assert_scalar(date_version)
+         assert_scalar(n_sym)
          if(!is.integer(n_sym)) stop("n_sym must be an integer")
          if(n_sym < 0L) stop("n_sym must be non-negative")
 
@@ -890,12 +646,12 @@ SLT <- R6::R6Class(
       #
       #  @return [chr] full path to the symlink
       make_symlink_path = function(version_path, symlink_type){
-         private$assert_scalar(version_path)
-         private$assert_scalar(symlink_type)
+         assert_scalar(version_path)
+         assert_scalar(symlink_type)
          if(!symlink_type %in% private$DICT$symlink_types) stop("Invalid symlink_type: ", symlink_type)
-         root         <- private$SplitPath(version_path)$dirname
+         root         <- SplitPath(version_path)$dirname
          root         <- sub("/$", "", root) # remove trailing slash
-         date_version <- private$SplitPath(version_path)$fullfilename
+         date_version <- SplitPath(version_path)$fullfilename
 
          symlink_suffix <- switch(
             symlink_type,
@@ -940,9 +696,9 @@ SLT <- R6::R6Class(
       #
       #  @return [none] side effect of removing a symlink
       remove_one_symlink = function(root, date_version, symlink_type, user_entry){
-         private$assert_dir_exists(root)
-         private$assert_scalar(date_version)
-         private$assert_scalar(symlink_type)
+         assert_dir_exists(root)
+         assert_scalar(date_version)
+         assert_scalar(symlink_type)
          if(!symlink_type %in% private$DICT$symlink_types) stop("Invalid symlink_type; got - ", symlink_type, " - expected - ", toString(private$DICT$symlink_types))
 
          symlink_list <- private$find_count_symlinks(
@@ -981,7 +737,7 @@ SLT <- R6::R6Class(
       #
       #  @return [none] removes symlinks on disk
       remove_all_symlinks = function(root, date_version, user_entry){
-         private$assert_scalar(date_version)
+         assert_scalar(date_version)
          message("Removing symlinks for: ", date_version)
          for(symlink_type in private$DICT$symlink_types){
             private$remove_one_symlink(
@@ -1007,7 +763,7 @@ SLT <- R6::R6Class(
       #  @return [none] side effect of creating a log file on disk
       create_folder_with_log = function(version_path){
 
-         dir_exists <- private$validate_dir_exists(version_path, verbose = FALSE)
+         dir_exists <- validate_dir_exists(version_path, verbose = FALSE)
 
          if(!dir_exists){
             dir.create(version_path, recursive = TRUE)
@@ -1030,8 +786,8 @@ SLT <- R6::R6Class(
       #
       #  @return [lgl] TRUE if the folder was deleted, FALSE if it was not
       delete_remove_folder = function(root, date_version, user_entry, require_user_input){
-         private$assert_dir_exists(root)
-         private$assert_scalar(date_version)
+         assert_dir_exists(root)
+         assert_scalar(date_version)
          version_path <- file.path(root, date_version)
 
          folder_dt <- private$query_root_folder_types(root = root)
@@ -1113,7 +869,7 @@ SLT <- R6::R6Class(
       #
       #  @return [data.table] empty data.table with schema columns and types
       make_schema_dt = function(schema){
-         private$assert_named_list(schema)
+         assert_named_list(schema)
          dt_schema <- data.table::data.table()
          for(s_name in names(schema)){
             dt_schema[[s_name]] <- vector(mode = schema[[s_name]], length = 0L)
@@ -1141,7 +897,7 @@ SLT <- R6::R6Class(
       # @return [data.table] log data.table with schema columns in order
       repair_log_schema = function(dt_log, log_schema = private$DICT$log_schema, allow_schema_repair = private$DICT$FLAGS$allow_schema_repair){
          if(allow_schema_repair){
-            private$assert_named_list(log_schema)
+            assert_named_list(log_schema)
             dt_schema <- private$make_schema_dt(log_schema)
             dt_log <- data.table::rbindlist(list(dt_schema, dt_log), fill = TRUE)
          }
@@ -1203,7 +959,7 @@ SLT <- R6::R6Class(
       #
       #  @return none
       write_expected_log = function(version_path, log_schema = private$DICT$log_schema){
-         private$assert_scalar(version_path)
+         assert_scalar(version_path)
          fpath <- file.path(version_path, private$DICT$log_name)
          if(!file.exists(fpath)) {
             private$write_new_log(version_path)
@@ -1262,8 +1018,8 @@ SLT <- R6::R6Class(
       append_to_log = function(version_path, user_entry) {
 
          # validate inputs
-         private$assert_named_list(user_entry)
-         private$assert_scalar(version_path)
+         assert_named_list(user_entry)
+         assert_scalar(version_path)
 
          # needs to read a log to bump the log_id number
          fpath <- file.path(version_path, private$DICT$log_name)
@@ -1310,7 +1066,7 @@ SLT <- R6::R6Class(
       #
       #  @return none
       write_expected_central_log = function(fpath, log_schema = private$DICT$log_schema){
-         private$assert_scalar(fpath)
+         assert_scalar(fpath)
          if(!file.exists(fpath)) {
             private$write_new_central_log(fpath, log_schema)
          } else {
@@ -1395,7 +1151,7 @@ SLT <- R6::R6Class(
       append_to_central_log = function(version_path, user_entry) {
 
          # validate inputs
-         private$assert_named_list(user_entry)
+         assert_named_list(user_entry)
          private$assert_schema_vs_user_entry(user_entry)
 
          # needs to read a log to bump the log_id number
@@ -1726,9 +1482,10 @@ SLT <- R6::R6Class(
       #
       #  @return [data.table] a data.table with the first row of each log
       query_by_date = function(root, user_date_parsed, date_selector){
-         private$assert_dir_exists(root)
+         assert_dir_exists(root)
          private$assert_date_selector(date_selector)
-         private$assert_PST_date(user_date_parsed)
+         # FIXME SB - 2025 Jan 17 - deprecate - not good for all users
+         # private$assert_PST_date(user_date_parsed)
 
          # query all logs for their creation lines
          folder_dt   <- private$query_root_folder_types(root)
@@ -1788,7 +1545,7 @@ SLT <- R6::R6Class(
       write_report = function(dt_report, write_path, order_cols_tf = TRUE, schema = private$DICT$log_schema){
 
           if(order_cols_tf){
-            private$assert_named_list(schema)
+            assert_named_list(schema)
             sortable_colnames <- intersect(names(schema), names(dt_report))
             data.table::setcolorder(dt_report, sortable_colnames)
           }
@@ -1918,7 +1675,7 @@ SLT <- R6::R6Class(
       # @return [data.table] Log entries with new columns: vars_missing, vars_extra
       report_log_vs_schema_diffs = function(log, log_schema = private$DICT$log_schema){
          # check that log is a named list
-         private$assert_named_list(log_schema)
+         assert_named_list(log_schema)
 
          # find log varnames not in schema, and vise versa
          log_fields_user    <- names(log)
@@ -2070,10 +1827,10 @@ SLT <- R6::R6Class(
       #
       handler_pre_mark = function(date_version, user_entry, roots = private$DICT$ROOTS){
          # validate inputs
-         private$assert_scalar(date_version)
-         private$assert_named_list(user_entry)
+         assert_scalar(date_version)
+         assert_named_list(user_entry)
          private$assert_schema_vs_user_entry(user_entry)
-         for(user_entry_item in user_entry) private$assert_scalar_not_empty(user_entry_item)
+         for(user_entry_item in user_entry) assert_scalar_not_empty(user_entry_item)
 
          # This is the 'state machine' of the Symlink Tool
          # enforce one symlink per date_version
@@ -2113,7 +1870,7 @@ SLT <- R6::R6Class(
       #  @return [none] no machine-state updates, only write to disk
       handler_post_mark = function(date_version, user_entry){
          # validate inputs
-         private$assert_scalar(date_version)
+         assert_scalar(date_version)
 
          # enforce one symlink per date_version
          # make sure we haven't screwed up if we update this tool
@@ -2141,11 +1898,11 @@ SLT <- R6::R6Class(
       #
       #  @return [none] Updates `private$DYNAMIC$VERS_PATHS`
       handler_update_version_paths = function(date_version){
-         private$assert_scalar(date_version)
+         assert_scalar(date_version)
          private$DYNAMIC$VERS_PATHS <- lapply(private$DICT$ROOTS, function(root) file.path(root, date_version))
-         private$assert_named_list(private$DYNAMIC$VERS_PATHS)
+         assert_named_list(private$DYNAMIC$VERS_PATHS)
          if(!length(private$DYNAMIC$VERS_PATHS)) stop("No version paths found")
-         lapply(private$DYNAMIC$VERS_PATHS, private$validate_dir_exists, verbose = FALSE)
+         lapply(private$DYNAMIC$VERS_PATHS, validate_dir_exists, verbose = FALSE)
       },
 
       #  Update all `private$DYNAMIC` fields
@@ -2156,7 +1913,7 @@ SLT <- R6::R6Class(
       #
       #  @return [none] Updates `private$DYNAMIC$LOG` and `private$DYNAMIC$VERS_PATHS`
       handler_update_dynamic_fields = function(date_version){
-         private$assert_scalar(date_version)
+         assert_scalar(date_version)
          # Update dictionaries
          private$DYNAMIC$LOG$date_version <- date_version
          private$handler_update_version_paths(date_version = date_version)
@@ -2204,9 +1961,9 @@ SLT <- R6::R6Class(
       #
       #  @return [none] Unlinks the symlink on disk
       demote_existing_symlinks = function(version_path, date_version, user_entry, symlink_types = private$DICT$symlink_types){
-         private$assert_scalar(version_path)
-         private$assert_scalar(date_version)
-         private$assert_named_list(user_entry)
+         assert_scalar(version_path)
+         assert_scalar(date_version)
+         assert_named_list(user_entry)
          # find existing symlinks for a date_version
          names(symlink_types) <- symlink_types # names for `lapply()`
 
@@ -2257,8 +2014,8 @@ SLT <- R6::R6Class(
       #
       #  @return [none] Unlinks the 'best' symlink on disk
       demote_previous_best = function(version_path, date_version, user_entry){
-         private$assert_scalar(version_path)
-         private$assert_dir_exists(version_path)
+         assert_scalar(version_path)
+         assert_dir_exists(version_path)
          path_best_sym <- private$make_symlink_path(version_path, "best")
          private$DYNAMIC$LOG$action <- "demote_best"
 
@@ -2290,7 +2047,7 @@ SLT <- R6::R6Class(
       #
       #  @return [none] Creates a symlink on disk
       promote_best = function(version_path, date_version, user_entry){
-         private$assert_dir_exists(version_path)
+         assert_dir_exists(version_path)
          path_best_sym <- private$make_symlink_path(version_path, "best")
          path_best_new <- version_path
          # Highlander - there can be only one (best)
@@ -2387,8 +2144,8 @@ SLT <- R6::R6Class(
       #'   throw an error if it finds a schema mismatch.
       #' @param csv_reader [chr] Default `fread_quiet`.  The CSV reader to use.
       #'   Options:
-      #'   - 'fread_quiet' - suppress warnings (rely on tool's messaging instead)
-      #'   - 'fread' - data.table standard
+      #'   - 'fread'       - data.table standard
+      #'   - 'fread_quiet' - fread and suppressWarnings() (rely on SLT's messaging instead)
       #'
       #' @return [symlink_tool] A symlink tool object.  You can instantiate
       #'   (create) multiple version, each of which has different roots and
@@ -2454,18 +2211,18 @@ SLT <- R6::R6Class(
 
          ## ROOTS
          # validate inputs
-         private$assert_named_list(user_root_list)
-         lapply(user_root_list, private$assert_dir_exists)
-         private$assert_scalar(schema_repair)
-         private$assert_type(schema_repair, "logical")
+         assert_named_list(user_root_list)
+         lapply(user_root_list, assert_dir_exists)
+         assert_scalar(schema_repair)
+         assert_type(schema_repair, "logical")
 
          # set roots
          private$DICT$ROOTS <- user_root_list
 
          ## CENTRAL LOG
          # validate inputs
-         private$assert_scalar(user_central_log_root)
-         private$assert_dir_exists(user_central_log_root)
+         assert_scalar(user_central_log_root)
+         assert_dir_exists(user_central_log_root)
          # set
          private$DICT$LOG_CENTRAL$root <- user_central_log_root
 
@@ -2574,7 +2331,7 @@ SLT <- R6::R6Class(
          # Manage symlinks and append logs
          for(version_path in private$DYNAMIC$VERS_PATHS){
 
-            if(!private$validate_dir_exists(version_path)) next()
+            if(!validate_dir_exists(version_path)) next()
             if(private$already_marked(version_path, "best")) {
                message("-- ", version_path, " - already marked best - moving on.")
                next()
@@ -2633,7 +2390,7 @@ SLT <- R6::R6Class(
 
          for(version_path in private$DYNAMIC$VERS_PATHS){
 
-            if(!private$validate_dir_exists(version_path)) next()
+            if(!validate_dir_exists(version_path)) next()
             if(private$already_marked(version_path, "keep")) {
                message("-- ", version_path, " - already marked keep - moving on.")
                next()
@@ -2694,7 +2451,7 @@ SLT <- R6::R6Class(
 
          for(version_path in private$DYNAMIC$VERS_PATHS){
 
-            if(!private$validate_dir_exists(version_path)) next()
+            if(!validate_dir_exists(version_path)) next()
             if(private$already_marked(version_path, "remove")) {
                message("-- ", version_path, " - already marked remove - moving on.")
                next()
@@ -2868,7 +2625,7 @@ SLT <- R6::R6Class(
       #'
       create_date_version_folders_with_logs = function(date_version){
 
-         private$assert_scalar(x = date_version)
+         assert_scalar(x = date_version)
 
          private$handler_update_dynamic_fields(date_version = date_version)
 
