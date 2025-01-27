@@ -55,11 +55,15 @@
 # TODO SB - 2024 Sep 03
 # - [ ] Remove dependency on all packags except R6
 #     - [x] library(DescTools)
+#     - [x] library(lubridate)
+#         - [x] write test for date roundup
+#         - [x] add instantiate level TZ control
+#                 tz_sys <- format(Sys.time(), "%Z") # Sys.timezone() is incorrect
+#                 OlsonNames() # list of timezones
+#         - [x] format_datetimestamp <- "%Y_%m_%d_%H%M%S"
+#     - [ ] library(purr)
 #     - [ ] library(data.table)
 #        - [ ] replace with library(readr) to avoid quoting issues
-#     - [ ] library(lubridate)
-#     - [ ] library(purr)
-#     - [ ] lubridate will make this tricky
 # - [ ] Move private method docstrings inside functions so they can be seen when called anonymously
 # - [ ] Convert messages to std_out?
 # - [x] Move all utility functions to other files, put under test
@@ -166,11 +170,20 @@ SLT <- R6::R6Class(
             , "action"
          ),
 
+         # hard-setting instead of user-settable - avoid log discrepancies
+         datestamp_format = "%Y_%m_%d_%H%M%S",
+
+
+
+
 
          ## Initialize: internally-defined
          # In `initialize()`, defined as `setdiff(names(private$DICT$log_schema), private$DICT$log_fields_auto)`
          # e.g. c("comment") at time of writing
          log_fields_user = NULL,
+
+         # Timezone
+         TZ = NULL,
 
 
          # Reports - summary of last log entries across date-versioned folders
@@ -478,6 +491,11 @@ SLT <- R6::R6Class(
       },
 
       # FIXME SB - 2025 Jan 17 - deprecate - not good for all users
+      # FIXME SB - 2025 Jan 23 - instead, add instantiate-level TZ control and log-standard datetime format
+      # tz_sys <- format(Sys.time(), "%Z") # Sys.timezone() is incorrect
+      # format_datetimestamp <- private$DICT$datestamp_format
+      # OlsonNames() # list of timezones
+
       #  Assert the user_date is in the PST timezone
       #
       #  @param date [chr] a date string
@@ -485,7 +503,7 @@ SLT <- R6::R6Class(
       #  @return none
       # assert_PST_date = function(date){
       #    private$assert_user_date_class_and_format(user_date = date)
-      #    valid_tz = c("America/Los_Angeles", "US/Pacific", "PST8PDT")
+      #    valid_tz = c(private$DICT$TZ, "US/Pacific", "PST8PDT")
       #    if(!lubridate::tz(date) %in% valid_tz){
       #       stop("Invalid timezone.\n",
       #            "Allowed:  ", toString(valid_tz), "\n",
@@ -920,11 +938,13 @@ SLT <- R6::R6Class(
          data.table::fwrite(dt_log, fpath)
       },
 
-      #   Return a time-stamp in "%Y_%m_%d_%H%M%S" format, e.g. "2024_02_21_104202"
+      #   Return a time-stamp in private$DICT$datestamp_format format, e.g. "2024_02_21_104202"
       #
-      #  @return [chr] time-stamp in "%Y_%m_%d_%H%M%S" format
+      #  @return [chr] time-stamp in private$DICT$datestamp_format format
       make_current_timestamp = function(){
-         return(format(lubridate::with_tz(Sys.time(), tzone="America/Los_Angeles"), "%Y_%m_%d_%H%M%S"))
+         # FIXME SB - 2025 Jan 23 - deprecate lubridate
+         # return(format(lubridate::with_tz(Sys.time(), tzone=private$DICT$TZ), private$DICT$datestamp_format))
+         return(format(as.POSIXct(Sys.time(), tz = "UTC"), tz = private$DICT$TZ, format = private$DICT$datestamp_format))
       },
 
       #   Write a log creation row IF the log is empty
@@ -1496,25 +1516,35 @@ SLT <- R6::R6Class(
          ts_raw          <- log_id_0_dt$timestamp
          names(ts_raw)   <- ts_raw
          suppressWarnings(
-            ts_parsed    <- lubridate::ymd_hms(log_id_0_dt$timestamp, tz ="America/Los_Angeles")
+            # FIXME SB - 2025 Jan 23 - remove lubridate dependency
+            # ts_parsed    <- lubridate::ymd_hms(log_id_0_dt$timestamp, tz =private$DICT$TZ)
+            ts_parsed    <- as.POSIXct(log_id_0_dt$timestamp, format = private$DICT$datestamp_format, tz = private$DICT$TZ)
          )
-         idx_failed_parse<- which(is.na(ts_parsed))
-         dt_failed_parse <- data.table::data.table(
+         idx_failed_parse <- which(is.na(ts_parsed))
+         dt_failed_parse  <- data.table::data.table(
             dir_name_resolved      = folder_dt[idx_failed_parse]$dir_name_resolved,
             timestamp_failed_parse = ts_raw[idx_failed_parse]
          )
          tryCatch({
-            lubridate::ymd_hms(log_id_0_dt$timestamp, tz ="America/Los_Angeles")
+            # FIXME SB - 2025 Jan 23 - remove lubridate dependency
+            # lubridate::ymd_hms(log_id_0_dt$timestamp1, tz =private$DICT$TZ)
+            as.POSIXct(log_id_0_dt$timestamp2, format = private$DICT$datestamp_format, tz = private$DICT$TZ)
          }, warning = function(w) message("Some logs failed creation-date parsing (must be in yyyy_mm_dd format): \n  ",
                                           paste(capture.output(dt_failed_parse), collapse = "\n"),
                                           "\n")
          )
 
-         # Strip time from date-time-stamp, retain timezone info
-         # Formatting for direct comparison against user_date
-         suppressWarnings(log_id_0_dt[, timestamp_parsed := lubridate::ymd_hms(timestamp, tz = "America/Los_Angeles")])
+         # Strip time from date-time-stamp, retain timezone info, convert to
+         # character, convert back to date for comparison against user_date
+
+         # FIXME SB - 2025 Jan 23 - remove lubridate dependency
+         # suppressWarnings(log_id_0_dt[, timestamp_parsed := lubridate::ymd_hms(timestamp, tz = private$DICT$TZ)])
+         # log_id_0_dt[, timestamp_parsed := format(timestamp_parsed, "%Y-%m-%d")]
+         # log_id_0_dt[, timestamp_parsed := lubridate::ymd(timestamp_parsed, tz =private$DICT$TZ)]
+
+         suppressWarnings(log_id_0_dt[, timestamp_parsed := as.POSIXct(timestamp, format = private$DICT$datestamp_format, tz = private$DICT$TZ)])
          log_id_0_dt[, timestamp_parsed := format(timestamp_parsed, "%Y-%m-%d")]
-         log_id_0_dt[, timestamp_parsed := lubridate::ymd(timestamp_parsed, tz ="America/Los_Angeles")]
+         log_id_0_dt[, timestamp_parsed := as.POSIXct(timestamp_parsed, format = "%Y-%m-%d", tz = private$DICT$TZ)]
 
          # filter logs to all time-stamps less/greater than (or equal to) user date for later filtering
          logs_by_date <- switch(
@@ -2140,13 +2170,16 @@ SLT <- R6::R6Class(
       #' @param schema_repair [logical] Default `TRUE`.  If `TRUE`, the tool
       #'   will attempt to repair any schema mismatches it finds in the logs
       #'   when reading and writing (e.g.) add new columns if the tool schema
-      #'   has columns that existing logs do not. If `FALSE`, the tool will stop and
-      #'   throw an error if it finds a schema mismatch.
+      #'   has columns that existing logs do not. If `FALSE`, the tool will stop
+      #'   and throw an error if it finds a schema mismatch.
       #' @param csv_reader [chr] Default `fread_quiet`.  The CSV reader to use.
       #'   Options:
       #'   - 'fread'       - data.table standard
+      #' @param timezone [chr] Default `America/Los_Angeles`.  The timezone to
+      #'  use for datestamps in logs. Must be a valid `OlsonNames()` string.
+      #' @param datestamp_format [chr] Default `%Y_%m_%d_%H%M%S`.  The format to
+      #'  use for datestamps in logs.
       #'   - 'fread_quiet' - fread and suppressWarnings() (rely on SLT's messaging instead)
-      #'
       #' @return [symlink_tool] A symlink tool object.  You can instantiate
       #'   (create) multiple version, each of which has different roots and
       #'   central logs.
@@ -2157,10 +2190,11 @@ SLT <- R6::R6Class(
       , user_central_log_root = NULL
       , schema_repair         = TRUE
       , csv_reader            = "fread_quiet"
+      , timezone              = "America/Los_Angeles"
       ) {
 
 
-         # useful start up feedback
+         # Helpful start-up feedback
          if(is.null(user_root_list)){
             message("\n\nThis tool expects `user_root_list` to be a named list of root directories for pipeline outputs. \n\n  ",
 
@@ -2197,6 +2231,13 @@ SLT <- R6::R6Class(
             stop("You must provide both user_root_list and user_central_log_root")
          }
 
+         stopifnot(is.character(timezone))
+         if(!timezone %in% OlsonNames()){
+            stop("timezone must be in `OlsonNames()`")
+         }
+
+         # ------------------------------------------------------------------#
+
          # libraries
          library(data.table)
          # only fread is currently supported due to how data types are defined when reading in logs
@@ -2206,6 +2247,8 @@ SLT <- R6::R6Class(
             , "fread_quiet" = function(...) return(suppressWarnings(data.table::fread(...)))
             , stop("csv_reader must be one of: fread, fread_quiet")
          )
+
+         # ------------------------------------------------------------------#
 
          # Users must provide these fields
 
@@ -2226,10 +2269,14 @@ SLT <- R6::R6Class(
          # set
          private$DICT$LOG_CENTRAL$root <- user_central_log_root
 
+         ## Timezone
+         private$DICT$TZ <- timezone
+
          ## FLAGS
          # log schema
          private$DICT$FLAGS$allow_schema_repair <- schema_repair
 
+         # ------------------------------------------------------------------#
 
          # User should not interact with these
 
@@ -2589,9 +2636,10 @@ SLT <- R6::R6Class(
          }
 
          # format user_date to USA PST to align with cluster filesystem dates
-         tzone = "America/Los_Angeles"
+         tzone = private$DICT$TZ
          message("Formatting date with time-zone: ", tzone, "\n")
-         user_date_parsed <- lubridate::ymd(user_date, tz = tzone)
+         # user_date_parsed <- lubridate::ymd(user_date, tz = tzone)
+         user_date_parsed <- as.POSIXct(user_date, tz = tzone, tryFormats = c("%Y-%m-%d", "%Y_%m_%d", "%Y/%m/%d"))
 
          # for(root in private$DICT$ROOTS){
          #    return(private$query_by_date(root, user_date_parsed, date_selector))
