@@ -11,12 +11,13 @@ root_list      <- list(
 )
 make_directory(root_list[["root_input"]])
 make_directory(root_list[["root_output"]])
-dir_tree(root_base)
+# dir_tree(root_base)
 dv_list <- list(
    dv1 = "1990_01_01"
    , dv2 = "1990_01_02"
    , dv3 = "1990_01_03"
 )
+path_list <- lapply(root_list, function(x) file.path(x, dv_list))
 
 dv_list_fullpath <- lapply(root_list, function(root) file.path(root, dv_list))
 
@@ -169,6 +170,33 @@ test_that("Marked logs have correct structure",
 #> - [ ] there's no discrepancy report after some manual edits
 #>    - don't worry about minor issues, focus on log order issues, things related to report building
 #> - [ ] there is an appropriate discrepancy report after some key edits
+#> - [ ] roundups work
+
+
+
+test_that("Roundup by date throws errors",
+          {
+             expect_error(
+                slt$roundup_by_date(user_date = "01-01-2023", date_selector = "gte")
+                , regexp = "Invalid user_date. Must be formatted as YYYY MM DD, with one of these delimiters \\[-/_\\] between."
+             )
+             expect_error(
+                slt$roundup_by_date(user_date = "2023-01-01", date_selector = "bte")
+                , regexp = "Invalid date_selector. Must be one of \\(case-insensitive\\):.*\n  gt, gte, lt, lte, e"
+             )
+          })
+
+test_that("Roundup by date works",
+          {
+             expect_equal(
+                slt$roundup_by_date(user_date = "2023-01-01", date_selector = "gte")$root_input
+                , data.table(
+                   dir_date_version = unlist(dv_list)
+                   , dir_name = path_list$root_input
+                   , dir_name_resolved = path_list$root_input
+                )
+             )
+          })
 
 
 

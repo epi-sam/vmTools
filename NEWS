@@ -4,6 +4,15 @@
 
 
 
+## v.0.6.0
+
+2025-01-14
+
+Update:
+
+- Removed lubridate package dependency
+
+
 ## v.0.5.0
 
 2025-01-14
