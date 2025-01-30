@@ -9,7 +9,7 @@ assert_named_list(x)
 \description{
 Stops if:
   - x is not a list
-  - x is a data.table
+  - x is a data.frame
   - x has no names
   - x has any NA names
   - x has any zero-length names
@@ -22,5 +22,5 @@ Stops if:
 
  @examples
  assert_named_list(list(a = 1, b = 2)) # OK
- assert_named_list(data.table(a = 1, b = 2)) # Error
+ assert_named_list(data.frame(a = 1, b = 2)) # Error
 }
