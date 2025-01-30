@@ -39,7 +39,8 @@ Initialize the SymlinkTool (an R6 object)
   user_root_list = NULL,
   user_central_log_root = NULL,
   schema_repair = TRUE,
-  csv_reader = "fread_quiet"
+  csv_reader = "fread_quiet",
+  timezone = "America/Los_Angeles"
 )}\if{html}{\out{</div>}}
 }
 
@@ -57,13 +58,22 @@ the central log to live one level above those roots.}
 \item{\code{schema_repair}}{[logical] Default `TRUE`.  If `TRUE`, the tool
 will attempt to repair any schema mismatches it finds in the logs
 when reading and writing (e.g.) add new columns if the tool schema
-has columns that existing logs do not. If `FALSE`, the tool will stop and
-throw an error if it finds a schema mismatch.}
+has columns that existing logs do not. If `FALSE`, the tool will stop
+and throw an error if it finds a schema mismatch.}
 
 \item{\code{csv_reader}}{[chr] Default `fread_quiet`.  The CSV reader to use.
 Options:
-- 'fread_quiet' - suppress warnings (rely on tool's messaging instead)
-- 'fread' - data.table standard}
+- 'fread_quiet' - data.table standard, suppress warnings (default)
+- 'fread'       - data.table standard
+- 'read.csv'    - utils::read.csv
+- 'read.csv2'   - utils::read.csv2}
+
+\item{\code{timezone}}{[chr] Default `America/Los_Angeles`.  The timezone to
+use for datestamps in logs. Must be a valid `OlsonNames()` string.}
+
+\item{\code{datestamp_format}}{[chr] Default `%Y_%m_%d_%H%M%S`.  The format to
+use for datestamps in logs.
+ - 'fread_quiet' - fread and suppressWarnings() (rely on SLT's messaging instead)}
 }
 \if{html}{\out{</div>}}
 }

@@ -11,12 +11,13 @@ root_list      <- list(
 )
 make_directory(root_list[["root_input"]])
 make_directory(root_list[["root_output"]])
-dir_tree(root_base)
+# dir_tree(root_base)
 dv_list <- list(
    dv1 = "1990_01_01"
    , dv2 = "1990_01_02"
    , dv3 = "1990_01_03"
 )
+path_list <- lapply(root_list, function(x) file.path(x, dv_list))
 
 dv_list_fullpath <- lapply(root_list, function(root) file.path(root, dv_list))
 
@@ -151,12 +152,12 @@ test_that("Marked logs have correct structure",
                 expect_equal(
                    log_list[[root]][[1]][, .(log_id, user, date_version, version_path, action, comment)],
                    data.table(
-                    log_id = 0:6
-                    , user = rep(Sys.info()[["user"]], 7)
-                    , date_version = rep(dv_list[[1]], 7)
-                    , version_path = rep(file.path(root_list[[root]], dv_list[[1]]), 7)
-                    , action = c("create", "promote_best", "demote_best", "promote_keep", "demote_keep", "promote_remove", "demote_remove")
-                    , comment = c("log created", "Testing mark best", "Testing mark keep", "Testing mark keep", "Testing mark remove", "Testing mark remove", "Testing mark unmark")
+                      log_id = 0:6
+                      , user = rep(Sys.info()[["user"]], 7)
+                      , date_version = rep(dv_list[[1]], 7)
+                      , version_path = rep(file.path(root_list[[root]], dv_list[[1]]), 7)
+                      , action = c("create", "promote_best", "demote_best", "promote_keep", "demote_keep", "promote_remove", "demote_remove")
+                      , comment = c("log created", "Testing mark best", "Testing mark keep", "Testing mark keep", "Testing mark remove", "Testing mark remove", "Testing mark unmark")
                    )
                 )
              }
@@ -169,7 +170,75 @@ test_that("Marked logs have correct structure",
 #> - [ ] there's no discrepancy report after some manual edits
 #>    - don't worry about minor issues, focus on log order issues, things related to report building
 #> - [ ] there is an appropriate discrepancy report after some key edits
+#> - [ ] roundups work
 
+
+
+# Integration - Roundups -------------------------------------------------------
+
+test_that("Roundup by date throws expected errors",
+          {
+             expect_error(
+                slt$roundup_by_date(user_date = "01-01-2023", date_selector = "gte")
+                , regexp = "Invalid user_date. Must be formatted as YYYY MM DD, with one of these delimiters \\[-/_\\] between."
+             )
+             expect_error(
+                slt$roundup_by_date(user_date = "2023-01-01", date_selector = "bte")
+                , regexp = "Invalid date_selector. Must be one of \\(case-insensitive\\):.*\n  gt, gte, lt, lte, e"
+             )
+          })
+
+test_that("Roundup by date works",
+          {
+             expect_equal(
+                slt$roundup_by_date(user_date = "2023-01-01", date_selector = "gte")$root_input
+                , data.table(
+                   dir_date_version = unlist(dv_list)
+                   , dir_name = path_list$root_input
+                   , dir_name_resolved = path_list$root_input
+                )
+             )
+          })
+
+
+# Integration - CSV readers ----------------------------------------------------
+
+suppressMessages(
+   suppressWarnings({ # idiosyncratic and benign cluster message
+
+      slt_readcsv <- SLT$new(
+         user_root_list = list(
+            root_input  = root_list[["root_input"]],
+            root_output = root_list[["root_output"]]
+         )
+         , user_central_log_root = root_base
+         , csv_reader = "read.csv"
+      )
+   })
+)
+
+test_that("bad csv_reader option produces expected error",
+          {
+             expect_error(
+                SLT$new(
+                   user_root_list = list(
+                      root_input  = root_list[["root_input"]],
+                      root_output = root_list[["root_output"]]
+                   )
+                   , user_central_log_root = root_base
+                   , csv_reader = "readr"
+                )
+                , regexp = "csv_reader must be one of: fread, fread_quiet, read.csv, read.csv2"
+             )
+          })
+
+test_that("read.csv alternate CSV reader works",
+          {
+             expect_equal(
+                slt$roundup_by_date(user_date = "2023-01-01", date_selector = "gte")$root_input
+                , slt_readcsv$roundup_by_date(user_date = "2023-01-01", date_selector = "gte")$root_input
+             )
+          })
 
 
 
