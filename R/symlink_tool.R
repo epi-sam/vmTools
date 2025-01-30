@@ -61,9 +61,9 @@
 #                 tz_sys <- format(Sys.time(), "%Z") # Sys.timezone() is incorrect
 #                 OlsonNames() # list of timezones
 #         - [x] format_datetimestamp <- "%Y_%m_%d_%H%M%S"
-#     - [ ] library(purr)
+#     - [x] library(purrr)
 #     - [ ] library(data.table)
-#        - [ ] replace with library(readr) to avoid quoting issues
+#        - [ ] option for library(readr) to avoid quoting issues?
 # - [ ] Move private method docstrings inside functions so they can be seen when called anonymously
 # - [ ] Convert messages to std_out?
 # - [x] Move all utility functions to other files, put under test
@@ -2180,7 +2180,10 @@ SLT <- R6::R6Class(
       #'   and throw an error if it finds a schema mismatch.
       #' @param csv_reader [chr] Default `fread_quiet`.  The CSV reader to use.
       #'   Options:
+      #'   - 'fread_quiet' - data.table standard, suppress warnings (default)
       #'   - 'fread'       - data.table standard
+      #'   - 'read.csv'    - utils::read.csv
+      #'   - 'read.csv2'   - utils::read.csv2
       #' @param timezone [chr] Default `America/Los_Angeles`.  The timezone to
       #'  use for datestamps in logs. Must be a valid `OlsonNames()` string.
       #' @param datestamp_format [chr] Default `%Y_%m_%d_%H%M%S`.  The format to
@@ -2251,7 +2254,9 @@ SLT <- R6::R6Class(
             csv_reader
             , "fread" = function(...) return(data.table::fread(...))
             , "fread_quiet" = function(...) return(suppressWarnings(data.table::fread(...)))
-            , stop("csv_reader must be one of: fread, fread_quiet")
+            , "read.csv" = function(...) return(data.table::setDT(utils::read.csv(...)))
+            , "read.csv2" = function(...) return(data.table::setDT(utils::read.csv2(...)))
+            , stop("csv_reader must be one of: fread, fread_quiet, read.csv, read.csv2")
          )
 
          # ------------------------------------------------------------------#

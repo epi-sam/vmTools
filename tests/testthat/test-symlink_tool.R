@@ -152,12 +152,12 @@ test_that("Marked logs have correct structure",
                 expect_equal(
                    log_list[[root]][[1]][, .(log_id, user, date_version, version_path, action, comment)],
                    data.table(
-                    log_id = 0:6
-                    , user = rep(Sys.info()[["user"]], 7)
-                    , date_version = rep(dv_list[[1]], 7)
-                    , version_path = rep(file.path(root_list[[root]], dv_list[[1]]), 7)
-                    , action = c("create", "promote_best", "demote_best", "promote_keep", "demote_keep", "promote_remove", "demote_remove")
-                    , comment = c("log created", "Testing mark best", "Testing mark keep", "Testing mark keep", "Testing mark remove", "Testing mark remove", "Testing mark unmark")
+                      log_id = 0:6
+                      , user = rep(Sys.info()[["user"]], 7)
+                      , date_version = rep(dv_list[[1]], 7)
+                      , version_path = rep(file.path(root_list[[root]], dv_list[[1]]), 7)
+                      , action = c("create", "promote_best", "demote_best", "promote_keep", "demote_keep", "promote_remove", "demote_remove")
+                      , comment = c("log created", "Testing mark best", "Testing mark keep", "Testing mark keep", "Testing mark remove", "Testing mark remove", "Testing mark unmark")
                    )
                 )
              }
@@ -174,7 +174,9 @@ test_that("Marked logs have correct structure",
 
 
 
-test_that("Roundup by date throws errors",
+# Integration - Roundups -------------------------------------------------------
+
+test_that("Roundup by date throws expected errors",
           {
              expect_error(
                 slt$roundup_by_date(user_date = "01-01-2023", date_selector = "gte")
@@ -198,6 +200,45 @@ test_that("Roundup by date works",
              )
           })
 
+
+# Integration - CSV readers ----------------------------------------------------
+
+suppressMessages(
+   suppressWarnings({ # idiosyncratic and benign cluster message
+
+      slt_readcsv <- SLT$new(
+         user_root_list = list(
+            root_input  = root_list[["root_input"]],
+            root_output = root_list[["root_output"]]
+         )
+         , user_central_log_root = root_base
+         , csv_reader = "read.csv"
+      )
+   })
+)
+
+test_that("bad csv_reader option produces expected error",
+          {
+             expect_error(
+                SLT$new(
+                   user_root_list = list(
+                      root_input  = root_list[["root_input"]],
+                      root_output = root_list[["root_output"]]
+                   )
+                   , user_central_log_root = root_base
+                   , csv_reader = "readr"
+                )
+                , regexp = "csv_reader must be one of: fread, fread_quiet, read.csv, read.csv2"
+             )
+          })
+
+test_that("read.csv alternate CSV reader works",
+          {
+             expect_equal(
+                slt$roundup_by_date(user_date = "2023-01-01", date_selector = "gte")$root_input
+                , slt_readcsv$roundup_by_date(user_date = "2023-01-01", date_selector = "gte")$root_input
+             )
+          })
 
 
 

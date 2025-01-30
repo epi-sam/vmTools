@@ -8,10 +8,11 @@
 
 2025-01-14
 
-Update:
+Updates:
 
 - Removed purrr package dependency with simple utility function
 - Renamed split_path internal function
+- Added alternative csv reader options (utils::read.csv and utils::read.csv2)
 
 
 

@@ -63,7 +63,10 @@ and throw an error if it finds a schema mismatch.}
 
 \item{\code{csv_reader}}{[chr] Default `fread_quiet`.  The CSV reader to use.
 Options:
-- 'fread'       - data.table standard}
+- 'fread_quiet' - data.table standard, suppress warnings (default)
+- 'fread'       - data.table standard
+- 'read.csv'    - utils::read.csv
+- 'read.csv2'   - utils::read.csv2}
 
 \item{\code{timezone}}{[chr] Default `America/Los_Angeles`.  The timezone to
 use for datestamps in logs. Must be a valid `OlsonNames()` string.}

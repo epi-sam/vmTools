@@ -64,7 +64,7 @@ assert_type = function(x, type){
 #'
 #'  Stops if:
 #'   - x is not a list
-#'   - x is a data.table
+#'   - x is a data.frame
 #'   - x has no names
 #'   - x has any NA names
 #'   - x has any zero-length names
@@ -76,7 +76,7 @@ assert_type = function(x, type){
 #'
 #'  @examples
 #'  assert_named_list(list(a = 1, b = 2)) # OK
-#'  assert_named_list(data.table(a = 1, b = 2)) # Error
+#'  assert_named_list(data.frame(a = 1, b = 2)) # Error
 assert_named_list = function(x){
    if(!is.null(x)){
       err_msg <- "x must be a named list, not vector or data.frame (list names may not be whitespace)"
