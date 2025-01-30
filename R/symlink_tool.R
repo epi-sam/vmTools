@@ -422,7 +422,7 @@ SLT <- R6::R6Class(
 
             coltypes_actual        <- unlist(lapply(names(data_types), function(dtype) typeof(x[[dtype]])))
             names(coltypes_actual) <- names(data_types)
-            coltype_success_mask   <- unlist(purrr::map2(names(data_types), data_types, function(.key, .val){typeof(x[[.key]]) == .val}))
+            coltype_success_mask <- unlist(lapply(names(data_types), function(.key){typeof(x[[.key]]) == data_types[[.key]]}))
 
             if(any(coltype_success_mask == FALSE)){
                coltype_fail_mask <- !coltype_success_mask
@@ -620,7 +620,11 @@ SLT <- R6::R6Class(
             private$find_count_symlinks(root = root, date_version = date_version, symlink_type = x)
          })
 
-         symlink_counts <- unlist(unname(purrr::map_depth(symlink_list, 1, "symlink_count")))
+         # 2025 Jan 30 - deprecating purrr, but leaving here for reference
+         # symlink_counts <- unlist(unname(purrr::map_depth(symlink_list, 1, "symlink_count")))
+         symlink_counts <- unlist(unname(lapply_depth(symlink_list, 1, `[[`, "symlink_count")))
+         # repeat with base R lapply
+         symlink_counts <- unlist(lapply(symlink_list, function(x) x$symlink_count))
 
          version_path <- file.path(root, date_version)
          if(allow_fewer){
@@ -667,9 +671,9 @@ SLT <- R6::R6Class(
          assert_scalar(version_path)
          assert_scalar(symlink_type)
          if(!symlink_type %in% private$DICT$symlink_types) stop("Invalid symlink_type: ", symlink_type)
-         root         <- SplitPath(version_path)$dirname
+         root         <- split_path(version_path)$dirname
          root         <- sub("/$", "", root) # remove trailing slash
-         date_version <- SplitPath(version_path)$fullfilename
+         date_version <- split_path(version_path)$fullfilename
 
          symlink_suffix <- switch(
             symlink_type,
@@ -1574,11 +1578,11 @@ SLT <- R6::R6Class(
       # @return [none] write to disk
       write_report = function(dt_report, write_path, order_cols_tf = TRUE, schema = private$DICT$log_schema){
 
-          if(order_cols_tf){
+         if(order_cols_tf){
             assert_named_list(schema)
             sortable_colnames <- intersect(names(schema), names(dt_report))
             data.table::setcolorder(dt_report, sortable_colnames)
-          }
+         }
 
          data.table::fwrite(dt_report, write_path)
       },
@@ -2003,7 +2007,9 @@ SLT <- R6::R6Class(
             private$find_count_symlinks(root = root, date_version = date_version, symlink_type = x)
          })
 
-         symlink      <- unlist(purrr::map_depth(symlink_list, 1, "symlinks"))
+         # 2025 Jan 30 - deprecating purrr, but leaving here for reference
+         # symlink      <- unlist(purrr::map_depth(symlink_list, 1, "symlinks"))
+         symlink      <- unlist(lapply_depth(symlink_list, 1, `[[`, "symlinks"))
          symlink_type <- names(symlink)
          symlink      <- unname(symlink)
 

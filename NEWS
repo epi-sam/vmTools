@@ -4,6 +4,17 @@
 
 
 
+## v.0.7.0
+
+2025-01-14
+
+Update:
+
+- Removed purrr package dependency with simple utility function
+- Renamed split_path internal function
+
+
+
 ## v.0.6.0
 
 2025-01-14
