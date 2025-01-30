@@ -1,5 +1,6 @@
 # purpose: validations for package internal functioning - not currently tested to work in a broader context
 # - validations return TRUE/FALSE
+# - none should be exported
 
 #' Validate an object is not length 0, empty, blank etc.
 #'

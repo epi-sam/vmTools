@@ -1,5 +1,6 @@
 # purpose: Functions borrowed from DescTools to remove dependency
 # - https://cran.r-project.org/web/packages/DescTools/index.html
+# - none should be exported
 
 #' Replace NAs by a user-defined string
 #'
@@ -96,8 +97,8 @@ StrExtract = function (x, pattern, ...) {
 #'  will be NA.
 #'
 #'  @examples
-#'  SplitPath("C:/Users/JohnDoe/Documents/MyFile.txt")
-SplitPath = function(path, last.is.file = NULL) {
+#'  split_path("C:/Users/JohnDoe/Documents/MyFile.txt")
+split_path = function(path, last.is.file = NULL) {
    if (is.null(last.is.file)) {
       last.is.file <- (length(grep(pattern = "[/\\]$", path)) == 0)
    }

@@ -1,5 +1,6 @@
 # purpose: assertions for package internal functioning - not currently tested to work in a broader context
 # - assertions `stop()` if conditions are violated
+# - none should be exported
 
 #' Types of check functions:
 #' 1. assert_x - stop if conditions are unmet

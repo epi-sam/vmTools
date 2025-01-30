@@ -5,7 +5,6 @@
 #' @param prefix [chr] The prefix to add to each line
 #'
 #' @return NULL
-#' @export
 #'
 #' @examples
 #' dir_tree()
