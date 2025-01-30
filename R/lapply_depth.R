@@ -1,7 +1,7 @@
 #' lapply at some list dept
 #'
 #' Very simple replacement for purrr::map_depth to remove package dependency,
-#' but not very robust.  Internal package use only in select casese.
+#' but not very robust.  Internal package use only in select cases.
 #'
 #' @param .x [list] List to apply function to
 #' @param .depth [integer] Depth to apply function at
