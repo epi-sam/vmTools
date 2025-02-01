@@ -3,6 +3,6 @@
 .RData
 .Ruserdata
 inst/doc
-troubleshooting/symlink_tool_tester.R
-troubleshooting/local_installer.R
+inst/symlink_tool_tester.R
+inst/local_installer.R
 */.html

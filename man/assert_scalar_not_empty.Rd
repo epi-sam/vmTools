@@ -17,5 +17,5 @@ Assert x is a scalar, and not empty in some way
 }
 \examples{
 assert_scalar_not_empty("A") # OK
-assert_scalar_not_empty(Inf) # Error - Inf considered non-meaningful - see validate_not_empty
+# assert_scalar_not_empty(Inf) # Error - Inf considered non-meaningful - see validate_not_empty
 }

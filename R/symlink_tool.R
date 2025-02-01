@@ -53,7 +53,7 @@
 # - [x] don't demote if the symlink is already the desired type
 #       - clutters up the logs, but not a deal-breaker
 # TODO SB - 2024 Sep 03
-# - [ ] Remove dependency on all packags except R6
+# - [x] Remove dependency on all packags except R6 (2025 Jan 31 - done for now)
 #     - [x] library(DescTools)
 #     - [x] library(lubridate)
 #         - [x] write test for date roundup
@@ -63,20 +63,19 @@
 #         - [x] format_datetimestamp <- "%Y_%m_%d_%H%M%S"
 #     - [x] library(purrr)
 #     - [ ] library(data.table)
+#           - no - this can be a later release, but it's too embedded now (2025 Jan 31)
 #        - [ ] option for library(readr) to avoid quoting issues?
-# - [ ] Move private method docstrings inside functions so they can be seen when called anonymously
+#              - no - no additional dependencies for now (2025 Jan 31)
+# - [x] Move private method docstrings inside functions so they can be seen when called anonymously
 # - [ ] Convert messages to std_out?
+#       - no, not for now (2025 Jan 31)
 # - [x] Move all utility functions to other files, put under test
-
 
 #> NOTE:
 #> These are required, but all namespaced within:
 #>
 #> library(R6)
-#> library(DescTools)
 #> library(data.table)
-#> library(lubridate)
-#> library(purr)
 #>
 #> WARNING: DO NOT touch '.__enclos_env__' unless you want the tool to break
 #>
@@ -96,6 +95,7 @@
 #> Required for vignette to work in Rmarkdown
 #> Known issue: https://github.com/rstudio/rmarkdown/issues/187
 .datatable.aware = TRUE
+
 
 SLT <- R6::R6Class(
 
@@ -671,7 +671,7 @@ SLT <- R6::R6Class(
          assert_scalar(version_path)
          assert_scalar(symlink_type)
          if(!symlink_type %in% private$DICT$symlink_types) stop("Invalid symlink_type: ", symlink_type)
-         root         <- split_path(version_path)$dirname
+         root         <- split_path(version_path)$fullpath
          root         <- sub("/$", "", root) # remove trailing slash
          date_version <- split_path(version_path)$fullfilename
 

@@ -6,13 +6,16 @@
 \usage{
 is_an_error(x)
 }
-\description{
-@param x [obj] some R object
+\arguments{
+\item{x}{[obj] some R object}
 }
-\details{
-@return [lgl] TRUE / FALSE
-
- @examples
- is_an_error(simpleError("error")) # TRUE
- is_an_error(message("error)) # FALSE
+\value{
+[lgl] TRUE / FALSE
+}
+\description{
+Determine if an object is an error
+}
+\examples{
+is_an_error(simpleError("error")) # TRUE
+is_an_error(message("error")) # FALSE
 }

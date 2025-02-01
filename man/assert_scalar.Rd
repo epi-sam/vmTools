@@ -20,5 +20,5 @@ Assert an element is atomic and length 1
 }
 \examples{
 assert_scalar("A") # OK
-assert_scalar(1:2) # Error
+# assert_scalar(1:2) # Error
 }

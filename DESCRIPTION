@@ -6,15 +6,19 @@ Author: Sam Byrne
 Maintainer: Sam Byrne <ssbyrne@uw.edu>
 Description: Set of tools for managing pipeline output folders
     Symlink Tool - an R6 class for managing output folder 'best' status with structured logging.
-License: What license is it under?
+License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true
-Suggests: 
+Imports:
     R6 (>= 2.5.1),
-    data.table (>= 1.15.4),
+    data.table (>= 1.15.4)
+Suggests: 
     knitr (>= 1.46),
     rmarkdown (>= 2.27),
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    qpdf
 VignetteBuilder: knitr
 RoxygenNote: 7.3.1
 Config/testthat/edition: 3
+Acknowledgments:
+    

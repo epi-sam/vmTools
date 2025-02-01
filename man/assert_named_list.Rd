@@ -6,21 +6,22 @@
 \usage{
 assert_named_list(x)
 }
+\arguments{
+\item{x}{[list] List to check}
+}
+\value{
+[none] stop if assertion fails
+}
 \description{
 Stops if:
-  - x is not a list
-  - x is a data.frame
-  - x has no names
-  - x has any NA names
-  - x has any zero-length names
-  - x has any whitespace-only names
+ - x is not a list
+ - x is a data.frame
+ - x has no names
+ - x has any NA names
+ - x has any zero-length names
+ - x has any whitespace-only names
 }
-\details{
-@param x [list] List to check
-
- @return [none] stop if assertion fails
-
- @examples
- assert_named_list(list(a = 1, b = 2)) # OK
- assert_named_list(data.frame(a = 1, b = 2)) # Error
+\examples{
+assert_named_list(list(a = 1, b = 2)) # OK
+# assert_named_list(data.frame(a = 1, b = 2)) # Error
 }

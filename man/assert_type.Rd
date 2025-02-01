@@ -19,5 +19,5 @@ Assert an object is a scalar of a certain type
 }
 \examples{
 assert_type("A", "character") # OK
-assert_type(1, "integer") # Error - need 1L
+# assert_type(1, "integer") # Error - need 1L
 }

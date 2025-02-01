@@ -29,16 +29,16 @@ validate_not_empty = function(x) {
    return(TRUE)
 }
 
-#'  Validate whether a directory exists
+#' Validate whether a directory exists
 #'
-#'  @param x [path] A directory path
-#'  @param verbose [lgl] message to std_out?
+#' @param x [path] A directory path
+#' @param verbose [lgl] message to std_out?
 #'
-#'  @return [lgl] TRUE if directory exists, FALSE otherwise
+#' @return [lgl] TRUE if directory exists, FALSE otherwise
 #'
-#'  @examples
-#'  validate_dir_exists(".") # TRUE
-#'  validate_dir_exists("nonexistent") # FALSE
+#' @examples
+#' validate_dir_exists(".") # TRUE
+#' validate_dir_exists("nonexistent") # FALSE
 validate_dir_exists = function(x, verbose = TRUE){
    assert_scalar(x)
    root <- suppressWarnings(normalizePath(x))
@@ -50,15 +50,15 @@ validate_dir_exists = function(x, verbose = TRUE){
    }
 }
 
-#'  Determine if an object is an error
+#' Determine if an object is an error
 #'
-#'  @param x [obj] some R object
+#' @param x [obj] some R object
 #'
-#'  @return [lgl] TRUE / FALSE
+#' @return [lgl] TRUE / FALSE
 #'
-#'  @examples
-#'  is_an_error(simpleError("error")) # TRUE
-#'  is_an_error(message("error)) # FALSE
+#' @examples
+#' is_an_error(simpleError("error")) # TRUE
+#' is_an_error(message("error")) # FALSE
 is_an_error = function(x) {
    return(inherits(x, "simpleError") || inherits(x, "try-error"))
 }

@@ -9,16 +9,22 @@ title: "Symlink Tool Technical Vignette"
 #      toc_float: true
 # for package builds
 output: rmarkdown::html_vignette
+Encoding: UTF-8
 vignette: >
   %\VignetteIndexEntry{symlink_tool_vignette_technical}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+# knitr:
+#   opts_chunk:
+#     dev: "svg"
 ---
 
 ```{r, include = FALSE}
+# library(ragg)
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
+  # dev = "ragg_png"
 )
 
 # Chunk options
@@ -31,7 +37,7 @@ hook_output <- knitr::knit_hooks$get("output")
 # set a new output hook to truncate text output
 knitr::knit_hooks$set(output = function(x, options) {
   if (!is.null(n <- options$out.lines)) {
-    x <- xfun::split_lines(x)
+    x <- split_lines(x)
     if (length(x) > n) {
       # truncate the output
       # x <- c(head(x, n), "....\n")
@@ -45,7 +51,8 @@ knitr::knit_hooks$set(output = function(x, options) {
 ```
 
 ```{r setup}
-devtools::load_all()
+# devtools::load_all() # for interactive use
+library(vmTools) # to build vignettes
 library(data.table)
 ```
 

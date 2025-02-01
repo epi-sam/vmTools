@@ -31,11 +31,12 @@ dir_tree <- function(path = ".", level = Inf, prefix = "") {
    }
 
    files <- list.files(path, full.names = TRUE)
-   n <- length(files)
+   N <- length(files)
 
+   # browser()
    for (i in seq_along(files)) {
-      is_last <- i == n
-      connector <- if (is_last) "└─ " else "├─ "
+      is_last <- i == N
+      connector <- if (is_last) "`-- " else "|-- "
 
       # Determine if it's a folder or file
       is_folder <- file.info(files[i])$isdir
@@ -63,7 +64,7 @@ dir_tree <- function(path = ".", level = Inf, prefix = "") {
 
       # Recurse into folders
       if (is_folder && level > 1) {
-         new_prefix <- if (is_last) paste0(prefix, "   ") else paste0(prefix, "│  ")
+         new_prefix <- if (is_last) paste0(prefix, "   ") else paste0(prefix, "|  ")
          dir_tree(files[i], level - 1, new_prefix)
       }
    }
