@@ -20,7 +20,7 @@ lapply_depth(.x, .depth, .f, ...)
 }
 \description{
 Very simple replacement for purrr::map_depth to remove package dependency,
-but not very robust.  Internal package use only in select casese.
+but not very robust.  Internal package use only in select cases.
 }
 \examples{
 # intended use case - "pluck" a named list element out of each list

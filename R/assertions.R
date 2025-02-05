@@ -60,23 +60,23 @@ assert_type = function(x, type){
    }
 }
 
-#'  Assert an object is a list with named elements
+#' Assert an object is a list with named elements
 #'
-#'  Stops if:
-#'   - x is not a list
-#'   - x is a data.frame
-#'   - x has no names
-#'   - x has any NA names
-#'   - x has any zero-length names
-#'   - x has any whitespace-only names
+#' Stops if:
+#'  - x is not a list
+#'  - x is a data.frame
+#'  - x has no names
+#'  - x has any NA names
+#'  - x has any zero-length names
+#'  - x has any whitespace-only names
 #'
-#'  @param x [list] List to check
+#' @param x [list] List to check
 #'
-#'  @return [none] stop if assertion fails
+#' @return [none] stop if assertion fails
 #'
-#'  @examples
-#'  assert_named_list(list(a = 1, b = 2)) # OK
-#'  assert_named_list(data.frame(a = 1, b = 2)) # Error
+#' @examples
+#' assert_named_list(list(a = 1, b = 2)) # OK
+#' assert_named_list(data.frame(a = 1, b = 2)) # Error
 assert_named_list = function(x){
    if(!is.null(x)){
       err_msg <- "x must be a named list, not vector or data.frame (list names may not be whitespace)"
