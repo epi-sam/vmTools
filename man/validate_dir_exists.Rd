@@ -18,6 +18,6 @@ validate_dir_exists(x, verbose = TRUE)
 Validate whether a directory exists
 }
 \examples{
-validate_dir_exists(".") # TRUE
-validate_dir_exists("nonexistent") # FALSE
+vmTools:::validate_dir_exists(".") # TRUE
+vmTools:::validate_dir_exists("nonexistent") # FALSE
 }

@@ -19,5 +19,5 @@ with NA. BlankIfNA() and NAIfBlank() do the same, but for character
 vectors.
 }
 \examples{
-ZeroIfNA(c(1, 2, NA, 4)) # 1 2 0 4
+vmTools:::ZeroIfNA(c(1, 2, NA, 4)) # 1 2 0 4
 }

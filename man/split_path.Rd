@@ -18,10 +18,10 @@ either \ or / and as filename else.}
 [list] with components:
 \itemize{
  \item{normpath: normalized path}
- \item{drive: drive letter (only important for windows)}
+ \item{drive: drive letter - only important for windows}
  \item{dirname: directory name}
  \item{fullfilename: full filename}
- \item{fullpath: full path (use this - works for windows and unix)}
+ \item{fullpath: full path use this - works for windows and unix}
  \item{filename: filename}
  \item{extension: extension}
 }
@@ -34,5 +34,5 @@ Split a full path in its components. This is specifically an issue in
 Windows and not really interesting for other OSs.
 }
 \examples{
-split_path("C:/Users/JohnDoe/Documents/MyFile.txt")
+vmTools:::split_path("C:/Users/JohnDoe/Documents/MyFile.txt")
 }

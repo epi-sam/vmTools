@@ -11,8 +11,8 @@
 #' @return [lgl] FALSE if empty in some way, TRUE otherwise
 #'
 #' @examples
-#' validate_not_empty(1) # TRUE
-#' validate_not_empty(NULL) # FALSE
+#' vmTools:::validate_not_empty(1) # TRUE
+#' vmTools:::validate_not_empty(NULL) # FALSE
 validate_not_empty = function(x) {
    # Check for missing arguments
    if (missing(x)) return(FALSE)
@@ -37,8 +37,8 @@ validate_not_empty = function(x) {
 #' @return [lgl] TRUE if directory exists, FALSE otherwise
 #'
 #' @examples
-#' validate_dir_exists(".") # TRUE
-#' validate_dir_exists("nonexistent") # FALSE
+#' vmTools:::validate_dir_exists(".") # TRUE
+#' vmTools:::validate_dir_exists("nonexistent") # FALSE
 validate_dir_exists = function(x, verbose = TRUE){
    assert_scalar(x)
    root <- suppressWarnings(normalizePath(x))
@@ -57,8 +57,8 @@ validate_dir_exists = function(x, verbose = TRUE){
 #' @return [lgl] TRUE / FALSE
 #'
 #' @examples
-#' is_an_error(simpleError("error")) # TRUE
-#' is_an_error(message("error")) # FALSE
+#' vmTools:::is_an_error(simpleError("error")) # TRUE
+#' vmTools:::is_an_error(message("error")) # FALSE
 is_an_error = function(x) {
    return(inherits(x, "simpleError") || inherits(x, "try-error"))
 }

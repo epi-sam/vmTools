@@ -28,5 +28,5 @@ StrExtractBetween() is a convenience function used to extract parts
 between a left and right delimiter.
 }
 \examples{
-StrExtract("abc123def", "[0-9]+") # "123"
+vmTools:::StrExtract("abc123def", "[0-9]+") # "123"
 }

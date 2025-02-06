@@ -15,7 +15,7 @@
 #' @return [vector] edited vector x
 #'
 #' @examples
-#' BlankIfNA(c(1, 2, NA, 4)) # "1" "2" "" "4"
+#' vmTools:::BlankIfNA(c(1, 2, NA, 4)) # "1" "2" "" "4"
 BlankIfNA = function (x, blank = "") {
    replace(x, is.na(x), blank)
 }
@@ -32,7 +32,7 @@ BlankIfNA = function (x, blank = "") {
 #' @return [vector] edited vector x
 #'
 #' @examples
-#' ZeroIfNA(c(1, 2, NA, 4)) # 1 2 0 4
+#' vmTools:::ZeroIfNA(c(1, 2, NA, 4)) # 1 2 0 4
 ZeroIfNA = function (x) {
    replace(x, is.na(x), 0L)
 }
@@ -56,7 +56,7 @@ ZeroIfNA = function (x) {
 #' @return [chr] A character vector.
 #'
 #' @examples
-#' StrExtract("abc123def", "[0-9]+") # "123"
+#' vmTools:::StrExtract("abc123def", "[0-9]+") # "123"
 StrExtract = function (x, pattern, ...) {
    m                    <- regexpr(pattern, x, ...)
    regmatches(x, m)
@@ -79,10 +79,10 @@ StrExtract = function (x, pattern, ...) {
 #' @return [list] with components:
 #' \itemize{
 #'  \item{normpath: normalized path}
-#'  \item{drive: drive letter (only important for windows)}
+#'  \item{drive: drive letter - only important for windows}
 #'  \item{dirname: directory name}
 #'  \item{fullfilename: full filename}
-#'  \item{fullpath: full path (use this - works for windows and unix)}
+#'  \item{fullpath: full path use this - works for windows and unix}
 #'  \item{filename: filename}
 #'  \item{extension: extension}
 #' }
@@ -91,7 +91,7 @@ StrExtract = function (x, pattern, ...) {
 #' will be NA.
 #'
 #' @examples
-#' split_path("C:/Users/JohnDoe/Documents/MyFile.txt")
+#' vmTools:::split_path("C:/Users/JohnDoe/Documents/MyFile.txt")
 split_path = function(path, last.is.file = NULL) {
    if (is.null(last.is.file)) {
       last.is.file <- (length(grep(pattern = "[/\\]$", path)) == 0)

@@ -1,102 +1,11 @@
-#> started: 2024 Jan 18 12:11:00
-#> purpose: tool to manage symlinks for outputs in a standardized way
-#> - using as an intermediate option for version management since log_tool is more complex than anticipated
-#>
 
-# TODOS for v 1.0
-# ~TODO~ SB - 2024 Jan 18 - ensure each date_version can only have one symlink (ls -l | grep ); DONE 2024 Feb 05
-# ~TODO~ SB - 2024 Feb 05 - User function get declarative interior
-# ~TODO~ SB - 2024 Feb 06 - Fix phantom symlink showing up on log creation
-# ~TODO~ SB - 2024 Feb 06 - Get simultaneous promotion/demotion working across symlink types
-# - probably want a strategy change
-#   - first assert only one extant symlink _per version_ (ensure no handmade links exist)
-#   - find and demote existing symlinks by _existing type_
-#   - then move onto promotion by user's _chosen type_
-# TODO SB - 2024 Feb 07 - write a report function
-# - [x] Function to read all logs in a `root` - `try(read_log())` for every folder
-#     - [x] separate into active symlinks and other folders
-#     - [x] any other symlinks (probably won't get logs for these - how to handle?)
-#     - [x] validate active symlinks have `promote` in last row
-#     - [x] validate others have `demote` in last row
-#         - [x] discrepancies imply tool bug or user manipulation
-#     - [x] Wrap report updater into `handler_post_mark`
-# TODO SB - 2024 Feb 07 - write a tool for deletion and roundup of st-gpr models
-#  - [x] pull assert_data_schema (maybe abbreviated form) into the tool
-# TODO SB - 2024 Feb 06 - write a tool for deletion and roundup of st-gpr models
-# - require user-input to confirm deletion
-# - [x] Function to roundup all  active 'remove' symlinks
-#     - [x] this should wrap the `find_active_symlinks` function and filter
-# TODO SB - 2024 Feb 23 - Other Roundups
-# - [x] by date
-# TODO SB - 2024 Feb 23 - Central log
-# - [x] central log is updated after all marking operations
-# TODO SB - 2024 Feb 26 - THINK ABOUT
-# - [x] central updates ONLY with the user-intended action, and does not show demotions, as the date_version logs do
-#       - this wasn't _intended_ behavior, but may or may not be desirable
-#       - could be nice to have "high level" view in central log, the fine-grained chain-of-custody in the date_version logs
-#       - this would show reveal if a symlink were deleted by hand, rather than with the tool, but leave the central log a bit more readable
-#       - this would also make the central log a bit more "high level" and less "fine-grained"
-#       - THIS IS FINE for v 1.0
-# TODO SB - 2024 Feb 28
-# - [x] option to delete `remove_` folders and symlink and append action to central log
-# - [x] option to create new folders with new log
-# TODO SB - 2024 Feb 15 -
-# - [x] public function for empty log (for first pipeline outputs)
-# - [x] allow user to set root(s) at initialization
-# TODO SB - 2024 Jun 07
-# - [x] fully document the package
-# - [ ] consistent strategy to pass around private$DICT values
-#     PICK ONE:
-#     - [ ] use private$DICT directly
-#     - [ ] submit private$DICT through all function args
-# TODO SB - 2024 Feb 06
-# - [x] don't demote if the symlink is already the desired type
-#       - clutters up the logs, but not a deal-breaker
-# TODO SB - 2024 Sep 03
-# - [x] Remove dependency on all packags except R6 (2025 Jan 31 - done for now)
-#     - [x] library(DescTools)
-#     - [x] library(lubridate)
-#         - [x] write test for date roundup
-#         - [x] add instantiate level TZ control
-#                 tz_sys <- format(Sys.time(), "%Z") # Sys.timezone() is incorrect
-#                 OlsonNames() # list of timezones
-#         - [x] format_datetimestamp <- "%Y_%m_%d_%H%M%S"
-#     - [x] library(purrr)
-#     - [ ] library(data.table)
-#           - no - this can be a later release, but it's too embedded now (2025 Jan 31)
-#        - [ ] option for library(readr) to avoid quoting issues?
-#              - no - no additional dependencies for now (2025 Jan 31)
-# - [x] Move private method docstrings inside functions so they can be seen when called anonymously
-# - [ ] Convert messages to std_out?
-#       - no, not for now (2025 Jan 31)
-# - [x] Move all utility functions to other files, put under test
-
-#> NOTE:
-#> These are required, but all namespaced within:
-#>
-#> library(R6)
-#> library(data.table)
-#>
-#> WARNING: DO NOT touch '.__enclos_env__' unless you want the tool to break
-#>
-#> NOTES:
-#>   DEBUGGING:
-#>     - The 'red dot' stop point will not work with R6 objects
-#>     - Use `debug(my_fun)/undebug(my_fun)` or place a `browser()` in the code
-#>     - See https://r6.r-lib.org/articles/Debugging.html
-#>
-#>   LIBRARIES
-#>     - Relies on libraries declared above, but calls on all functions by package namespace for clarity and robustness
-#>     - data.tables themselves cannot be namespaced
-#>
-#>   ROXYGEN
-#>     - Roxygen docstrings cannot be added to private methods, because reasons
-#>
-#> Required for vignette to work in Rmarkdown
-#> Known issue: https://github.com/rstudio/rmarkdown/issues/187
-.datatable.aware = TRUE
+.datatable.aware = TRUE # required for tests/vignettes
 
 
+#' SymlinkTool R6 class
+#' @import data.table
+#' @importFrom R6 R6Class
+#' @export
 SLT <- R6::R6Class(
 
    "Symlink_Tool",
@@ -221,7 +130,7 @@ SLT <- R6::R6Class(
          # NOTE: There is also a set in private$assert_n_symlinks() that cannot be set here
          #       If you ever update symlink types, adjust it there as well
          #       Also: make_symlink_path()
-         symlink_rgx_extract = list(
+         symlink_regex_extract = list(
             best   = paste0("^best"),
             keep   = paste0("^keep_"),
             remove = paste0("^remove_")
@@ -363,11 +272,11 @@ SLT <- R6::R6Class(
          }
 
          if(!is.null(regex_req)) {
-            rgx_list <- lapply(regex_req, x = x, function(rgx, x){
-               if(!any(grepl(rgx, names(x)))) return(rgx)
+            regex_list <- lapply(regex_req, x = x, function(regex, x){
+               if(!any(grepl(regex, names(x)))) return(regex)
             })
-            rgx_failures <- paste(unlist(rgx_list), collapse = ", ")
-            if(nchar(rgx_failures)) stop(my_dt_name, ": ", "No column name contains the required pattern(s):\n", "    ", rgx_failures)
+            regex_failures <- paste(unlist(regex_list), collapse = ", ")
+            if(nchar(regex_failures)) stop(my_dt_name, ": ", "No column name contains the required pattern(s):\n", "    ", regex_failures)
          }
 
          if(!is.null(varnames_forbid)){
@@ -376,11 +285,11 @@ SLT <- R6::R6Class(
          }
 
          if(!is.null(regex_forbid)){
-            rgx_list <- lapply(regex_forbid, x = x, function(rgx, x){
-               if(any(grepl(rgx, names(x)))) return(names(x)[grepl(rgx, names(x))])
+            regex_list <- lapply(regex_forbid, x = x, function(regex, x){
+               if(any(grepl(regex, names(x)))) return(names(x)[grepl(regex, names(x))])
             })
-            rgx_failures <- paste(unlist(rgx_list), collapse = ", ")
-            if(nchar(rgx_failures)) stop(my_dt_name, ": ", "Some column name(s) contain the forbidden pattern(s): ", paste(regex_forbid, collapse = ", "), "\n", "    ", rgx_failures)
+            regex_failures <- paste(unlist(regex_list), collapse = ", ")
+            if(nchar(regex_failures)) stop(my_dt_name, ": ", "Some column name(s) contain the forbidden pattern(s): ", paste(regex_forbid, collapse = ", "), "\n", "    ", regex_failures)
          }
 
          if(!is.null(data_types)){
@@ -533,35 +442,35 @@ SLT <- R6::R6Class(
          assert_scalar(symlink_type)
 
          # Define all eligible symlink regex patterns by type
-         arrow_rgx <- " -> " # used in bash to show symlinks
+         arrow_regex <- " -> " # used in bash to show symlinks
          # We're ONLY monitoring symlinks of a certain pattern - users are free to make others
-         symlink_rgx <- switch(
+         symlink_regex <- switch(
             symlink_type,
-            best     = paste0("best", arrow_rgx, ".*", date_version)
-            , keep   = paste0("keep_", date_version, arrow_rgx, ".*", date_version)
-            , remove = paste0("remove_", date_version, arrow_rgx, ".*", date_version)
+            best     = paste0("best", arrow_regex, ".*", date_version)
+            , keep   = paste0("keep_", date_version, arrow_regex, ".*", date_version)
+            , remove = paste0("remove_", date_version, arrow_regex, ".*", date_version)
          )
 
          # validate
-         if(!all(names(symlink_rgx) %in% private$DICT$symlink_types)){
-            stop("Some of your symlink_rgx are not valid options - update 'private$DICT$symlink_types': \n  ",
-                 paste0(names(symlink_rgx), collapse = "\n  ")
+         if(!all(names(symlink_regex) %in% private$DICT$symlink_types)){
+            stop("Some of your symlink_regex are not valid options - update 'private$DICT$symlink_types': \n  ",
+                 paste0(names(symlink_regex), collapse = "\n  ")
             )
          }
 
          # subset to user's chosen symlink_type
-         # symlink_rgx <- symlink_rgx[names(symlink_rgx) %in% symlink_type]
+         # symlink_regex <- symlink_regex[names(symlink_regex) %in% symlink_type]
 
          folder_contents <- system(paste("ls -l", root), intern = TRUE)
          folder_contents <- folder_contents[-1] # remove "total xxx"
          if(length(folder_contents) == 0) stop("No items found in your root folder - investigate")
 
-         symlinks <- lapply(symlink_rgx, function(rgx){
-            grep(rgx, folder_contents, value = TRUE)
+         symlinks <- lapply(symlink_regex, function(regex){
+            grep(regex, folder_contents, value = TRUE)
          })
          # count symlinks by date_version
-         symlinks_found_lgl <- lapply(symlink_rgx, function(rgx){
-            grepl(rgx, folder_contents)
+         symlinks_found_lgl <- lapply(symlink_regex, function(regex){
+            grepl(regex, folder_contents)
          })
          symlink_count <- unlist(lapply(symlinks_found_lgl, sum))
 
@@ -694,16 +603,16 @@ SLT <- R6::R6Class(
       #
       #  @return [chr] the symlink string
       extract_symlink = function(symlink_string){
-         arrow_rgx <- " -> " # used by linux to show symlinks
-         if(!grepl(arrow_rgx, symlink_string)) stop("No arrow found in symlink_string: ", symlink_string)
-         match_idx <- regexpr(arrow_rgx, symlink_string)
+         arrow_regex <- " -> " # used by linux to show symlinks
+         if(!grepl(arrow_regex, symlink_string)) stop("No arrow found in symlink_string: ", symlink_string)
+         match_idx <- regexpr(arrow_regex, symlink_string)
          str_pre_arrow <- substr(symlink_string, 1, match_idx - 1)
          # grab the last string of non-whitespace characters
          str_symlink <- tail(strsplit(str_pre_arrow, " ")[[1]], 1)
          # validate against allowed patterns
-         symlink_rgx <- private$DICT$symlink_rgx_extract
-         symlink_rgx <- paste(unlist(symlink_rgx), collapse = "|")
-         if(!grepl(symlink_rgx, str_symlink)) {
+         symlink_regex <- private$DICT$symlink_regex_extract
+         symlink_regex <- paste(unlist(symlink_regex), collapse = "|")
+         if(!grepl(symlink_regex, str_symlink)) {
             stop("Invalid symlink found - inspect extract_symlink logic: ", str_symlink)
          }
          return(str_symlink)
@@ -817,7 +726,7 @@ SLT <- R6::R6Class(
          # Remove symlinks and base folders
          # ensure the folder is marked `remove_`
          # - the tool will not delete unmarked folders, that's the entire point of the tool
-         folder_dt_removes      <- folder_dt[is_tool_symlink == TRUE & grepl(private$DICT$symlink_rgx_extract$remove, dir_leaf), ]
+         folder_dt_removes      <- folder_dt[is_tool_symlink == TRUE & grepl(private$DICT$symlink_regex_extract$remove, dir_leaf), ]
          deletion_symlink_exact <- paste0("remove_", date_version)
          deletion_dir_name      <- folder_dt[dir_leaf == deletion_symlink_exact, dir_name]
 
@@ -1316,10 +1225,10 @@ SLT <- R6::R6Class(
          # - keep name distinct to avoid data.table conflicts with function args
          folder_dt[, dir_date_version := basename(dir_name_resolved)]
          # define symlinks that could and couldn't have been created by this tool for later use
-         tool_symlink_rgx  <- private$DICT$symlink_rgx_extract
-         tool_symlink_rgx  <- paste(tool_symlink_rgx, collapse = "|")
+         tool_symlink_regex  <- private$DICT$symlink_regex_extract
+         tool_symlink_regex  <- paste(tool_symlink_regex, collapse = "|")
          folder_dt[, is_symlink := dir_name != dir_name_resolved]
-         folder_dt[, is_tool_symlink := grepl(tool_symlink_rgx, dir_leaf)]
+         folder_dt[, is_tool_symlink := grepl(tool_symlink_regex, dir_leaf)]
          return(folder_dt)
       },
 
@@ -2165,23 +2074,24 @@ SLT <- R6::R6Class(
       # NEW -----------------------------------------------------------------------
 
 
-      #' Initialize the SymlinkTool object (an R6 class)
+      #' @description
+      #' Initialize the SymlinkTool object - an R6 class
       #'
       #' @param user_root_list [list] Named list of root directories for
-      #'   pipeline outputs. This is where `date_version` folders live (these
-      #'   are iterative runs of an analysis pipeline.)
+      #'   pipeline outputs. This is where `date_version` folders live - these
+      #'   are iterative runs of an analysis pipeline.
       #' @param user_central_log_root [path] Root directory for the central log.
       #'   If you have multiple roots in the `user_root_list`, you probably want
       #'   the central log to live one level above those roots.
       #' @param schema_repair [logical] Default `TRUE`.  If `TRUE`, the tool
       #'   will attempt to repair any schema mismatches it finds in the logs
-      #'   when reading and writing (e.g.) add new columns if the tool schema
+      #'   when reading and writing e.g. add new columns if the tool schema
       #'   has columns that existing logs do not. If `FALSE`, the tool will stop
       #'   and throw an error if it finds a schema mismatch.
       #' @param csv_reader [chr] Default `fread_quiet`.  The CSV reader to use.
       #'   Options:
       #' \itemize{
-      #'  \item{fread_quiet - data.table standard, suppress warnings (default)}
+      #'  \item{fread_quiet - data.table standard, suppress warnings - default}
       #'  \item{fread       - data.table standard}
       #'  \item{read.csv    - `utils::read.csv`}
       #'  \item{read.csv2   - `utils::read.csv2`}
@@ -2190,10 +2100,15 @@ SLT <- R6::R6Class(
       #'  use for datestamps in logs. Must be a valid `OlsonNames()` string.
       #'
       #' @return [symlink_tool] A symlink tool object.  You can instantiate
-      #'   (create) multiple objects, each of which has different roots and
+      #'   a.k.a. create multiple objects, each of which has different roots and
       #'   central logs.
       #'
       #' @export
+      #'
+      #' @examples
+      #'
+      #' try(SLT$new()) # call with no arguments to see instructions
+      #' slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
       initialize = function(
       user_root_list          = NULL
       , user_central_log_root = NULL
@@ -2201,7 +2116,6 @@ SLT <- R6::R6Class(
       , csv_reader            = "fread_quiet"
       , timezone              = "America/Los_Angeles"
       ) {
-
 
          # Helpful start-up feedback
          if(is.null(user_root_list)){
@@ -2248,7 +2162,7 @@ SLT <- R6::R6Class(
          # ------------------------------------------------------------------#
 
          # libraries
-         library(data.table)
+         # library(data.table)
          # only fread is currently supported due to how data types are defined when reading in logs
          private$csv_reader <- switch(
             csv_reader
@@ -2303,15 +2217,14 @@ SLT <- R6::R6Class(
 
       ## Show Internals --------------------------------------------------------
 
-      #' Print the contents of all private dictionaries.
+      #' @description
+      #' Return the contents of all private dictionaries.
       #'
       #' @param item_names [chr] Default `NULL`.  If `NULL`, show all static
       #'   internal fields.  Otherwise, vector of static field names you want to
       #'   see.
       #'
-      #' @return [std_out] Print static field values to std_out.
-      #'
-      #'
+      #' @return [list] of all static interal fields
       #'
       return_dictionaries = function(item_names = NULL){
          dict_names <- names(private$DICT)
@@ -2324,6 +2237,7 @@ SLT <- R6::R6Class(
          return(return_list)
       },
 
+      #' @description
       #' Print the contents of all dynamic fields.
       #'
       #' @param item_names [chr] Default `NULL`.  If `NULL`, show all dynamic
@@ -2331,8 +2245,6 @@ SLT <- R6::R6Class(
       #'   to see.
       #'
       #' @return [std_out] Print dynamic field values to std_out.
-      #'
-      #'
       #'
       return_dynamic_fields = function(item_names = NULL){
          dict_names <- names(private$DYNAMIC)
@@ -2347,6 +2259,7 @@ SLT <- R6::R6Class(
 
       ## Marks and Symlinks ----------------------------------------------------
 
+      #' @description
       #' Mark an output folder with a "best" symlink.
       #'
       #' Enforces:
@@ -2414,7 +2327,7 @@ SLT <- R6::R6Class(
       },
 
 
-
+      #' @description
       #' Mark an output folder with a "keep_<date_version>" symlink
       #'
       #' Writes:
@@ -2471,7 +2384,7 @@ SLT <- R6::R6Class(
       },
 
 
-
+      #' @description
       #' Mark an output folder with a "remove_<date_version>" symlink
       #'
       #' Indication that the results can be deleted
@@ -2533,7 +2446,7 @@ SLT <- R6::R6Class(
       },
 
 
-
+      #' @description
       #' Remove all symlinks for a single `date_version` in all `roots`
       #'
       #' Writes:
@@ -2572,6 +2485,7 @@ SLT <- R6::R6Class(
 
       ## Path Roundups ---------------------------------------------------------
 
+      #' @description
       #' Find all `best_` symlinks in all `roots`
       #'
       #' Return both the symlink and the resolved symlink (folder the symlink
@@ -2582,6 +2496,7 @@ SLT <- R6::R6Class(
          return(lapply(private$DICT$ROOTS, private$query_all_best_symlinks))
       },
 
+      #' @description
       #' Find all `keep_` symlinks in all `roots`
       #'
       #' Return both the symlink and the resolved symlink (folder the symlink
@@ -2592,6 +2507,7 @@ SLT <- R6::R6Class(
          return(lapply(private$DICT$ROOTS, private$query_all_keep_symlinks))
       },
 
+      #' @description
       #' Find all `remove_` symlinks in all `roots`
       #'
       #' Return both the symlink and the resolved symlink (folder the symlink
@@ -2602,6 +2518,7 @@ SLT <- R6::R6Class(
          return(lapply(private$DICT$ROOTS, private$query_all_remove_symlinks))
       },
 
+      #' @description
       #' Find all folders without symlinks in all `roots`
       #'
       #' Useful if you're rapidly iterating, have only marked a couple folders,
@@ -2612,6 +2529,7 @@ SLT <- R6::R6Class(
          return(lapply(private$DICT$ROOTS, private$query_all_unmarked))
       },
 
+      #' @description
       #' Find all `date_version` folders by creation date
       #'
       #' Only finds folders that _have a log_, and reads creation date on first
@@ -2669,6 +2587,7 @@ SLT <- R6::R6Class(
 
       ## Folder Creation -------------------------------------------------------
 
+      #' @description
       #' Create a new `date_version` folder in _ALL THE TOOL'S ROOTS_
       #'
       #' Create a new log in each folder.  No symlinks are created.  No
@@ -2694,6 +2613,7 @@ SLT <- R6::R6Class(
 
       },
 
+      #' @description
       #' Safely write an empty log file for first pipeline runs
       #'
       #' When you start a new pipeline run, make an empty log
@@ -2732,6 +2652,7 @@ SLT <- R6::R6Class(
 
       ## Folder Deletion -------------------------------------------------------
 
+      #' @description
       #' Delete a `date_version` folder marked with a `remove_` symlink from
       #' _ALL ITS ROOTS_
       #'
@@ -2784,6 +2705,7 @@ SLT <- R6::R6Class(
       ## Reports ---------------------------------------------------------------
 
 
+      #' @description
       #' Make all reports
       #'
       #' Writes all reports to a summary .csv for every `root` defined in the
@@ -2822,5 +2744,3 @@ SLT <- R6::R6Class(
    # CLOSING PARENTHEIS BELOW
 
 )
-
-

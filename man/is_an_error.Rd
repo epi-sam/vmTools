@@ -16,6 +16,6 @@ is_an_error(x)
 Determine if an object is an error
 }
 \examples{
-is_an_error(simpleError("error")) # TRUE
-is_an_error(message("error")) # FALSE
+vmTools:::is_an_error(simpleError("error")) # TRUE
+vmTools:::is_an_error(message("error")) # FALSE
 }

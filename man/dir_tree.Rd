@@ -17,5 +17,5 @@ dir_tree(path = ".", level = Inf, prefix = "")
 Print a directory tree to stdout
 }
 \examples{
-dir_tree()
+vmTools:::dir_tree()
 }

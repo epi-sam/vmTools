@@ -16,5 +16,5 @@ All elements of the character vector are split by `\\n` into lines.
 Split a character vector by line breaks
 }
 \examples{
-split_lines(c('a', 'b\nc'))
+vmTools:::split_lines(c('a', 'b\nc'))
 }

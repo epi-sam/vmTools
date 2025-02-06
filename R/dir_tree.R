@@ -7,7 +7,7 @@
 #' @return NULL
 #'
 #' @examples
-#' dir_tree()
+#' vmTools:::dir_tree()
 dir_tree <- function(path = ".", level = Inf, prefix = "") {
 
    if(!file.exists(path)) {

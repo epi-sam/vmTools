@@ -9,7 +9,7 @@
 #' @return All elements of the character vector are split by `\\n` into lines.
 #'
 #' @examples
-#' split_lines(c('a', 'b\nc'))
+#' vmTools:::split_lines(c('a', 'b\nc'))
 split_lines = function(x) {
    if (length(grep('\n', x)) == 0L) return(x)
    x = gsub('\n$', '\n\n', x)
