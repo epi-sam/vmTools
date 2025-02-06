@@ -1,12 +1,8 @@
-# purpose: assertions for package internal functioning - not currently tested to work in a broader context
+# purpose: assertions for package internal functioning - not currently tested to
+# work in a broader context
 # - assertions `stop()` if conditions are violated
 # - none should be exported
 
-#' Types of check functions:
-#' 1. assert_x - stop if conditions are unmet
-#' 2. validate_x - warn if conditions are unmet
-#'               - Return TRUE/FALSE
-#'
 #' Assert an element is atomic and length 1
 #'
 #' @param x [any] Element to check
@@ -15,10 +11,10 @@
 #'
 #' @examples
 #' assert_scalar("A") # OK
-#' # assert_scalar(1:2) # Error
-assert_scalar = function(x){
+#' assert_scalar(1:2) # Error
+assert_scalar <- function(x) {
    x_name <- deparse(substitute(x))
-   if(!(is.atomic(x) && length(x) == 1L)){
+   if (!(is.atomic(x) && length(x) == 1L)) {
       stop(x_name, " must be atomic and length 1L")
    }
 }
@@ -31,14 +27,13 @@ assert_scalar = function(x){
 #'
 #' @examples
 #' assert_scalar_not_empty("A") # OK
-#' # assert_scalar_not_empty(Inf) # Error - Inf considered non-meaningful - see validate_not_empty
-assert_scalar_not_empty = function(x){
+#' assert_scalar_not_empty(Inf) # Error - Inf considered non-meaningful - see validate_not_empty
+assert_scalar_not_empty = function(x) {
    assert_scalar(x)
-   if(!isTRUE(validate_not_empty(x))){
+   if (!isTRUE(validate_not_empty(x))) {
       x_name <- deparse(substitute(x))
       stop(x_name, " is empty in some way.")
    }
-
 }
 
 #' Assert an object is a scalar of a certain type
@@ -50,25 +45,28 @@ assert_scalar_not_empty = function(x){
 #'
 #' @examples
 #' assert_type("A", "character") # OK
-#' # assert_type(1, "integer") # Error - need 1L
-assert_type = function(x, type){
+#' assert_type(1, "integer") # Error - need 1L
+assert_type = function(x, type) {
    assert_scalar(type)
    stopifnot(is.character(type))
-   if(!inherits(x, type)){
+   if (!inherits(x, type)) {
       x_name <- deparse(substitute(x))
       stop(x_name, " must be of type ", type)
    }
 }
 
+
 #' Assert an object is a list with named elements
 #'
 #' Stops if:
-#'  - x is not a list
-#'  - x is a data.frame
-#'  - x has no names
-#'  - x has any NA names
-#'  - x has any zero-length names
-#'  - x has any whitespace-only names
+#' \itemize{
+#'  \item{x is not a list}
+#'  \item{x is a data.frame}
+#'  \item{x has no names}
+#'  \item{x has any NA names}
+#'  \item{x has any zero-length names}
+#'  \item{x has any whitespace-only names}
+#' }
 #'
 #' @param x [list] List to check
 #'

@@ -2165,7 +2165,7 @@ SLT <- R6::R6Class(
       # NEW -----------------------------------------------------------------------
 
 
-      #' Initialize the SymlinkTool (an R6 object)
+      #' Initialize the SymlinkTool object (an R6 class)
       #'
       #' @param user_root_list [list] Named list of root directories for
       #'   pipeline outputs. This is where `date_version` folders live (these
@@ -2180,17 +2180,17 @@ SLT <- R6::R6Class(
       #'   and throw an error if it finds a schema mismatch.
       #' @param csv_reader [chr] Default `fread_quiet`.  The CSV reader to use.
       #'   Options:
-      #'   - 'fread_quiet' - data.table standard, suppress warnings (default)
-      #'   - 'fread'       - data.table standard
-      #'   - 'read.csv'    - utils::read.csv
-      #'   - 'read.csv2'   - utils::read.csv2
+      #' \itemize{
+      #'  \item{fread_quiet - data.table standard, suppress warnings (default)}
+      #'  \item{fread       - data.table standard}
+      #'  \item{read.csv    - `utils::read.csv`}
+      #'  \item{read.csv2   - `utils::read.csv2`}
+      #' }
       #' @param timezone [chr] Default `America/Los_Angeles`.  The timezone to
       #'  use for datestamps in logs. Must be a valid `OlsonNames()` string.
-      #' @param datestamp_format [chr] Default `%Y_%m_%d_%H%M%S`.  The format to
-      #'  use for datestamps in logs.
-      #'   - 'fread_quiet' - fread and suppressWarnings() (rely on SLT's messaging instead)
+      #'
       #' @return [symlink_tool] A symlink tool object.  You can instantiate
-      #'   (create) multiple version, each of which has different roots and
+      #'   (create) multiple objects, each of which has different roots and
       #'   central logs.
       #'
       #' @export

@@ -13,9 +13,6 @@ ZeroIfNA(x)
 [vector] edited vector x
 }
 \description{
-replaces - DescTools::ZeroIfNA()
-}
-\details{
 Replace NAs in a numeric vector x with 0. This function has the same
 logic as the zeroifnull function in SQL. NAIfZero() does replace zeros
 with NA. BlankIfNA() and NAIfBlank() do the same, but for character

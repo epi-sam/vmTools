@@ -2,11 +2,11 @@
 % Please edit documentation in R/symlink_tool.R
 \name{SLT}
 \alias{SLT}
-\title{Initialize the SymlinkTool (an R6 object)}
+\title{Initialize the SymlinkTool object (an R6 class)}
 \description{
-Initialize the SymlinkTool (an R6 object)
+Initialize the SymlinkTool object (an R6 class)
 
-Initialize the SymlinkTool (an R6 object)
+Initialize the SymlinkTool object (an R6 class)
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -62,24 +62,22 @@ has columns that existing logs do not. If `FALSE`, the tool will stop
 and throw an error if it finds a schema mismatch.}
 
 \item{\code{csv_reader}}{[chr] Default `fread_quiet`.  The CSV reader to use.
-Options:
-- 'fread_quiet' - data.table standard, suppress warnings (default)
-- 'fread'       - data.table standard
-- 'read.csv'    - utils::read.csv
-- 'read.csv2'   - utils::read.csv2}
+  Options:
+\itemize{
+ \item{fread_quiet - data.table standard, suppress warnings (default)}
+ \item{fread       - data.table standard}
+ \item{read.csv    - `utils::read.csv`}
+ \item{read.csv2   - `utils::read.csv2`}
+}}
 
 \item{\code{timezone}}{[chr] Default `America/Los_Angeles`.  The timezone to
 use for datestamps in logs. Must be a valid `OlsonNames()` string.}
-
-\item{\code{datestamp_format}}{[chr] Default `%Y_%m_%d_%H%M%S`.  The format to
-use for datestamps in logs.
- - 'fread_quiet' - fread and suppressWarnings() (rely on SLT's messaging instead)}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
 [symlink_tool] A symlink tool object.  You can instantiate
-  (create) multiple version, each of which has different roots and
+  (create) multiple objects, each of which has different roots and
   central logs.
 }
 }

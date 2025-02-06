@@ -23,9 +23,6 @@ regexpr(), which allows to use e.g. Perl-like regular expressions.}
 [chr] A character vector.
 }
 \description{
-replaces - DescTools::StrExtract()
-}
-\details{
 Extract a part of a string, defined as regular expression.
 StrExtractBetween() is a convenience function used to extract parts
 between a left and right delimiter.

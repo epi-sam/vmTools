@@ -4,8 +4,6 @@
 
 #' Replace NAs by a user-defined string
 #'
-#' replaces - DescTools::BlankIfNA()
-#'
 #' Replace NAs in a numeric vector x with 0. This function has the same
 #' logic as the zeroifnull function in SQL. NAIfZero() does replace zeros
 #' with NA. BlankIfNA() and NAIfBlank() do the same, but for character
@@ -24,8 +22,6 @@ BlankIfNA = function (x, blank = "") {
 
 #' Replace NAs by 0
 #'
-#' replaces - DescTools::ZeroIfNA()
-#'
 #' Replace NAs in a numeric vector x with 0. This function has the same
 #' logic as the zeroifnull function in SQL. NAIfZero() does replace zeros
 #' with NA. BlankIfNA() and NAIfBlank() do the same, but for character
@@ -42,8 +38,6 @@ ZeroIfNA = function (x) {
 }
 
 #' Extract Part of a String
-#'
-#' replaces - DescTools::StrExtract()
 #'
 #' Extract a part of a string, defined as regular expression.
 #' StrExtractBetween() is a convenience function used to extract parts
@@ -73,8 +67,6 @@ StrExtract = function (x, pattern, ...) {
 
 #' Split Path In Drive, Path, Filename
 #'
-#' replaces - DescTools::SplitPath()
-#'
 #' Split a full path in its components. This is specifically an issue in
 #' Windows and not really interesting for other OSs.
 #'
@@ -85,19 +77,21 @@ StrExtract = function (x, pattern, ...) {
 #' either \ or / and as filename else.
 #'
 #' @return [list] with components:
-#'  - normpath: normalized path
-#'  - drive: drive letter
-#'  - dirname: directory name
-#'  - fullfilename: full filename
-#'  - fullpath: full path
-#'  - filename: filename
-#'  - extension: extension
+#' \itemize{
+#'  \item{normpath: normalized path}
+#'  \item{drive: drive letter (only important for windows)}
+#'  \item{dirname: directory name}
+#'  \item{fullfilename: full filename}
+#'  \item{fullpath: full path (use this - works for windows and unix)}
+#'  \item{filename: filename}
+#'  \item{extension: extension}
+#' }
 #'
-#'  If last.is.file is FALSE, dirname, filename, extension and fullfilename
-#'  will be NA.
+#' If last.is.file is FALSE, dirname, filename, extension and fullfilename
+#' will be NA.
 #'
-#'  @examples
-#'  split_path("C:/Users/JohnDoe/Documents/MyFile.txt")
+#' @examples
+#' split_path("C:/Users/JohnDoe/Documents/MyFile.txt")
 split_path = function(path, last.is.file = NULL) {
    if (is.null(last.is.file)) {
       last.is.file <- (length(grep(pattern = "[/\\]$", path)) == 0)

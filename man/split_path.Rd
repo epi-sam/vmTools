@@ -16,24 +16,23 @@ either \ or / and as filename else.}
 }
 \value{
 [list] with components:
- - normpath: normalized path
- - drive: drive letter
- - dirname: directory name
- - fullfilename: full filename
- - fullpath: full path
- - filename: filename
- - extension: extension
+\itemize{
+ \item{normpath: normalized path}
+ \item{drive: drive letter (only important for windows)}
+ \item{dirname: directory name}
+ \item{fullfilename: full filename}
+ \item{fullpath: full path (use this - works for windows and unix)}
+ \item{filename: filename}
+ \item{extension: extension}
+}
 
- If last.is.file is FALSE, dirname, filename, extension and fullfilename
- will be NA.
-
- @examples
- split_path("C:/Users/JohnDoe/Documents/MyFile.txt")
+If last.is.file is FALSE, dirname, filename, extension and fullfilename
+will be NA.
 }
 \description{
-replaces - DescTools::SplitPath()
-}
-\details{
 Split a full path in its components. This is specifically an issue in
 Windows and not really interesting for other OSs.
+}
+\examples{
+split_path("C:/Users/JohnDoe/Documents/MyFile.txt")
 }
