@@ -760,7 +760,9 @@ SLT <- R6::R6Class(
                private$append_to_central_log(version_path = version_path, user_entry = user_entry)
                for(dir_name in dirnames_to_unlink){
                   message("Deleting ", dir_name)
-                  unlink(x = dir_name, recursive = TRUE, force = TRUE)
+                  # 2025 Feb 06 - update - cross-OS compatibility
+                  # unlink(x = dir_name, recursive = TRUE, force = TRUE)
+                  system(paste0("rm -rf ", dir_name))
                }
             }
 
@@ -2005,7 +2007,9 @@ SLT <- R6::R6Class(
 
          # only symlink if logging is successful
          # force symlink to change in case the unlink is glitchy
-         system(paste0("ln -nsf ", path_best_new, " ", path_best_sym))
+         # 2025 Feb 06 - update - cross-OS compatibility
+         # system(paste0("ln -nsf ", path_best_new, " ", path_best_sym))
+         file.symlink(path_best_new, path_best_sym)
       },
 
       #  Promote a date_version folder to 'keep' status.
@@ -2023,7 +2027,9 @@ SLT <- R6::R6Class(
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
 
             # only symlink if logging is successful
-            system(paste0("ln -s ", version_path, " ", path_keep_sym))
+            # 2025 Feb 06 - update - cross-OS compatibility
+            # system(paste0("ln -s ", version_path, " ", path_keep_sym))
+            file.symlink(version_path, path_keep_sym)
          } else {
             message("---- Keep symlink already exists - moving on: ", path_keep_sym)
          }
@@ -2044,7 +2050,9 @@ SLT <- R6::R6Class(
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
 
             # only symlink if logging is successful
-            system(paste0("ln -s ", version_path, " ", path_remove_sym))
+            # 2025 Feb 06 - update - cross-OS compatibility
+            # system(paste0("ln -s ", version_path, " ", path_remove_sym))
+            file.symlink(version_path, path_remove_sym)
          } else {
             message("---- Keep symlink already exists - moving on: ", path_remove_sym)
          }
@@ -2288,7 +2296,7 @@ SLT <- R6::R6Class(
 
          # For all date_version folders, do the following:
          # 1. check if there is already a best model symlink
-         # 2. if there is, demote it using `unlink()` & append to the log
+         # 2. if there is, demote it using `system(paste0("unlink ", symlink))` & append to the log
          # 3. make a new best model symlink
          # 4. append to the date_version log
          # 5. append to the central log
