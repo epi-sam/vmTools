@@ -67,6 +67,7 @@ library(data.table)
 ```{r utils, include = FALSE}
 
 # Defining a couple vignette utilities
+print_tree <- function() {vmTools:::dir_tree(root_to_model)}
 
 # Make a directory with desired defaults without cluttering the vignette
 make_directory <- function(path){
@@ -321,7 +322,7 @@ slt_prep <- SLT$new(
 
 ```{r instantiate_slt_prep_display_1}
 # Look at the directory tree
-dir_tree(root_to_model)
+print_tree()
 ```
 
 
@@ -355,7 +356,7 @@ path_log_dv1     <- file.path(root_dv1, fname_dv_log)
 Show the file tree.
 
 ```{r baseline_folder_display_2, echo=FALSE}
-dir_tree(root_to_model)
+print_tree()
 ```
 
 Show central log.
@@ -386,7 +387,7 @@ invisible(file.create(file.path(root_dv1, fnames_my_models)))
 
 
 ```{r dummy_results_invis_2}
-dir_tree(root_to_model)
+print_tree()
 ```
 
 
@@ -426,7 +427,7 @@ Inspect both the central log and ...
 We now have a 'best' symlink that points to our 'best' run version, `2024_02_01.01`
 
 ```{r mark_best_dv1_display_3}
-dir_tree(root_to_model)
+print_tree()
 
 resolve_symlink(file.path(root_to_model, "best"))
 ```
@@ -466,7 +467,7 @@ Now let's look at our file output structure, and central log.
 - We see three total folders, and the central log hasn't changed yet, because we haven't done any more 'marking'.
 
 ```{r two_new_runs_display_1}
-dir_tree(root_to_model)
+print_tree()
 ```
 
 ```{r two_new_runs_display_2, echo=FALSE}
@@ -529,7 +530,7 @@ Looking at all three run-version logs we see:
 ```
 
 ```{r mark_best_dv3_display_4}
-dir_tree(root_to_model)
+print_tree()
 
 resolve_symlink(file.path(root_to_model, "best"))
 ```
@@ -567,7 +568,7 @@ The first version is now marked as `keep`.
 ```
 
 ```{r mark_keep_dv1_display_3}
-dir_tree(root_to_model)
+print_tree()
 
 resolve_symlink(file.path(root_to_model, "keep_2024_02_01.01"))
 ```
@@ -601,7 +602,7 @@ Inspect the central log - The second version is now marked as `remove_`.
 
 
 ```{r mark_remove_dv2_display_3}
-dir_tree(root_to_model)
+print_tree()
 
 resolve_symlink(file.path(root_to_model, "remove_2024_02_01.02"))
 ```
@@ -682,7 +683,7 @@ slt_prep$reports()
 
 
 ```{r reports_display_1}
-dir_tree(root_to_model)
+print_tree()
 ```
 
 
