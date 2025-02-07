@@ -50,6 +50,7 @@ Initialize the SymlinkTool object - an R6 class
   user_root_list = NULL,
   user_central_log_root = NULL,
   schema_repair = TRUE,
+  verbose = TRUE,
   csv_reader = "fread_quiet",
   timezone = "America/Los_Angeles"
 )}\if{html}{\out{</div>}}
@@ -71,6 +72,8 @@ will attempt to repair any schema mismatches it finds in the logs
 when reading and writing e.g. add new columns if the tool schema
 has columns that existing logs do not. If `FALSE`, the tool will stop
 and throw an error if it finds a schema mismatch.}
+
+\item{\code{verbose}}{[lgl] see startup warnings? (OS dependent)}
 
 \item{\code{csv_reader}}{[chr] Default `fread_quiet`.  The CSV reader to use.
   Options:

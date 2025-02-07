@@ -1,15 +1,19 @@
 devtools::load_all()
 
 # if desired, start fresh
-test_root <- file.path(tempdir(), "vmTools/slt")
+test_root <- clean_path(tempdir(), "vmTools/slt")
+if (FALSE) {
+   t_root <- gsub("\\\\", "/", test_root)
+}
 unlink(test_root, recursive = TRUE)
 
 root_list <- list(
-   root_input = file.path(test_root, "to_model/gbd2021"),
-   root_ouput = file.path(test_root, "modeled/gbd2021"),
-   root_third = file.path(test_root, "third_root/gbd2021")
+   root_input = clean_path(test_root, "to_model/gbd2021"),
+   root_ouput = clean_path(test_root, "modeled/gbd2021"),
+   root_third = clean_path(test_root, "third_root/gbd2021")
 )
 lapply(root_list, dir.create, recursive = TRUE, showWarnings = FALSE)
+# SLT$new()
 slt <- SLT$new(
    user_root_list          = root_list
    , user_central_log_root = test_root
@@ -21,10 +25,10 @@ slt$create_date_version_folders_with_logs(date_version = "20240229_1")
 slt$create_date_version_folders_with_logs(date_version = "20240229_2")
 slt$create_date_version_folders_with_logs(date_version = "20240229_3")
 # Make a non-SLT folder, try to re-create it, ensure a log writes
-dir.create(file.path(root_list$root_input, "20240229_handmade"), recursive = TRUE, showWarnings = FALSE)
+dir.create(clean_path(root_list$root_input, "20240229_handmade"), recursive = TRUE, showWarnings = FALSE)
 slt$create_date_version_folders_with_logs(date_version = "20240229_handmade")
 # now delete the non-SLT folder log, mark that folder 'keep' and also expect a log to be created
-file.remove(file.path(root_list$root_input, "20240229_handmade", "log_version_history.csv"))
+file.remove(clean_path(root_list$root_input, "20240229_handmade", "log_version_history.csv"))
 slt$mark_keep(date_version = "20240229_handmade", user_entry = list(comment = "testing mark on new folder"))
 # Ensure validation performs correctly
 # slt$mark_best(date_version = "20240229_1", user_entry = list(comment = ""))

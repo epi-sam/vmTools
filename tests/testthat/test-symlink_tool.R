@@ -3,11 +3,12 @@
 
 library(data.table)
 
+# system(paste("rm -rf", tempdir()))
 make_directory <- function(path) dir.create(path, recursive = TRUE, showWarnings = FALSE)
-root_base      <- file.path(tempdir(), "slt")
+root_base      <- clean_path(tempdir(), "slt")
 root_list      <- list(
-   root_input  = file.path(root_base, "dir_1")
-   , root_output = file.path(root_base, "dir_2")
+   root_input  = clean_path(root_base, "dir_1")
+   , root_output = clean_path(root_base, "dir_2")
 )
 make_directory(root_list[["root_input"]])
 make_directory(root_list[["root_output"]])
@@ -17,9 +18,9 @@ dv_list <- list(
    , dv2 = "1990_01_02"
    , dv3 = "1990_01_03"
 )
-path_list <- lapply(root_list, function(x) file.path(x, dv_list))
+path_list <- lapply(root_list, function(x) clean_path(x, dv_list))
 
-dv_list_fullpath <- lapply(root_list, function(root) file.path(root, dv_list))
+dv_list_fullpath <- lapply(root_list, function(root) clean_path(root, dv_list))
 
 ue_list <- list(
    best = list(comment = "Testing mark best")
@@ -105,7 +106,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                 lapply(dv_list, function(dv){
                    slt$create_date_version_folders_with_logs(date_version = dv)
                 })
-                dirlist <- unlist(lapply(root_list, function(root) file.path(root, dv_list)))
+                dirlist <- unlist(lapply(root_list, function(root) clean_path(root, dv_list)))
                 expect_true(
                    all(file.exists(dirlist))
                 )
@@ -120,7 +121,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
              {
                 slt$mark_best(date_version = dv_list[["dv1"]], user_entry = ue_list[["best"]])
                 expect_true(
-                   all(file.exists(file.path(root_list, "best")))
+                   all(file.exists(clean_path(root_list, "best")))
                 )
              })
 
@@ -129,7 +130,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
              {
                 slt$mark_keep(date_version = dv_list[["dv1"]], user_entry = ue_list[["keep"]])
                 expect_true(
-                   all(file.exists(file.path(root_list, "keep_1990_01_01")))
+                   all(file.exists(clean_path(root_list, "keep_1990_01_01")))
                 )
              })
 
@@ -137,7 +138,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
              {
                 slt$mark_remove(date_version = dv_list[["dv1"]], user_entry = ue_list[["remove"]])
                 expect_true(
-                   all(file.exists(file.path(root_list, "remove_1990_01_01")))
+                   all(file.exists(clean_path(root_list, "remove_1990_01_01")))
                 )
              })
 
@@ -145,7 +146,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
              {
                 slt$unmark(date_version = dv_list[["dv1"]] , user_entry = ue_list[["unmark"]])
                 expect_true(
-                   all(!file.exists(file.path(root_list, "remove_1990_01_01")))
+                   all(!file.exists(clean_path(root_list, "remove_1990_01_01")))
                 )
              })
 
@@ -183,7 +184,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                          log_id = 0:6
                          , user = rep(Sys.info()[["user"]], 7)
                          , date_version = rep(dv_list[[1]], 7)
-                         , version_path = rep(file.path(root_list[[root]], dv_list[[1]]), 7)
+                         , version_path = rep(clean_path(root_list[[root]], dv_list[[1]]), 7)
                          , action = c("create", "promote_best", "demote_best", "promote_keep", "demote_keep", "promote_remove", "demote_remove")
                          , comment = c("log created", "Testing mark best", "Testing mark keep", "Testing mark keep", "Testing mark remove", "Testing mark remove", "Testing mark unmark")
                       )

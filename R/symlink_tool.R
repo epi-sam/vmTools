@@ -142,7 +142,7 @@ SLT <- R6::R6Class(
 
       # These are not true R6 active fields, but are dynamic within the tool.
       # I'm not exposing these to the user but they need to by dynamic
-      # For each date_version operation, these will update e.g. file.path(private$DICT$ROOTS, date_version)
+      # For each date_version operation, these will update e.g. clean_path(private$DICT$ROOTS, date_version)
       # - updated by operation, not on instantiate
       # - for managing internal state of the tool, not for user input
       # - if they seem buggy, call `return_dynamic_fields()` to see if they are updating as expected
@@ -535,7 +535,7 @@ SLT <- R6::R6Class(
          # repeat with base R lapply
          symlink_counts <- unlist(lapply(symlink_list, function(x) x$symlink_count))
 
-         version_path <- file.path(root, date_version)
+         version_path <- clean_path(root, date_version)
          if(allow_fewer){
             if(sum(symlink_counts) > n_sym) {
                stop("You have more than ", n_sym, " symlink(s) for ", version_path, "\n  ",
@@ -591,7 +591,7 @@ SLT <- R6::R6Class(
             remove = paste0("_", date_version)
          )
 
-         return(file.path(root, paste0(symlink_type, symlink_suffix)))
+         return(clean_path(root, paste0(symlink_type, symlink_suffix)))
       },
 
       #  Pull a symlink from a linux path string
@@ -641,7 +641,8 @@ SLT <- R6::R6Class(
 
          if(length(symlink) > 0){
             symlink_clean              <- private$extract_symlink(symlink_string = symlink)
-            symlink_full               <- file.path(root, symlink_clean)
+            # don't normalize - we want to keep the symlink path as a symlink
+            symlink_full               <- clean_path(root, symlink_clean, normalize = FALSE)
             path_real                  <- private$resolve_symlink(path = symlink_full)
             private$DYNAMIC$LOG$action <- paste0("demote_", symlink_type)
             private$DYNAMIC$LOG$date_version <- date_version
@@ -719,7 +720,7 @@ SLT <- R6::R6Class(
       delete_remove_folder = function(root, date_version, user_entry, require_user_input){
          assert_dir_exists(root)
          assert_scalar(date_version)
-         version_path <- file.path(root, date_version)
+         version_path <- clean_path(root, date_version)
 
          folder_dt <- private$query_root_folder_types(root = root)
 
@@ -846,7 +847,7 @@ SLT <- R6::R6Class(
       #
       #  @return none
       write_new_log = function(version_path, log_schema = private$DICT$log_schema){
-         fpath <- file.path(version_path, private$DICT$log_name)
+         fpath <- clean_path(version_path, private$DICT$log_name)
          dt_log <- private$make_schema_dt(log_schema)
          # Safely write first 'create' row if it doesn't exist
          dt_log <- private$ensure_log_creation_entry(version_path, dt_log)
@@ -895,7 +896,7 @@ SLT <- R6::R6Class(
       #  @return none
       write_expected_log = function(version_path, log_schema = private$DICT$log_schema){
          assert_scalar(version_path)
-         fpath <- file.path(version_path, private$DICT$log_name)
+         fpath <- clean_path(version_path, private$DICT$log_name)
          if(!file.exists(fpath)) {
             private$write_new_log(version_path)
          } else {
@@ -957,7 +958,7 @@ SLT <- R6::R6Class(
          assert_scalar(version_path)
 
          # needs to read a log to bump the log_id number
-         fpath <- file.path(version_path, private$DICT$log_name)
+         fpath <- clean_path(version_path, private$DICT$log_name)
          private$write_expected_log(version_path)
          dt_log <- private$read_log(fpath)
          private$assert_schema_vs_user_entry(user_entry)
@@ -972,7 +973,7 @@ SLT <- R6::R6Class(
             timestamp    = private$make_current_timestamp(),
             user         = Sys.info()[["user"]],
             date_version = private$DYNAMIC$LOG$date_version,
-            version_path = version_path,
+            version_path = clean_path(version_path),
             action       = private$DYNAMIC$LOG$action
          )
 
@@ -1148,7 +1149,7 @@ SLT <- R6::R6Class(
          tryCatch(
             {
                log <- private$csv_reader(
-                  file.path(version_path, private$DICT$log_name)
+                  clean_path(version_path, private$DICT$log_name)
                   , colClasses = unlist(private$DICT$log_schema)
                )
             },
@@ -1208,7 +1209,8 @@ SLT <- R6::R6Class(
          dir_name <- list.dirs(root, full.names = TRUE, recursive = FALSE)
          # final part of the path - implies symlink if active
          dir_leaf <- basename(dir_name)
-         dir_name_resolved  <- unlist(lapply(dir_name, private$resolve_symlink))
+         dir_name_resolved <- unlist(lapply(dir_name, private$resolve_symlink))
+         dir_name_resolved <- clean_path(dir_name_resolved)
          # table of all folders, resolved paths, and last part of the path
          tryCatch(
             {
@@ -1511,7 +1513,7 @@ SLT <- R6::R6Class(
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs(root)
          last_row_dt <- private$query_logs_last_row(log_list)
-         private$write_report(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs))
+         private$write_report(last_row_dt, clean_path(root, private$DICT$report_fnames$all_logs))
       },
 
       #  Report last row of all symlinked folder logs in one root
@@ -1525,7 +1527,7 @@ SLT <- R6::R6Class(
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs_symlink(root)
          last_row_dt <- private$query_logs_last_row(log_list)
-         private$write_report(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs_symlink))
+         private$write_report(last_row_dt, clean_path(root, private$DICT$report_fnames$all_logs_symlink))
       },
 
       #  Report last row of all tool-symlinked folder logs in one root
@@ -1544,7 +1546,7 @@ SLT <- R6::R6Class(
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs_tool_symlink(root, verbose = FALSE)
          last_row_dt <- private$query_logs_last_row(log_list)
-         private$write_report(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs_tool_symlink))
+         private$write_report(last_row_dt, clean_path(root, private$DICT$report_fnames$all_logs_tool_symlink))
 
          private$report_discrepancies(root = root)
 
@@ -1561,7 +1563,7 @@ SLT <- R6::R6Class(
          # query logs for active symlinks of any type
          log_list <- private$query_all_logs_non_symlink(root)
          last_row_dt <- private$query_logs_last_row(log_list)
-         private$write_report(last_row_dt, file.path(root, private$DICT$report_fnames$all_logs_non_symlink))
+         private$write_report(last_row_dt, clean_path(root, private$DICT$report_fnames$all_logs_non_symlink))
       },
 
       #  Add a discrepancy column to a data.table if it has rows
@@ -1657,7 +1659,7 @@ SLT <- R6::R6Class(
          unique_version_paths_tool_symlink        <- unique(folder_dt[is_tool_symlink == TRUE, dir_name_resolved])
          names(unique_version_paths_tool_symlink) <- unique_version_paths_tool_symlink
          tool_symlink_has_log                     <- unlist(lapply(unique_version_paths_tool_symlink, function(path){
-            file.exists(file.path(path, private$DICT$log_name))
+            file.exists(clean_path(path, private$DICT$log_name))
          }))
          tool_symlink_no_log                <- names(tool_symlink_has_log[tool_symlink_has_log == FALSE])
          dirs_tool_symlink_no_logs_dt       <- folder_dt[dir_name_resolved %in% tool_symlink_no_log, .N, by = .(dir_name_resolved)][N > 0]
@@ -1732,7 +1734,7 @@ SLT <- R6::R6Class(
          discrepancy_report_dt <- discrepancy_report_dt[, c(setdiff(names(discrepancy_report_dt), "discrepancy"), "discrepancy"), with = FALSE]
 
          # If no discrepancies are found, then delete the current discrepancy report so it doesn't cause confusion
-         path_discrepancy_report <- file.path(root, private$DICT$report_fnames$discrepancies)
+         path_discrepancy_report <- clean_path(root, private$DICT$report_fnames$discrepancies)
 
          if(nrow(discrepancy_report_dt) == 0) {
             # If there's nothing to report, delete the discrepancy report, otherwise stay quiet
@@ -1844,7 +1846,7 @@ SLT <- R6::R6Class(
       #  @return [none] Updates `private$DYNAMIC$VERS_PATHS`
       handler_update_version_paths = function(date_version){
          assert_scalar(date_version)
-         private$DYNAMIC$VERS_PATHS <- lapply(private$DICT$ROOTS, function(root) file.path(root, date_version))
+         private$DYNAMIC$VERS_PATHS <- lapply(private$DICT$ROOTS, function(root) clean_path(root, date_version))
          assert_named_list(private$DYNAMIC$VERS_PATHS)
          if(!length(private$DYNAMIC$VERS_PATHS)) stop("No version paths found")
          lapply(private$DYNAMIC$VERS_PATHS, validate_dir_exists, verbose = FALSE)
@@ -2096,6 +2098,7 @@ SLT <- R6::R6Class(
       #'   when reading and writing e.g. add new columns if the tool schema
       #'   has columns that existing logs do not. If `FALSE`, the tool will stop
       #'   and throw an error if it finds a schema mismatch.
+      #' @param verbose [lgl] see startup warnings? (OS dependent)
       #' @param csv_reader [chr] Default `fread_quiet`.  The CSV reader to use.
       #'   Options:
       #' \itemize{
@@ -2121,9 +2124,34 @@ SLT <- R6::R6Class(
       user_root_list          = NULL
       , user_central_log_root = NULL
       , schema_repair         = TRUE
+      , verbose               = TRUE
       , csv_reader            = "fread_quiet"
       , timezone              = "America/Los_Angeles"
       ) {
+
+         assert_scalar(schema_repair)
+         assert_type(schema_repair, "logical")
+         assert_scalar(verbose)
+         assert_type(verbose, "logical")
+
+         # try to boost efficiency
+         try(n_cores <-data.table::setDTthreads(system("nproc", intern = TRUE)))
+
+         if(tolower(.Platform$OS.type) == "windows") {
+            if(verbose == TRUE) {
+               message(
+"WARNING! you are running on Windows
+  - symlinks may not function correctly on pre-NTFS file systems
+  - see ?file.symlink for more details."
+               )
+            }
+            if(is_windows_admin() == FALSE){
+               stop(
+"Symbolic links are not supported on Windows without admin privileges.
+ To enable SLT to work:
+   - Right click on Rstudio > Run as administrator > Yes")
+            }
+         }
 
          # Helpful start-up feedback
          if(is.null(user_root_list)){
@@ -2139,7 +2167,7 @@ SLT <- R6::R6Class(
                     "  You may track outputs in one root, or across many roots in parallel (as long as the date_version is the same). \n  ",
                     "  It's recommended to create these folders with the tool so they get a log at time of creation. \n\n  ",
 
-                    "Each output folder is defined by `file.path(user_root_list, date_version)`. \n  ",
+                    "Each output folder is defined by `clean_path(user_root_list, date_version)`. \n  ",
                     "  The user can 'mark' or 'unmark' any `date_version` folder as best/keep/remove. \n  ",
                     "  This folder receives a log entry for all *demotion* and *promotion* actions (marking and unmarking). \n  ",
                     "  All the `date_version` folder logs are used for report generation. \n\n  "
@@ -2186,11 +2214,12 @@ SLT <- R6::R6Class(
          # Users must provide these fields
 
          ## ROOTS
+         # clean roots
+         user_root_list <- lapply(user_root_list, clean_path)
+         user_central_log_root <- clean_path(user_central_log_root)
          # validate inputs
          assert_named_list(user_root_list)
          lapply(user_root_list, assert_dir_exists)
-         assert_scalar(schema_repair)
-         assert_type(schema_repair, "logical")
 
          # set roots
          private$DICT$ROOTS <- user_root_list
@@ -2216,7 +2245,7 @@ SLT <- R6::R6Class(
          ## Log fields the user can set
          private$DICT$log_fields_user  <- setdiff(names(private$DICT$log_schema), private$DICT$log_fields_auto)
          ## CENTRAL LOG
-         private$DICT$LOG_CENTRAL$path <- file.path(private$DICT$LOG_CENTRAL$root,
+         private$DICT$LOG_CENTRAL$path <- clean_path(private$DICT$LOG_CENTRAL$root,
                                                     private$DICT$LOG_CENTRAL$fname)
          # Make sure this exists any time the class is initialized
          private$write_expected_central_log(fpath      = private$DICT$LOG_CENTRAL$path,
