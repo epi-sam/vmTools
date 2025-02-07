@@ -5,7 +5,8 @@ test_root <- clean_path(tempdir(), "vmTools/slt")
 if (FALSE) {
    t_root <- gsub("\\\\", "/", test_root)
 }
-unlink(test_root, recursive = TRUE)
+# unlink(test_root, recursive = TRUE)
+system(paste("rm -rf", test_root))
 
 root_list <- list(
    root_input = clean_path(test_root, "to_model/gbd2021"),

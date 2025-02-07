@@ -11,7 +11,7 @@ title: "Symlink Tool Technical Vignette"
 output: rmarkdown::html_vignette
 Encoding: UTF-8
 vignette: >
-  %\VignetteIndexEntry{symlink_tool_vignette_technical}
+  %\VignetteIndexEntry{Symlink Tool Technical Vignette}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 # knitr:

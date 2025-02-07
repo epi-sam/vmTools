@@ -561,7 +561,8 @@ SLT <- R6::R6Class(
       #
       #  @return [chr] the full path of the symlink
       resolve_symlink = function(path){
-         path_resolved <- normalizePath(path, mustWork = FALSE)
+         # path_resolved <- normalizePath(path, mustWork = FALSE)
+         path_resolved <- clean_path(path, normalize = TRUE, mustWork = FALSE)
          if(file.exists(path_resolved)) {
             return(path_resolved)
          } else {
@@ -591,7 +592,8 @@ SLT <- R6::R6Class(
             remove = paste0("_", date_version)
          )
 
-         return(clean_path(root, paste0(symlink_type, symlink_suffix)))
+         # don't normalize - we want a symlink path
+         return(clean_path(root, paste0(symlink_type, symlink_suffix), normalize = FALSE))
       },
 
       #  Pull a symlink from a linux path string
@@ -641,7 +643,7 @@ SLT <- R6::R6Class(
 
          if(length(symlink) > 0){
             symlink_clean              <- private$extract_symlink(symlink_string = symlink)
-            # don't normalize - we want to keep the symlink path as a symlink
+            # don't normalize - we want a symlink path
             symlink_full               <- clean_path(root, symlink_clean, normalize = FALSE)
             path_real                  <- private$resolve_symlink(path = symlink_full)
             private$DYNAMIC$LOG$action <- paste0("demote_", symlink_type)
@@ -779,7 +781,8 @@ SLT <- R6::R6Class(
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
             for(dir_name in dirnames_to_unlink){
                message("Deleting ", dir_name)
-               unlink(x = dir_name, recursive = TRUE, force = TRUE)
+               # unlink(x = dir_name, recursive = TRUE, force = TRUE)
+               system(paste("rm -rf", dir_name))
             }
 
             ret_val_deleted_TF <- TRUE

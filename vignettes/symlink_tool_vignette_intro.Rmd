@@ -11,7 +11,7 @@ title: "Symlink Tool Intro Vignette"
 output: rmarkdown::html_vignette
 Encoding: UTF-8
 vignette: >
-  %\VignetteIndexEntry{symlink_tool_vignette_intro}
+  %\VignetteIndexEntry{Symlink Tool Intro Vignette}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 # knitr:
@@ -58,8 +58,8 @@ knitr::knit_hooks$set(output = function(x, options) {
 
 
 ```{r setup, include = FALSE}
-# devtools::load_all() # for interactive use
-library(vmTools) # to build vignettest
+devtools::load_all() # for interactive use
+# library(vmTools) # to build vignettes
 library(data.table)
 ```
 
@@ -126,7 +126,7 @@ get_latest_output_date_index <- function(root, date) {
 }
 
 resolve_symlink <- function(path){
-   path_resolved <- system(paste("realpath", path), intern = TRUE)
+   path_resolved <- vmTools:::clean_path(path)
    if(file.exists(path_resolved)) {
       return(path_resolved)
    } else {
