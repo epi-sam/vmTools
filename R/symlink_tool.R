@@ -409,28 +409,6 @@ SLT <- R6::R6Class(
          }
       },
 
-      # FIXME SB - 2025 Jan 17 - deprecate - not good for all users
-      # FIXME SB - 2025 Jan 23 - instead, add instantiate-level TZ control and log-standard datetime format
-      # tz_sys <- format(Sys.time(), "%Z") # Sys.timezone() is incorrect
-      # format_datetimestamp <- private$DICT$datestamp_format
-      # OlsonNames() # list of timezones
-
-      #  Assert the user_date is in the PST timezone
-      #
-      #  @param date [chr] a date string
-      #
-      #  @return none
-      # assert_PST_date = function(date){
-      #    private$assert_user_date_class_and_format(user_date = date)
-      #    valid_tz = c(private$DICT$TZ, "US/Pacific", "PST8PDT")
-      #    if(!lubridate::tz(date) %in% valid_tz){
-      #       stop("Invalid timezone.\n",
-      #            "Allowed:  ", toString(valid_tz), "\n",
-      #            "Received: ", lubridate::tz(user_date))
-      #    }
-      #
-      # },
-
 
       # Implementations --------------------------------------------------------
 
@@ -539,11 +517,7 @@ SLT <- R6::R6Class(
             private$find_count_symlinks(root = root, version_name = version_name, symlink_type = x)
          })
 
-         # 2025 Jan 30 - deprecating purrr, but leaving here for reference
-         # symlink_counts <- unlist(unname(purrr::map_depth(symlink_list, 1, "symlink_count")))
          symlink_counts <- unlist(unname(lapply_depth(symlink_list, 1, `[[`, "symlink_count")))
-         # repeat with base R lapply
-         symlink_counts <- unlist(lapply(symlink_list, function(x) x$symlink_count))
 
          version_path <- clean_path(root, version_name)
          if(allow_fewer){
@@ -773,8 +747,6 @@ SLT <- R6::R6Class(
                private$append_to_central_log(version_path = version_path, user_entry = user_entry)
                for(dir_name in dirnames_to_unlink){
                   message("Deleting ", dir_name)
-                  # 2025 Feb 06 - update - cross-OS compatibility
-                  # unlink(x = dir_name, recursive = TRUE, force = TRUE)
                   system(paste0("rm -rf ", dir_name))
                }
             }
@@ -791,7 +763,6 @@ SLT <- R6::R6Class(
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
             for(dir_name in dirnames_to_unlink){
                message("Deleting ", dir_name)
-               # unlink(x = dir_name, recursive = TRUE, force = TRUE)
                system(paste("rm -rf", dir_name))
             }
 
@@ -871,8 +842,6 @@ SLT <- R6::R6Class(
       #
       #  @return [chr] time-stamp in private$DICT$datestamp_format format
       make_current_timestamp = function(){
-         # FIXME SB - 2025 Jan 23 - deprecate lubridate
-         # return(format(lubridate::with_tz(Sys.time(), tzone=private$DICT$TZ), private$DICT$datestamp_format))
          return(format(as.POSIXct(Sys.time(), tz = "UTC"), tz = private$DICT$TZ, format = private$DICT$datestamp_format))
       },
 
@@ -1434,8 +1403,6 @@ SLT <- R6::R6Class(
       query_by_date = function(root, user_date_parsed, date_selector){
          assert_dir_exists(root)
          private$assert_date_selector(date_selector)
-         # FIXME SB - 2025 Jan 17 - deprecate - not good for all users
-         # private$assert_PST_date(user_date_parsed)
 
          # query all logs for their creation lines
          folder_dt   <- private$query_root_folder_types(root)
@@ -1446,8 +1413,6 @@ SLT <- R6::R6Class(
          ts_raw          <- log_id_0_dt$timestamp
          names(ts_raw)   <- ts_raw
          suppressWarnings(
-            # FIXME SB - 2025 Jan 23 - remove lubridate dependency
-            # ts_parsed    <- lubridate::ymd_hms(log_id_0_dt$timestamp, tz =private$DICT$TZ)
             ts_parsed    <- as.POSIXct(log_id_0_dt$timestamp, format = private$DICT$datestamp_format, tz = private$DICT$TZ)
          )
          idx_failed_parse <- which(is.na(ts_parsed))
@@ -1456,8 +1421,6 @@ SLT <- R6::R6Class(
             timestamp_failed_parse = ts_raw[idx_failed_parse]
          )
          tryCatch({
-            # FIXME SB - 2025 Jan 23 - remove lubridate dependency
-            # lubridate::ymd_hms(log_id_0_dt$timestamp1, tz =private$DICT$TZ)
             as.POSIXct(log_id_0_dt$timestamp2, format = private$DICT$datestamp_format, tz = private$DICT$TZ)
          }, warning = function(w) message("Some logs failed creation-date parsing (must be in yyyy_mm_dd format): \n  ",
                                           paste(capture.output(dt_failed_parse), collapse = "\n"),
@@ -1466,11 +1429,6 @@ SLT <- R6::R6Class(
 
          # Strip time from date-time-stamp, retain timezone info, convert to
          # character, convert back to date for comparison against user_date
-
-         # FIXME SB - 2025 Jan 23 - remove lubridate dependency
-         # suppressWarnings(log_id_0_dt[, timestamp_parsed := lubridate::ymd_hms(timestamp, tz = private$DICT$TZ)])
-         # log_id_0_dt[, timestamp_parsed := format(timestamp_parsed, "%Y-%m-%d")]
-         # log_id_0_dt[, timestamp_parsed := lubridate::ymd(timestamp_parsed, tz =private$DICT$TZ)]
 
          suppressWarnings(log_id_0_dt[, timestamp_parsed := as.POSIXct(timestamp, format = private$DICT$datestamp_format, tz = private$DICT$TZ)])
          log_id_0_dt[, timestamp_parsed := format(timestamp_parsed, "%Y-%m-%d")]
@@ -1933,8 +1891,6 @@ SLT <- R6::R6Class(
             private$find_count_symlinks(root = root, version_name = version_name, symlink_type = x)
          })
 
-         # 2025 Jan 30 - deprecating purrr, but leaving here for reference
-         # symlink      <- unlist(purrr::map_depth(symlink_list, 1, "symlinks"))
          symlink      <- unlist(lapply_depth(symlink_list, 1, `[[`, "symlinks"))
          symlink_type <- names(symlink)
          symlink      <- unname(symlink)
@@ -2022,8 +1978,6 @@ SLT <- R6::R6Class(
 
          # only symlink if logging is successful
          # force symlink to change in case the unlink is glitchy
-         # 2025 Feb 06 - update - cross-OS compatibility
-         # system(paste0("ln -nsf ", path_best_new, " ", path_best_sym))
          file.symlink(path_best_new, path_best_sym)
       },
 
@@ -2042,8 +1996,6 @@ SLT <- R6::R6Class(
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
 
             # only symlink if logging is successful
-            # 2025 Feb 06 - update - cross-OS compatibility
-            # system(paste0("ln -s ", version_path, " ", path_keep_sym))
             file.symlink(version_path, path_keep_sym)
          } else {
             message("---- Keep symlink already exists - moving on: ", path_keep_sym)
@@ -2065,8 +2017,6 @@ SLT <- R6::R6Class(
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
 
             # only symlink if logging is successful
-            # 2025 Feb 06 - update - cross-OS compatibility
-            # system(paste0("ln -s ", version_path, " ", path_remove_sym))
             file.symlink(version_path, path_remove_sym)
          } else {
             message("---- Keep symlink already exists - moving on: ", path_remove_sym)
