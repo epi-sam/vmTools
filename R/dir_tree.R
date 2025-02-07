@@ -33,7 +33,6 @@ dir_tree <- function(path = ".", level = Inf, prefix = "") {
    files <- list.files(path, full.names = TRUE)
    N <- length(files)
 
-   # browser()
    for (i in seq_along(files)) {
       is_last <- i == N
       connector <- if (is_last) "`-- " else "|-- "
