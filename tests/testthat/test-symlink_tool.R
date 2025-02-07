@@ -278,7 +278,8 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    test_that(
       "Cleanup is complete",
       {
-         unlink(root_base, recursive = TRUE)
+         # unlink(root_base, recursive = TRUE)
+         system(paste("rm -rf", tempdir()))
          expect_error(dir_tree(root_base), regexp = "Failed to search directory.*no such file or directory")
       }
    )

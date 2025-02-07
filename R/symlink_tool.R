@@ -175,6 +175,7 @@ SLT <- R6::R6Class(
       # - requires NULL placeholder
 
       csv_reader = NULL,
+      csv_writer = NULL,
 
       # Check Functions --------------------------------------------------------
 
@@ -863,7 +864,7 @@ SLT <- R6::R6Class(
          dt_log <- private$make_schema_dt(log_schema)
          # Safely write first 'create' row if it doesn't exist
          dt_log <- private$ensure_log_creation_entry(version_path, dt_log)
-         write.csv(dt_log, fpath, row.names = FALSE)
+         private$csv_writer(dt_log, fpath, row.names = FALSE)
       },
 
       #   Return a time-stamp in private$DICT$datestamp_format format, e.g. "2024_02_21_104202"
@@ -915,7 +916,7 @@ SLT <- R6::R6Class(
             dt_log <- private$read_log(fpath, log_schema)
             # Safely write first 'create' row if it doesn't exist
             dt_log <- private$ensure_log_creation_entry(version_path, dt_log)
-            write.csv(dt_log, fpath, row.names = FALSE)
+            private$csv_writer(dt_log, fpath, row.names = FALSE)
          }
       },
 
@@ -997,7 +998,7 @@ SLT <- R6::R6Class(
          data.table::setcolorder(dt_log, names(private$DICT$log_schema))
 
          message("---- Writing log to ", fpath)
-         write.csv(dt_log, fpath, row.names = FALSE)
+         private$csv_writer(dt_log, fpath, row.names = FALSE)
       },
 
 
@@ -1019,7 +1020,7 @@ SLT <- R6::R6Class(
             private$write_new_central_log(fpath, log_schema)
          } else {
             dt_log <- private$read_central_log(fpath, log_schema)
-            write.csv(dt_log, fpath, row.names = FALSE)
+            private$csv_writer(dt_log, fpath, row.names = FALSE)
          }
       },
 
@@ -1059,7 +1060,7 @@ SLT <- R6::R6Class(
          dt_log <- private$make_schema_dt(log_schema)
          # Safely write first 'create' row if it doesn't exist
          dt_log <- private$make_central_log_creation_entry(dt_log)
-         write.csv(dt_log, fpath, row.names = FALSE)
+         private$csv_writer(dt_log, fpath, row.names = FALSE)
       },
 
       #  Ensure a 'create' row exists in the central log.
@@ -1131,7 +1132,7 @@ SLT <- R6::R6Class(
             data.table::setcolorder(dt_log, names(private$DICT$log_schema))
 
             message("---- Writing central log to ", fpath)
-            write.csv(dt_log, fpath, row.names = FALSE)
+            private$csv_writer(dt_log, fpath, row.names = FALSE)
 
          } else {
 
@@ -1509,7 +1510,7 @@ SLT <- R6::R6Class(
             data.table::setcolorder(dt_report, sortable_colnames)
          }
 
-         write.csv(dt_report, write_path, row.names = FALSE)
+         private$csv_writer(dt_report, write_path, row.names = FALSE)
       },
 
       # each report function must have a corresponding query_all_logs_* function
@@ -2110,11 +2111,12 @@ SLT <- R6::R6Class(
       #'   columns that existing logs do not. If `FALSE`, the tool will stop and
       #'   throw an error if it finds a schema mismatch.
       #' @param verbose [lgl] see start up warnings, if relevant?
-      #' @param csv_reader [chr] Default `read.csv`.  The CSV reader to use.
-      #'   CAUTION: Only use `data.table::fread` if you are not using quotation marks in
-      #'   log comments (these lead to exploding series of quotations).
-      #'   https://github.com/Rdatatable/data.table/issues/4779
-      #'   The safer and slower default base R reader is used. Options:
+      #' @param csv_reader [chr] Default `read.csv`.  The CSV reader to use
+      #'   (assigns matching CSV writer as well). CAUTION: Only use
+      #'   `data.table::fread` if you are not using quotation marks in log
+      #'   comments (these lead to exploding series of quotations).
+      #'   https://github.com/Rdatatable/data.table/issues/4779 The safer and
+      #'   slower default base R reader is used. Options:
       #' \itemize{
       #'  \item{fread_quiet - `data.table::fread` and  suppress warnings (default)}
       #'  \item{fread       - `data.table::fread`}
@@ -2220,6 +2222,15 @@ SLT <- R6::R6Class(
             , "fread_quiet" = function(...) return(suppressWarnings(data.table::fread(...)))
             , "read.csv"    = function(...) return(data.table::setDT(utils::read.csv(...)))
             , "read.csv2"   = function(...) return(data.table::setDT(utils::read.csv2(...)))
+            , stop("csv_reader must be one of: fread, fread_quiet, read.csv, read.csv2")
+         )
+
+         private$csv_writer <- switch(
+            csv_reader
+            , "fread"       = function(...) return(data.table::fwrite(...))
+            , "fread_quiet" = function(...) return(data.table::fwrite(...))
+            , "read.csv"    = function(...) return(data.table::setDT(utils::write.csv(...)))
+            , "read.csv2"   = function(...) return(data.table::setDT(utils::write.csv2(...)))
             , stop("csv_reader must be one of: fread, fread_quiet, read.csv, read.csv2")
          )
 

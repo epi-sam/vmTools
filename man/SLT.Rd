@@ -74,11 +74,12 @@ throw an error if it finds a schema mismatch.}
 
 \item{\code{verbose}}{[lgl] see start up warnings, if relevant?}
 
-\item{\code{csv_reader}}{[chr] Default `read.csv`.  The CSV reader to use.
-  CAUTION: Only use `data.table::fread` if you are not using quotation marks in
-  log comments (these lead to exploding series of quotations).
-  https://github.com/Rdatatable/data.table/issues/4779
-  The safer and slower default base R reader is used. Options:
+\item{\code{csv_reader}}{[chr] Default `read.csv`.  The CSV reader to use
+  (assigns matching CSV writer as well). CAUTION: Only use
+  `data.table::fread` if you are not using quotation marks in log
+  comments (these lead to exploding series of quotations).
+  https://github.com/Rdatatable/data.table/issues/4779 The safer and
+  slower default base R reader is used. Options:
 \itemize{
  \item{fread_quiet - `data.table::fread` and  suppress warnings (default)}
  \item{fread       - `data.table::fread`}
