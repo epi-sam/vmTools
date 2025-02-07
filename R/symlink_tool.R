@@ -854,7 +854,7 @@ SLT <- R6::R6Class(
          dt_log <- private$make_schema_dt(log_schema)
          # Safely write first 'create' row if it doesn't exist
          dt_log <- private$ensure_log_creation_entry(version_path, dt_log)
-         data.table::fwrite(dt_log, fpath)
+         write.csv(dt_log, fpath, row.names = FALSE)
       },
 
       #   Return a time-stamp in private$DICT$datestamp_format format, e.g. "2024_02_21_104202"
@@ -906,7 +906,7 @@ SLT <- R6::R6Class(
             dt_log <- private$read_log(fpath, log_schema)
             # Safely write first 'create' row if it doesn't exist
             dt_log <- private$ensure_log_creation_entry(version_path, dt_log)
-            data.table::fwrite(dt_log, fpath)
+            write.csv(dt_log, fpath, row.names = FALSE)
          }
       },
 
@@ -988,7 +988,7 @@ SLT <- R6::R6Class(
          data.table::setcolorder(dt_log, names(private$DICT$log_schema))
 
          message("---- Writing log to ", fpath)
-         data.table::fwrite(dt_log, fpath)
+         write.csv(dt_log, fpath, row.names = FALSE)
       },
 
 
@@ -1010,7 +1010,7 @@ SLT <- R6::R6Class(
             private$write_new_central_log(fpath, log_schema)
          } else {
             dt_log <- private$read_central_log(fpath, log_schema)
-            data.table::fwrite(dt_log, fpath)
+            write.csv(dt_log, fpath)
          }
       },
 
@@ -1050,7 +1050,7 @@ SLT <- R6::R6Class(
          dt_log <- private$make_schema_dt(log_schema)
          # Safely write first 'create' row if it doesn't exist
          dt_log <- private$make_central_log_creation_entry(dt_log)
-         data.table::fwrite(dt_log, fpath)
+         write.csv(dt_log, fpath, row.names = FALSE)
       },
 
       #  Ensure a 'create' row exists in the central log.
@@ -1122,7 +1122,7 @@ SLT <- R6::R6Class(
             data.table::setcolorder(dt_log, names(private$DICT$log_schema))
 
             message("---- Writing central log to ", fpath)
-            data.table::fwrite(dt_log, fpath)
+            write.csv(dt_log, fpath, row.names = FALSE)
 
          } else {
 
@@ -1500,7 +1500,7 @@ SLT <- R6::R6Class(
             data.table::setcolorder(dt_report, sortable_colnames)
          }
 
-         data.table::fwrite(dt_report, write_path)
+         write.csv(dt_report, write_path, row.names = FALSE)
       },
 
       # each report function must have a corresponding query_all_logs_* function
@@ -2128,7 +2128,7 @@ SLT <- R6::R6Class(
       , user_central_log_root = NULL
       , schema_repair         = TRUE
       , verbose               = TRUE
-      , csv_reader            = "fread_quiet"
+      , csv_reader            = "read.csv"
       , timezone              = "America/Los_Angeles"
       ) {
 
@@ -2212,6 +2212,10 @@ SLT <- R6::R6Class(
             , stop("csv_reader must be one of: fread, fread_quiet, read.csv, read.csv2")
          )
 
+         if(csv_reader %like% "fread" & verbose == TRUE) {
+            message("WARNING: Do not use double quotation marks (\") in user comments - data.table::fread causes them to multiply.")
+         }
+
          # ------------------------------------------------------------------#
 
          # Users must provide these fields
@@ -2264,7 +2268,7 @@ SLT <- R6::R6Class(
       #'   internal fields.  Otherwise, vector of static field names you want to
       #'   see.
       #'
-      #' @return [list] of all static interal fields
+      #' @return [list] of all static internal fields
       #'
       return_dictionaries = function(item_names = NULL){
          dict_names <- names(private$DICT)

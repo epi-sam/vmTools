@@ -51,7 +51,7 @@ Initialize the SymlinkTool object - an R6 class
   user_central_log_root = NULL,
   schema_repair = TRUE,
   verbose = TRUE,
-  csv_reader = "fread_quiet",
+  csv_reader = "read.csv",
   timezone = "America/Los_Angeles"
 )}\if{html}{\out{</div>}}
 }
@@ -124,7 +124,7 @@ see.}
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[list] of all static interal fields
+[list] of all static internal fields
 }
 }
 \if{html}{\out{<hr>}}

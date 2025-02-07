@@ -58,8 +58,8 @@ knitr::knit_hooks$set(output = function(x, options) {
 
 
 ```{r setup, include = FALSE}
-devtools::load_all() # for interactive use
-# library(vmTools) # to build vignettes
+# devtools::load_all() # for interactive use
+library(vmTools) # to build vignettes
 library(data.table)
 ```
 
