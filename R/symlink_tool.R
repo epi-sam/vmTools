@@ -2067,7 +2067,7 @@ SLT <- R6::R6Class(
       #'   https://github.com/Rdatatable/data.table/issues/4779 The safer and
       #'   slower default base R reader is used. Options:
       #' \itemize{
-      #'  \item{fread_quiet - `data.table::fread` and  suppress warnings (default)}
+      #'  \item{fread_quiet - `data.table::fread` and suppress warnings (default)}
       #'  \item{fread       - `data.table::fread`}
       #'  \item{read.csv    - `utils::read.csv` - safer}
       #'  \item{read.csv2   - `utils::read.csv2` - safer, comma as decimal point, semicolon as field separator}
