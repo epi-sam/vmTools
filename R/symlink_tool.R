@@ -1564,8 +1564,6 @@ SLT <- R6::R6Class(
          varname_dir <- grep("^dir_name", names(path_dt), value = TRUE)
          if(length(varname_dir) != 1)            stop("path_dt must have exactly one column starting with 'dir_name'")
 
-         # FIXME SB - 2024 Feb 23 - OUTPUT A ZERO-ROW DATA TABLE IF THERE ARE NOT PATHS TO REPORT
-
          # add an all NA row to schema_dt
          schema_dt             <- private$make_schema_dt(log_schema)
          if(nrow(path_dt) > 0) {
