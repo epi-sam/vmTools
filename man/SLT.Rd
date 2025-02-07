@@ -4,9 +4,8 @@
 \alias{SLT}
 \title{SymlinkTool R6 class}
 \description{
-SymlinkTool R6 class
-
-SymlinkTool R6 class
+Class for lightweight file-system level data versioning, logs
+  and reports without need for a database.
 }
 \examples{
 

@@ -1,8 +1,16 @@
 
-.datatable.aware = TRUE # required for tests/vignettes
+# required for tests/vignettes
+# Known issue: https://github.com/rstudio/rmarkdown/issues/187
+.datatable.aware = TRUE
+
+#> WARNING: DO NOT touch '.__enclos_env__' unless you want the tool to break
+#> ROXYGEN
+#>   - Roxygen docstrings cannot be added to private methods, because reasons
 
 
-#' SymlinkTool R6 class
+#' @title SymlinkTool R6 class
+#' @description Class for lightweight file-system level data versioning, logs
+#'   and reports without need for a database.
 #' @import data.table
 #' @importFrom R6 R6Class
 #' @export
