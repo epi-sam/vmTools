@@ -687,8 +687,8 @@ roundup_remove_list <- slt$roundup_remove()
 
 
 ```{r roundup3.1, include = FALSE}
-if(! identical(roundup_remove_list$root_input$dir_date_version, 
-               roundup_remove_list$root_output$dir_date_version)){
+if(! identical(roundup_remove_list$root_input$version_name, 
+               roundup_remove_list$root_output$version_name)){
   
   stop("roundup_remove found different date_versions in each `root` folder")
 }
@@ -696,7 +696,7 @@ if(! identical(roundup_remove_list$root_input$dir_date_version,
 
 ```{r roundup4}
 suppressMessages({
-  for(dv in roundup_remove_list$root_input$dir_date_version){
+  for(dv in roundup_remove_list$root_input$version_name){
     slt$delete_date_version_folders(
       version_name       = dv,
       user_entry         = list(comment = "roundup_remove"),
@@ -726,7 +726,7 @@ roundup_date_list <- slt$roundup_by_date(
 # mark all our dummy folders (with the ".VV" pattern) as keepers
 dv_keep <- grep(
   pattern = "\\.\\d\\d"
-  , x     = roundup_date_list$root_input$dir_date_version
+  , x     = roundup_date_list$root_input$version_name
   , value = TRUE
 )
 suppressMessages({

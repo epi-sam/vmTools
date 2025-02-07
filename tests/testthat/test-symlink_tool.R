@@ -222,7 +222,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                 expect_equal(
                    slt$roundup_by_date(user_date = "2023-01-01", date_selector = "gte")$root_input
                    , data.table(
-                      dir_date_version = unlist(dv_list)
+                      version_name = unlist(dv_list)
                       , dir_name = path_list$root_input
                       , dir_name_resolved = path_list$root_input
                    )

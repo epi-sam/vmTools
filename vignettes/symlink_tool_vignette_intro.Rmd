@@ -627,7 +627,7 @@ Next, we can handle them any way we choose.  For this demonstration, we'll delet
 - You could also build your own process to remove all ST-GPR models associated with `_remove`-marked runs to free quota space, for example.
 
 ```{r delete_folders_2}
-for(dir_dv_remove in dt_to_remove$to_model$dir_date_version){
+for(dir_dv_remove in dt_to_remove$to_model$version_name){
    slt_prep$delete_date_version_folders(
       version_name       = dir_dv_remove,
       user_entry         = list(comment = "Deleting dev folder"),

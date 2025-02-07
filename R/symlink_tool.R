@@ -706,6 +706,7 @@ SLT <- R6::R6Class(
       delete_remove_folder = function(root, version_name, user_entry, require_user_input){
          assert_dir_exists(root)
          assert_scalar(version_name)
+         version_name_ <- version_name # data.table accommodation
          version_path <- clean_path(root, version_name)
 
          folder_dt <- private$query_root_folder_types(root = root)
@@ -729,7 +730,7 @@ SLT <- R6::R6Class(
 
          } else if (require_user_input == TRUE) {
 
-            dirnames_to_unlink <- folder_dt[dir_date_version == version_name, dir_name]
+            dirnames_to_unlink <- folder_dt[version_name == version_name_, dir_name]
 
             message("") # newline for visual clarity
 
@@ -755,7 +756,7 @@ SLT <- R6::R6Class(
 
          } else if (require_user_input == FALSE) {
 
-            dirnames_to_unlink <- folder_dt[dir_date_version == version_name, dir_name]
+            dirnames_to_unlink <- folder_dt[version_name == version_name_, dir_name]
 
             message("") # newline for visual clarity
 
@@ -1209,7 +1210,7 @@ SLT <- R6::R6Class(
          )
          # also add on the resolved leaf version_name for later queries and roundups
          # - keep name distinct to avoid data.table conflicts with function args
-         folder_dt[, dir_date_version := basename(dir_name_resolved)]
+         folder_dt[, version_name := basename(dir_name_resolved)]
          # define symlinks that could and couldn't have been created by this tool for later use
          tool_symlink_regex  <- private$DICT$symlink_regex_extract
          tool_symlink_regex  <- paste(tool_symlink_regex, collapse = "|")
@@ -1345,7 +1346,7 @@ SLT <- R6::R6Class(
          folder_dt <- private$query_root_folder_types(root)
          # find all resolved paths attached to a "best_" symlink, and their symlink names
          # allow the user to decide how to deal with removal
-         best_dirs_dt <- unique(folder_dt[is_symlink == TRUE & grepl("^best$", dir_leaf), .(dir_date_version, dir_name, dir_name_resolved)])
+         best_dirs_dt <- unique(folder_dt[is_symlink == TRUE & grepl("^best$", dir_leaf), .(version_name, dir_name, dir_name_resolved)])
          return(best_dirs_dt)
       },
 
@@ -1359,7 +1360,7 @@ SLT <- R6::R6Class(
          folder_dt <- private$query_root_folder_types(root)
          # find all resolved paths attached to a "keep_" symlink, and their symlink names
          # allow the user to decide how to deal with removal
-         keep_dirs_dt <- unique(folder_dt[is_symlink == TRUE & grepl("^keep_", dir_leaf), .(dir_date_version, dir_name, dir_name_resolved)])
+         keep_dirs_dt <- unique(folder_dt[is_symlink == TRUE & grepl("^keep_", dir_leaf), .(version_name, dir_name, dir_name_resolved)])
          return(keep_dirs_dt)
       },
 
@@ -1373,7 +1374,7 @@ SLT <- R6::R6Class(
          folder_dt <- private$query_root_folder_types(root)
          # find all resolved paths attached to a "remove_" symlink, and their symlink names
          # allow the user to decide how to deal with removal
-         remove_dirs_dt <- unique(folder_dt[is_symlink == TRUE & grepl("^remove_", dir_leaf), .(dir_date_version, dir_name, dir_name_resolved)])
+         remove_dirs_dt <- unique(folder_dt[is_symlink == TRUE & grepl("^remove_", dir_leaf), .(version_name, dir_name, dir_name_resolved)])
          return(remove_dirs_dt)
       },
 
@@ -1382,7 +1383,7 @@ SLT <- R6::R6Class(
          folder_dt     <- private$query_root_folder_types(root)
          marked_dirs   <- folder_dt[is_symlink == TRUE, dir_name_resolved]
          unmarked_dirs <- folder_dt[!dir_name_resolved %in% marked_dirs, dir_name_resolved]
-         return(folder_dt[dir_name_resolved %in% unmarked_dirs, .(dir_date_version, dir_name, dir_name_resolved)])
+         return(folder_dt[dir_name_resolved %in% unmarked_dirs, .(version_name, dir_name, dir_name_resolved)])
       },
 
       #  Query all logs in one root by a date selector
@@ -1446,7 +1447,7 @@ SLT <- R6::R6Class(
 
          # Match version_name to folder_dt and return required columns
          dv_by_date <- logs_by_date$version_name
-         return(folder_dt[dir_date_version %in% dv_by_date, .(dir_date_version, dir_name, dir_name_resolved)])
+         return(folder_dt[version_name %in% dv_by_date, .(version_name, dir_name, dir_name_resolved)])
 
       },
 
