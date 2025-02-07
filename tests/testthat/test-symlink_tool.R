@@ -1,7 +1,7 @@
 
 # Setup ------------------------------------------------------------------------
 
-library(data.table)
+# library(data.table)
 
 # system(paste("rm -rf", tempdir()))
 make_directory <- function(path) dir.create(path, recursive = TRUE, showWarnings = FALSE)
@@ -104,7 +104,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    test_that("SLT creates new folders",
              {
                 lapply(dv_list, function(dv){
-                   slt$create_date_version_folders_with_logs(date_version = dv)
+                   slt$create_date_version_folders_with_logs(version_name = dv)
                 })
                 dirlist <- unlist(lapply(root_list, function(root) clean_path(root, dv_list)))
                 expect_true(
@@ -119,7 +119,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
    test_that("Mark best works",
              {
-                slt$mark_best(date_version = dv_list[["dv1"]], user_entry = ue_list[["best"]])
+                slt$mark_best(version_name = dv_list[["dv1"]], user_entry = ue_list[["best"]])
                 expect_true(
                    all(file.exists(clean_path(root_list, "best")))
                 )
@@ -128,7 +128,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
    test_that("Mark keep works",
              {
-                slt$mark_keep(date_version = dv_list[["dv1"]], user_entry = ue_list[["keep"]])
+                slt$mark_keep(version_name = dv_list[["dv1"]], user_entry = ue_list[["keep"]])
                 expect_true(
                    all(file.exists(clean_path(root_list, "keep_1990_01_01")))
                 )
@@ -136,7 +136,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
    test_that("Mark remove works",
              {
-                slt$mark_remove(date_version = dv_list[["dv1"]], user_entry = ue_list[["remove"]])
+                slt$mark_remove(version_name = dv_list[["dv1"]], user_entry = ue_list[["remove"]])
                 expect_true(
                    all(file.exists(clean_path(root_list, "remove_1990_01_01")))
                 )
@@ -144,7 +144,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
    test_that("Mark unmark works",
              {
-                slt$unmark(date_version = dv_list[["dv1"]] , user_entry = ue_list[["unmark"]])
+                slt$unmark(version_name = dv_list[["dv1"]] , user_entry = ue_list[["unmark"]])
                 expect_true(
                    all(!file.exists(clean_path(root_list, "remove_1990_01_01")))
                 )
@@ -179,11 +179,11 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                 # First log should go through best, keep, remove and finally unmark steps correctly
                 for(root in names(root_list)){
                    expect_equal(
-                      log_list[[root]][[1]][, .(log_id, user, date_version, version_path, action, comment)],
+                      log_list[[root]][[1]][, .(log_id, user, version_name, version_path, action, comment)],
                       data.table(
                          log_id = 0:6
                          , user = rep(Sys.info()[["user"]], 7)
-                         , date_version = rep(dv_list[[1]], 7)
+                         , version_name = rep(dv_list[[1]], 7)
                          , version_path = rep(clean_path(root_list[[root]], dv_list[[1]]), 7)
                          , action = c("create", "promote_best", "demote_best", "promote_keep", "demote_keep", "promote_remove", "demote_remove")
                          , comment = c("log created", "Testing mark best", "Testing mark keep", "Testing mark keep", "Testing mark remove", "Testing mark remove", "Testing mark unmark")

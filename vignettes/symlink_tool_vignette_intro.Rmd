@@ -137,7 +137,7 @@ resolve_symlink <- function(path){
 show_vars <- c("log_id",
                "timestamp",
                "user",
-               "date_version",
+               "version_name",
                # "version_path", # causes ouput to be too wide
                "action",
                "comment")
@@ -338,7 +338,7 @@ Use the Symlink Tool to create a new folder in your output root.
 
 ```{r baseline_folder_display_1}
 date_vers1 <- get_output_dir(root_to_model, "2024_02_01")
-slt_prep$create_date_version_folders_with_logs(date_version = date_vers1)
+slt_prep$create_date_version_folders_with_logs(version_name = date_vers1)
 ```
 
 Capture some paths, using the Symlink Tool to help.  We'll use these in a minute.
@@ -406,7 +406,7 @@ We like the models!  We want to elevate this run version folder to `best_` statu
 
 ```{r mark_best_dv1}
 # Mark best, and take note of messaging
-slt_prep$mark_best(date_version = date_vers1,
+slt_prep$mark_best(version_name = date_vers1,
                    user_entry   = list(comment = "Best model GBD2023"))
 ```
 
@@ -446,7 +446,7 @@ Run the pipeline two more times on the same day, inspect the models, and make a 
 ```{r two_new_runs}
 # Second run
 date_vers2 <- get_output_dir(root_to_model, "2024_02_01")
-slt_prep$create_date_version_folders_with_logs(date_version = date_vers2)
+slt_prep$create_date_version_folders_with_logs(version_name = date_vers2)
 
 # note - the dynamic fields update when you make new folders, so we won't see the dv1 path anymore
 root_dv2   <- slt_prep$return_dynamic_fields()$VERS_PATHS
@@ -454,7 +454,7 @@ invisible(file.create(file.path(root_dv2, fnames_my_models)))
 
 # Third run
 date_vers3 <- get_output_dir(root_to_model, "2024_02_01")
-slt_prep$create_date_version_folders_with_logs(date_version = date_vers3)
+slt_prep$create_date_version_folders_with_logs(version_name = date_vers3)
 root_dv3   <- slt_prep$return_dynamic_fields()$VERS_PATHS
 invisible(file.create(file.path(root_dv3, fnames_my_models)))
 ```
@@ -484,7 +484,7 @@ After inspecting our results, we decide the third run is _**actually**_ the `bes
 
 ```{r mark_best_dv3}
 # Mark best, and take note of messaging
-slt_prep$mark_best(date_version = date_vers3,
+slt_prep$mark_best(version_name = date_vers3,
                    user_entry   = list(comment = "New best model GBD2023"))
 ```
 
@@ -499,7 +499,7 @@ Inspect the central log - The third version is now bested.
 **Note:** Multiple "marks" on the same folder will produce no results (but reports will still run)
 
 ```{r mark_best_dv3_second_time}
-slt_prep$mark_best(date_version = date_vers3,
+slt_prep$mark_best(version_name = date_vers3,
                    user_entry   = list(comment = "New best model GBD2023"))
 ```
 
@@ -550,7 +550,7 @@ We want to keep the first run, even though it's not the best anymore.
 ```{r mark_keep_dv1}
 # Mark keep, and take note of messaging
 slt_prep$mark_keep(
-   date_version = date_vers1,
+   version_name = date_vers1,
    user_entry   = list(comment = "Previous best")
 )
 ```
@@ -588,7 +588,7 @@ We want to remove the second run, because the model was experimental, or perform
 ```{r mark_remove_dv2}
 # Mark remove, and take note of messaging
 slt_prep$mark_remove(
-   date_version = date_vers2,
+   version_name = date_vers2,
    user_entry   = list(comment = "Obsolete dev folder"))
 ```
 
@@ -629,7 +629,7 @@ Next, we can handle them any way we choose.  For this demonstration, we'll delet
 ```{r delete_folders_2}
 for(dir_dv_remove in dt_to_remove$to_model$dir_date_version){
    slt_prep$delete_date_version_folders(
-      date_version       = dir_dv_remove,
+      version_name       = dir_dv_remove,
       user_entry         = list(comment = "Deleting dev folder"),
       require_user_input = FALSE
    )

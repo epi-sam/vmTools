@@ -177,15 +177,15 @@ In my pipeline, I divert outputs to two folders:
 1. 'to_model', which is prepped data going into ST-GPR
 1. 'modeled', which is post-processed after ST-GPR
 
-I want to have the same `date_version` of my pipeline outputs in _both_ roots so I can correlate pre and post modeled data.
+I want to have the same `version_name` of my pipeline outputs in _both_ roots so I can correlate pre and post modeled data.
 
 _**If you need to handle roots independently, then you should instantiate different versions of the tool to handle each independent root, giving each instance of the tool a unique name e.g. `slt_input` and `slt_output`**._
 
-- A `date_version` is simply a string like "2024_02_02_new_covariates" that's important to you, the modeler, to tell you when and why the pipeline was run.  There is no requirement for this to include a date, but it's good practice.
+- A `version_name` is simply a string like "2024_02_02_new_covariates" that's important to you, the modeler, to tell you when and why the pipeline was run.  There is no requirement for this to include a date, but it's good practice.
 
 In addition, the tool needs a location for a central log.  I'll set that one level above both my output folders, since the central log will be shared between them.
 
-- The tool manages outputs at the `date_version` level, not the folder level, so one 'best' promotion affects folders in _both_ my output roots.
+- The tool manages outputs at the `version_name` level, not the folder level, so one 'best' promotion affects folders in _both_ my output roots.
 
 
 ```{r first_tool}
@@ -251,12 +251,12 @@ We should now have a central log, and two output folder.
 
 You can mark any output folder as 'best', and give it a 'best' symlink in each output root.
 
-- Only one `date_version` can be 'best', and the SLT will demote the current 'best' version if you promote a new `date_version`.
-- This will create a log in the `date_version` folder, and an entry in the central log.
+- Only one `version_name` can be 'best', and the SLT will demote the current 'best' version if you promote a new `version_name`.
+- This will create a log in the `version_name` folder, and an entry in the central log.
 
 **NOTE:**
 
-- The `date_version` log record records both 'demote' and 'promote' actions.
+- The `version_name` log record records both 'demote' and 'promote' actions.
 - The central log _only records_ 'promote' actions.
 
 **NOTE:**
@@ -264,7 +264,7 @@ You can mark any output folder as 'best', and give it a 'best' symlink in each o
 - Each 'mark' action needs the user to provide a log entry comment as a _named list_.
 
 
-First we'll create two `date_version` folders to play with in each root.
+First we'll create two `version_name` folders to play with in each root.
 
 ```{r mark_best2}
 dir.create(file.path(root_input, "2024_02_02"), recursive = TRUE, showWarnings = FALSE)
@@ -278,7 +278,7 @@ print_tree()
 Then we'll mark one as best.
 
 ```{r mark_best3}
-slt$mark_best(date_version = "2024_02_02", user_entry = list(comment = "testing mark_best"))
+slt$mark_best(version_name = "2024_02_02", user_entry = list(comment = "testing mark_best"))
 ```
 
 Look at the folder structure again.
@@ -299,7 +299,7 @@ Now let's mark the other one as best, and see what happens to the symlinks.
 ```{r mark_best4}
 # The tool is chatty by default at the console, but it's easy to make it quite if it's part of a pipeline.
 suppressMessages({
-  slt$mark_best(date_version = "2024_02_10", user_entry = list(comment = "testing mark_best"))
+  slt$mark_best(version_name = "2024_02_10", user_entry = list(comment = "testing mark_best"))
 })
 ```
 
@@ -341,7 +341,7 @@ fread(PATHS$log_2024_02_10)
 
 ## Reports
 
-You've probably also noticed a report.  This also shows the current state of all tool-created symlinks, built from the `date_version` folder logs (not the central log).
+You've probably also noticed a report.  This also shows the current state of all tool-created symlinks, built from the `version_name` folder logs (not the central log).
 
 - This report runs _automatically_ any time you `mark` a folder.
 - It only shows symlinks made by this tool, so if you make other symlinks, they won't be included.
@@ -361,14 +361,14 @@ fread(file.path(root_output, "report_key_versions.csv"))
 
 This tool was designed to allow the researcher to use it 'mid-stream' during a modeling round.  I.e. you may mark existing output folders as best, and all the logging takes care of itself.
 
-In addition, the researcher may choose to have this tool manage folder creation.  This is useful if you want to ensure that all your output folders are managed by the same tool, and that the tool is aware of all the `date_version` folders that exist.  Further, there are more reports you can run against your `date_version` logs that are more informative if you create all your folders with the tool. (See 'Other Features')
+In addition, the researcher may choose to have this tool manage folder creation.  This is useful if you want to ensure that all your output folders are managed by the same tool, and that the tool is aware of all the `version_name` folders that exist.  Further, there are more reports you can run against your `version_name` logs that are more informative if you create all your folders with the tool. (See 'Other Features')
 
 - This records the creation date and time of each folder, so you can 'round up' folders that are younger or older than some date.
 - The Linux filesystem _**does not record the creation date**_ of folders.
 
 
 ```{r create_new_folders}
-# Let's use a programmatic example to build a new `date_version.`
+# Let's use a programmatic example to build a new `version_name.`
 date_version_input  <- get_output_dir(root_input,  "today")
 date_version_output <- get_output_dir(root_output, "today")
 if(!date_version_input == date_version_output) {
@@ -377,8 +377,8 @@ if(!date_version_input == date_version_output) {
 date_version_today  <- intersect(date_version_input, date_version_output)
 
 # This creates folders safely, and will not overwrite existing folders if called twice.
-slt$create_date_version_folders_with_logs(date_version = date_version_today)
-slt$create_date_version_folders_with_logs(date_version = date_version_today)
+slt$create_date_version_folders_with_logs(version_name = date_version_today)
+slt$create_date_version_folders_with_logs(version_name = date_version_today)
 ```
 
 Now we can see the new folders, with their logs and creation date-time stamps.
@@ -400,7 +400,7 @@ This folder can be marked best just as the others, and prior best will be demote
 
 ```{r create_new_folders4}
 suppressMessages({
-  slt$mark_best(date_version = date_version_today, user_entry = list(comment = "testing mark_best"))
+  slt$mark_best(version_name = date_version_today, user_entry = list(comment = "testing mark_best"))
 })
 fread(PATHS$log_cent)
 ```
@@ -414,14 +414,14 @@ fread(PATHS$log_2024_02_10)
 
 Now let's say you review your results and _**no**_ version of outputs should be 'best'.  You can run `unmark()` to remove the 'best' status.
 
-- There are no longer any 'best' symlinks, and the `date_version` log shows demotion.
-- The central log does not show the demotion.  The presence/absence of the best symlink, and the `date_version` log are the acid test of what's current.
+- There are no longer any 'best' symlinks, and the `version_name` log shows demotion.
+- The central log does not show the demotion.  The presence/absence of the best symlink, and the `version_name` log are the acid test of what's current.
 - The tool-symlink report should now be empty.
 
 
 ```{r demote_best}
 suppressMessages({
-  slt$unmark(date_version = date_version_today, user_entry = list(comment = "testing unmark_best"))
+  slt$unmark(version_name = date_version_today, user_entry = list(comment = "testing unmark_best"))
 })
 print_tree()
 ```
@@ -464,13 +464,13 @@ Let's demonstrate on the folder we made programmatically with today's date.
 
 ```{r mark_remove}
 suppressMessages({
-  slt$mark_remove(date_version = date_version_today, user_entry = list(comment = "testing mark_remove"))
+  slt$mark_remove(version_name = date_version_today, user_entry = list(comment = "testing mark_remove"))
 })
 ```
 
 And let's look at the folder structure.
 
-- since many folders can be marked `remove_`, we combine 'remove_' with the `date_version` to make the folder name unique.
+- since many folders can be marked `remove_`, we combine 'remove_' with the `version_name` to make the folder name unique.
 
 ```{r mark_remove2}
 print_tree()
@@ -512,7 +512,7 @@ First, let's naively try to delete a folder we _haven't_ marked as ready for rem
 
 ```{r delete_folder}
 slt$delete_date_version_folders(
-  date_version = "2024_02_02",
+  version_name = "2024_02_02",
   user_entry   = list(comment = "testing delete_date_version_folders")
 )
 ```
@@ -527,7 +527,7 @@ Now let's delete the folder we _have_ marked as ready for removal.
 
 ```{r delete_folder2}
 slt$delete_date_version_folders(
-  date_version       = date_version_today,
+  version_name       = date_version_today,
   user_entry         = list(comment = "testing delete_date_version_folders"),
   require_user_input = FALSE
 )
@@ -542,7 +542,7 @@ Let's look at the folder structure.
 print_tree()
 ```
 
-Since we no longer have a `date_version` log, we can't look at it.  But we can look at the central log.
+Since we no longer have a `version_name` log, we can't look at it.  But we can look at the central log.
 
 - The last two rows should show:
     - the 'promote_remove' action
@@ -554,7 +554,7 @@ fread(PATHS$log_cent)
 
 Let's look at the report.
 
-- We should expect to not see the `date_version` in the report, since it's been deleted.
+- We should expect to not see the `version_name` in the report, since it's been deleted.
 
 
 ```{r delete_folder5}
@@ -579,11 +579,11 @@ Other available features will be covered briefly, and will assume the reader has
 
 It's likely you'll have other output versions you want to keep, but not as 'best'.  You can mark these as 'keep'.
 
-- This will produce symlinks of the form `keep_<date_version>`
+- This will produce symlinks of the form `keep_<version_name>`
 
 ```{r mark_keep}
 suppressMessages(
-  slt$mark_keep(date_version = "2024_02_10", user_entry = list(comment = "testing mark_keep"))
+  slt$mark_keep(version_name = "2024_02_10", user_entry = list(comment = "testing mark_keep"))
 )
 ```
 
@@ -601,7 +601,7 @@ print_symlink("keep")
 ## Reports pt 2
 
 In addition to the `report_key_versions.csv` file, there are other reports available.
-These will show the status of the last log row for each `date_version` folder in each `root` folder.
+These will show the status of the last log row for each `version_name` folder in each `root` folder.
 
 You can view things like:
 
@@ -698,7 +698,7 @@ if(! identical(roundup_remove_list$root_input$dir_date_version,
 suppressMessages({
   for(dv in roundup_remove_list$root_input$dir_date_version){
     slt$delete_date_version_folders(
-      date_version       = dv,
+      version_name       = dv,
       user_entry         = list(comment = "roundup_remove"),
       require_user_input = FALSE
     )
@@ -752,7 +752,7 @@ the creation date if you know when the folder was made.
 ```{r make_new_log}
 # Make a naive folder without a log
 dir.create(file.path(root_output, "2024_02_10_naive"))
-try(slt$make_new_log(date_version = "2024_02_10_naive"))
+try(slt$make_new_log(version_name = "2024_02_10_naive"))
 ```
 
 ```{r make_new_log2}

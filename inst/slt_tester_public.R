@@ -22,45 +22,45 @@ slt <- SLT$new(
 )
 
 # Go through all this again
-slt$create_date_version_folders_with_logs(date_version = "20240229_1")
-slt$create_date_version_folders_with_logs(date_version = "20240229_2")
-slt$create_date_version_folders_with_logs(date_version = "20240229_3")
+slt$create_date_version_folders_with_logs(version_name = "20240229_1")
+slt$create_date_version_folders_with_logs(version_name = "20240229_2")
+slt$create_date_version_folders_with_logs(version_name = "20240229_3")
 # Make a non-SLT folder, try to re-create it, ensure a log writes
 dir.create(clean_path(root_list$root_input, "20240229_handmade"), recursive = TRUE, showWarnings = FALSE)
-slt$create_date_version_folders_with_logs(date_version = "20240229_handmade")
+slt$create_date_version_folders_with_logs(version_name = "20240229_handmade")
 # now delete the non-SLT folder log, mark that folder 'keep' and also expect a log to be created
 file.remove(clean_path(root_list$root_input, "20240229_handmade", "log_version_history.csv"))
-slt$mark_keep(date_version = "20240229_handmade", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_keep(version_name = "20240229_handmade", user_entry = list(comment = "testing mark on new folder"))
 # Ensure validation performs correctly
-# slt$mark_best(date_version = "20240229_1", user_entry = list(comment = ""))
+# slt$mark_best(version_name = "20240229_1", user_entry = list(comment = ""))
 # Now mark each one best in turn
-slt$mark_best(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
-slt$mark_best(date_version = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
-slt$mark_best(date_version = "20240229_3", user_entry = list(comment = "testing mark on new folder"))
-slt$mark_best(date_version = "20240229_4", user_entry = list(comment = "testing mark on new folder")) # expect nothing to happen
+slt$mark_best(version_name = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_best(version_name = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_best(version_name = "20240229_3", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_best(version_name = "20240229_4", user_entry = list(comment = "testing mark on new folder")) # expect nothing to happen
 slt$roundup_by_date("2025-01-27", "gt")
 # Now unmark the last one
-slt$unmark(date_version = "20240229_3", user_entry = list(comment = "testing unmark on new folder"))
+slt$unmark(version_name = "20240229_3", user_entry = list(comment = "testing unmark on new folder"))
 # Mark all as keep
-slt$mark_keep(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
-slt$mark_keep(date_version = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
-slt$mark_keep(date_version = "20240229_3", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_keep(version_name = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_keep(version_name = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_keep(version_name = "20240229_3", user_entry = list(comment = "testing mark on new folder"))
 # Now randomly mark and unmark different folders in various ways
-slt$mark_keep(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
-slt$mark_remove(date_version = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
-slt$mark_best(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
-slt$unmark(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
-slt$mark_best(date_version = "20240229_3", user_entry = list(comment = "testing mark on new folder"))
-slt$mark_remove(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
-slt$mark_keep(date_version = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
-slt$unmark(date_version = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
-slt$mark_keep(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_keep(version_name = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_remove(version_name = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_best(version_name = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
+slt$unmark(version_name = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_best(version_name = "20240229_3", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_remove(version_name = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_keep(version_name = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
+slt$unmark(version_name = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_keep(version_name = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
 # Now delete all the folders, first marking to remove
-slt$mark_remove(date_version = "20240229_3", user_entry = list(comment = "testing mark on new folder"))
-slt$mark_remove(date_version = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
-slt$mark_remove(date_version = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_remove(version_name = "20240229_3", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_remove(version_name = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
+slt$mark_remove(version_name = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
 
-slt$delete_date_version_folders(date_version = "20240229_1", user_entry = list(comment = "testing folder deletion"), require_user_input = FALSE)
+slt$delete_date_version_folders(version_name = "20240229_1", user_entry = list(comment = "testing folder deletion"), require_user_input = FALSE)
 
 slt$reports()
 slt$roundup_best()
@@ -75,3 +75,7 @@ slt$return_dynamic_fields()
 
 # Test roundup_keep
 slt$roundup_keep()
+
+
+# Clean up
+system(paste("rm -rf", test_root))

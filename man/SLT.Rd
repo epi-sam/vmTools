@@ -49,8 +49,8 @@ Initialize the SymlinkTool object - an R6 class
   user_root_list = NULL,
   user_central_log_root = NULL,
   schema_repair = TRUE,
-  verbose = TRUE,
-  csv_reader = "read.csv",
+  verbose = FALSE,
+  csv_reader = "fread_quiet",
   timezone = "America/Los_Angeles"
 )}\if{html}{\out{</div>}}
 }
@@ -59,7 +59,7 @@ Initialize the SymlinkTool object - an R6 class
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{user_root_list}}{[list] Named list of root directories for
-pipeline outputs. This is where `date_version` folders live - these
+pipeline outputs. This is where `version_name` folders live - these
 are iterative runs of an analysis pipeline.}
 
 \item{\code{user_central_log_root}}{[path] Root directory for the central log.
@@ -68,19 +68,22 @@ the central log to live one level above those roots.}
 
 \item{\code{schema_repair}}{[logical] Default `TRUE`.  If `TRUE`, the tool
 will attempt to repair any schema mismatches it finds in the logs
-when reading and writing e.g. add new columns if the tool schema
-has columns that existing logs do not. If `FALSE`, the tool will stop
-and throw an error if it finds a schema mismatch.}
+when reading and writing e.g. add new columns if the tool schema has
+columns that existing logs do not. If `FALSE`, the tool will stop and
+throw an error if it finds a schema mismatch.}
 
-\item{\code{verbose}}{[lgl] see startup warnings? (OS dependent)}
+\item{\code{verbose}}{[lgl] see start up warnings, if relevant?}
 
-\item{\code{csv_reader}}{[chr] Default `fread_quiet`.  The CSV reader to use.
-  Options:
+\item{\code{csv_reader}}{[chr] Default `read.csv`.  The CSV reader to use.
+  CAUTION: Only use `data.table::fread` if you are not using quotation marks in
+  log comments (these lead to exploding series of quotations).
+  https://github.com/Rdatatable/data.table/issues/4779
+  The safer and slower default base R reader is used. Options:
 \itemize{
- \item{fread_quiet - data.table standard, suppress warnings - default}
- \item{fread       - data.table standard}
- \item{read.csv    - `utils::read.csv`}
- \item{read.csv2   - `utils::read.csv2`}
+ \item{fread_quiet - `data.table::fread` and  suppress warnings (default)}
+ \item{fread       - `data.table::fread`}
+ \item{read.csv    - `utils::read.csv` - safer}
+ \item{read.csv2   - `utils::read.csv2` - safer, comma as decimal point, semicolon as field separator}
 }}
 
 \item{\code{timezone}}{[chr] Default `America/Los_Angeles`.  The timezone to
@@ -162,13 +165,13 @@ Writes:
 - appends to a log file in the output folder with a date and time stamp
 - appends a line to the central log file with a date and time stamp
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$mark_best(date_version, user_entry)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$mark_best(version_name, user_entry)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{date_version}}{[chr] The directory name of the output folder that
+\item{\code{version_name}}{[chr] The directory name of the output folder that
 lives directly under one of the `root`s you define when you
 instantiate the tool.}
 
@@ -189,19 +192,19 @@ for them.}
 \if{html}{\out{<a id="method-Symlink_Tool-mark_keep"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-mark_keep}{}}}
 \subsection{Method \code{mark_keep()}}{
-Mark an output folder with a "keep_<date_version>" symlink
+Mark an output folder with a "keep_<version_name>" symlink
 
 Writes:
 - appends to a log file in the output folder with a date and time stamp
 - appends a line to the central log file with a date and time stamp
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$mark_keep(date_version, user_entry)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$mark_keep(version_name, user_entry)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{date_version}}{[chr] The directory name of the output folder that
+\item{\code{version_name}}{[chr] The directory name of the output folder that
 lives directly under one of the `root`s you define when you
 instantiate the tool.}
 
@@ -222,7 +225,7 @@ for them.}
 \if{html}{\out{<a id="method-Symlink_Tool-mark_remove"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-mark_remove}{}}}
 \subsection{Method \code{mark_remove()}}{
-Mark an output folder with a "remove_<date_version>" symlink
+Mark an output folder with a "remove_<version_name>" symlink
 
 Indication that the results can be deleted
 - In the future, this will be used to remove old versions of the
@@ -232,13 +235,13 @@ Writes:
 - appends to a log file in the output folder with a date and time stamp
 - appends a line to the central log file with a date and time stamp
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$mark_remove(date_version, user_entry)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$mark_remove(version_name, user_entry)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{date_version}}{[chr] The directory name of the output folder that
+\item{\code{version_name}}{[chr] The directory name of the output folder that
 lives directly under one of the `root`s you define when you
 instantiate the tool.}
 
@@ -259,19 +262,19 @@ for them.}
 \if{html}{\out{<a id="method-Symlink_Tool-unmark"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-unmark}{}}}
 \subsection{Method \code{unmark()}}{
-Remove all symlinks for a single `date_version` in all `roots`
+Remove all symlinks for a single `version_name` in all `roots`
 
 Writes:
 - appends to a log file in the output folder with a date and time stamp
 - does _not_ append to the central log file
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$unmark(date_version, user_entry)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$unmark(version_name, user_entry)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{date_version}}{[chr] The directory name of the output folder that
+\item{\code{version_name}}{[chr] The directory name of the output folder that
 lives directly under one of the `root`s you define when you
 instantiate the tool.}
 
@@ -356,7 +359,7 @@ and want to remove the rest.
 \if{html}{\out{<a id="method-Symlink_Tool-roundup_by_date"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-roundup_by_date}{}}}
 \subsection{Method \code{roundup_by_date()}}{
-Find all `date_version` folders by creation date
+Find all `version_name` folders by creation date
 
 Only finds folders that _have a log_, and reads creation date on first
 row.  User may select dates by (using the `date_selector` argument):
@@ -390,18 +393,18 @@ or 2020/01/01"}
 \if{html}{\out{<a id="method-Symlink_Tool-create_date_version_folders_with_logs"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-create_date_version_folders_with_logs}{}}}
 \subsection{Method \code{create_date_version_folders_with_logs()}}{
-Create a new `date_version` folder in _ALL THE TOOL'S ROOTS_
+Create a new `version_name` folder in _ALL THE TOOL'S ROOTS_
 
 Create a new log in each folder.  No symlinks are created.  No
 `user_entry` is used.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$create_date_version_folders_with_logs(date_version)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$create_date_version_folders_with_logs(version_name)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{date_version}}{[chr] The directory name of the output folder that
+\item{\code{version_name}}{[chr] The directory name of the output folder that
 lives directly under one of the `root`s you define when you
 instantiate the tool.}
 }
@@ -422,13 +425,13 @@ When you start a new pipeline run, make an empty log
 - you can roundup date_versions by creation date using the log's first entry
 - the file system doesn't track directory creation dates (at time of writing)
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$make_new_log(date_version)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$make_new_log(version_name)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{date_version}}{[chr] The directory name of the output folder that
+\item{\code{version_name}}{[chr] The directory name of the output folder that
 lives directly under one of the `root`s you define when you
 instantiate the tool.}
 }
@@ -442,7 +445,7 @@ instantiate the tool.}
 \if{html}{\out{<a id="method-Symlink_Tool-delete_date_version_folders"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-delete_date_version_folders}{}}}
 \subsection{Method \code{delete_date_version_folders()}}{
-Delete a `date_version` folder marked with a `remove_` symlink from
+Delete a `version_name` folder marked with a `remove_` symlink from
 _ALL ITS ROOTS_
 
 Removes the symlink(s) and the underlying folder(s), and updates
@@ -452,7 +455,7 @@ Writes:
 - appends a line to the central log file with a date and time stamp
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$delete_date_version_folders(
-  date_version,
+  version_name,
   user_entry,
   require_user_input = TRUE
 )}\if{html}{\out{</div>}}
@@ -461,7 +464,7 @@ Writes:
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{date_version}}{[chr] The directory name of the output folder that
+\item{\code{version_name}}{[chr] The directory name of the output folder that
 lives directly under one of the `root`s you define when you
 instantiate the tool.}
 
