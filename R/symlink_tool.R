@@ -5,7 +5,8 @@
 
 #> WARNING: DO NOT touch '.__enclos_env__' unless you want the tool to break
 #> ROXYGEN
-#>   - Roxygen docstrings cannot be added to private methods, because reasons
+#>   - Roxygen docstrings cannot be added to private methods
+#>   - https://stackoverflow.com/questions/45431845/documenting-r6-classes-and-methods-within-r-package-in-rstudio
 
 
 #' @title SymlinkTool R6 class
