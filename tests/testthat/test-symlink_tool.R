@@ -142,6 +142,40 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                 )
              })
 
+   test_that("Key version report has expected content",
+             {
+                fname_report_key_versions <- slt$return_dictionaries()$report_fnames$all_logs_tool_symlink
+                report_key_versions <- data.table::fread(file.path(root_list[[1]], fname_report_key_versions))
+                # timestamp won't test well - keep testable columns
+                report_key_versions <- report_key_versions[, .(log_id, user, version_name, version_path, action, comment)]
+                report_key_versions_test <- structure(
+                   list(
+                      log_id = 5L,
+                      user = Sys.getenv("USER"),
+                      version_name = "1990_01_01",
+                      version_path = file.path(root_base, "dir_1/1990_01_01"),
+                      action = "promote_remove",
+                      comment = "Testing mark remove"
+                   ),
+                   row.names = c(NA,
+                                 -1L),
+                   class = c("data.table", "data.frame")
+                )
+
+                expect_identical(report_key_versions, report_key_versions_test)
+
+             })
+
+
+   test_that("There is no discrepancy report after SLT marking",
+             {
+                slt$reports()
+                fname_discrepnacy_report <- slt$return_dictionaries()$report_fnames$discrepancies
+                expect_false(
+                   file.exists(file.path(root_list[[1]], fname_discrepnacy_report))
+                )
+             })
+
    test_that("Mark unmark works",
              {
                 slt$unmark(version_name = dv_list[["dv1"]] , user_entry = ue_list[["unmark"]])
@@ -150,11 +184,29 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                 )
              })
 
-   test_that("Expected folders exist after marking and unmarking",
+   test_that("Key version report is empty after unmarking",
+             {
+                fname_report_key_versions <- slt$return_dictionaries()$report_fnames$all_logs_tool_symlink
+                report_key_versions <- data.table::fread(file.path(root_list[[1]], fname_report_key_versions))
+                # timestamp won't test well - keep testable columns
+                report_key_versions <- report_key_versions[, .(log_id, user, version_name, version_path, action, comment)]
+                expect_equal(nrow(report_key_versions), 0)
+
+             })
+
+   test_that("Expected folders exist after marking, unmarking, and running reports",
              {
                 expect_equal(
                    list.files(root_list[[1]])
-                   , c("1990_01_01", "1990_01_02", "1990_01_03", "report_key_versions.csv")
+                   , c(
+                      "1990_01_01"
+                      , "1990_01_02"
+                      , "1990_01_03"
+                      , "report_all_logs.csv"
+                      , "report_all_logs_non_symlink.csv"
+                      , "report_all_logs_symlink.csv"
+                      , "report_key_versions.csv"
+                   )
                 )
              })
 
@@ -192,14 +244,108 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                 }
              })
 
+test_that("Central log has expected content",
+          {
+             fpath_central_log <- slt$return_dictionaries()$LOG_CENTRAL$path
+             log_central <- data.table::fread(fpath_central_log)
+             # Timstamps won't test well, trim to testable columns
+             log_central <- log_central[, .(log_id, user, version_name, version_path, action, comment)]
+             log_central_test <- structure(
+                list(
+                   log_id = 0:12,
+                   user = rep(Sys.getenv("USER"), 13),
+                   version_name = c(
+                      "CENTRAL_LOG",
+                      "1990_01_01",
+                      "1990_01_01",
+                      "1990_01_01",
+                      "1990_01_01",
+                      "1990_01_01",
+                      "1990_01_01",
+                      "1990_01_01",
+                      "1990_01_01",
+                      "1990_01_01",
+                      "1990_01_01",
+                      "1990_01_01",
+                      "1990_01_01"
+                   ),
+                   version_path = file.path(
+                      root_base,
+                      c(
+                         "log_symlinks_central.csv",
+                         "dir_1/1990_01_01",
+                         "dir_2/1990_01_01",
+                         "dir_1/1990_01_01",
+                         "dir_1/1990_01_01",
+                         "dir_2/1990_01_01",
+                         "dir_2/1990_01_01",
+                         "dir_1/1990_01_01",
+                         "dir_1/1990_01_01",
+                         "dir_2/1990_01_01",
+                         "dir_2/1990_01_01",
+                         "dir_1/1990_01_01",
+                         "dir_2/1990_01_01"
+                      )
+                   ),
+                   action = c(
+                      "create",
+                      "promote_best",
+                      "promote_best",
+                      "demote_best",
+                      "promote_keep",
+                      "demote_best",
+                      "promote_keep",
+                      "demote_keep",
+                      "promote_remove",
+                      "demote_keep",
+                      "promote_remove",
+                      "demote_remove",
+                      "demote_remove"
+                   ),
+                   comment = c(
+                      "log created",
+                      "Testing mark best",
+                      "Testing mark best",
+                      "Testing mark keep",
+                      "Testing mark keep",
+                      "Testing mark keep",
+                      "Testing mark keep",
+                      "Testing mark remove",
+                      "Testing mark remove",
+                      "Testing mark remove",
+                      "Testing mark remove",
+                      "Testing mark unmark",
+                      "Testing mark unmark"
+                   )
+                ),
+                row.names = c(NA,
+                              -13L),
+                class = c("data.table", "data.frame")
+             )
+
+             expect_identical(log_central, log_central_test)
+          })
+
+
    #>  TODO SB - 2024 Oct 16
    #> - test that:
-   #> - [ ] the log files are created and have the expected content
-   #> - [ ] the report file has expected content
-   #> - [ ] there's no discrepancy report after some manual edits
-   #>    - don't worry about minor issues, focus on log order issues, things related to report building
+   #> - [x] the log files are created and have the expected content
+   #> - [x] central log has expected content
+   #> - [x] the key-version report file has expected content
+   #> - [x] there's no discrepancy report after normal runs
    #> - [ ] there is an appropriate discrepancy report after some key edits
    #> - [ ] roundups work
+   #>   - [ ] dates
+   #>   - [ ] best
+   #>   - [ ] keep
+   #>   - [ ] remove
+   #>   - [ ] unmarked
+   #> - [ ] deletion works
+   #>   - [ ] fail if not marked 'remove'
+   #>   - [ ] succeed if marked 'remove'
+   #> - add:
+   #> - [ ] get_new_dv from SamsElves and test
+   #>
 
 
 
@@ -273,8 +419,8 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
    # Clean up ---------------------------------------------------------------------
 
-   # need files to persist over the tests, so cannot use `withr::local_file()`
-
+   # need files to persist during tests, so cannot use `withr::local_file()`
+   # - instead, clean up after tests run, or tests will fail on subsequent runs
    test_that(
       "Cleanup is complete",
       {
