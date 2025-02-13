@@ -11,7 +11,7 @@ Encoding: UTF-8
 LazyData: true
 Imports:
     R6 (>= 2.5.1),
-    data.table (>= 1.15.4)
+    data.table (>= 1.10.0)
 Suggests: 
     knitr (>= 1.46),
     rmarkdown (>= 2.27),
