@@ -335,29 +335,6 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
 
 
-   #>  TODO SB - 2024 Oct 16 ----
-   #> - test that:
-   #> - [x] the log files are created and have the expected content
-   #> - [x] central log has expected content
-   #> - [x] the key-version report file has expected content
-   #> - [x] there's no discrepancy report after normal runs
-   #> - [x] there is an appropriate discrepancy report after some hand edits
-   #> - [x] new logs are created automatically when marking a folder
-   #> - [ ] roundups work
-   #>   - [x] dates
-   #>   - [x] best
-   #>   - [x] keep
-   #>   - [x] remove
-   #>   - [x] unmarked
-   #> - [x] deletion works
-   #>   - [x] fail if not marked 'remove'
-   #>   - [x] succeed if marked 'remove'
-   #> - add:
-   #> - [ ] get_new_dv from SamsElves and test
-   #>
-
-
-
    # Integration - CSV readers ----------------------------------------------------
 
    suppressMessages(
