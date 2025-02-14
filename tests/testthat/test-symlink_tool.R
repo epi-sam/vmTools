@@ -158,7 +158,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                 report_key_versions_test <- structure(
                    list(
                       log_id = 5L,
-                      user = Sys.getenv("USER"),
+                      user = Sys.info()[["user"]],
                       version_name = "1990_01_01",
                       version_path = file.path(root_base, "dir_1/1990_01_01"),
                       action = "promote_remove",
@@ -260,7 +260,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                 log_central_test <- structure(
                    list(
                       log_id = 0:12,
-                      user = rep(Sys.getenv("USER"), 13),
+                      user = rep(Sys.info()[["user"]], 13),
                       version_name = c(
                          "CENTRAL_LOG",
                          "1990_01_01",
@@ -416,7 +416,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                    , data.table(
                       log_id         = 12
                       , timestamp    = ""
-                      , user         = Sys.getenv("USER")
+                      , user         = Sys.info()[["user"]]
                       , version_name = dv_list[["1990_01_01"]]
                       , version_path = path_list$root_input[["1990_01_01"]]
                       , action       = "non_slt_event"
