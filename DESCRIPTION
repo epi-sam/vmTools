@@ -16,8 +16,9 @@ Suggests:
     knitr (>= 1.46),
     rmarkdown (>= 2.27),
     testthat (>= 3.0.0),
+    withr (>= 2.5.0),
     qpdf
 VignetteBuilder: knitr
-RoxygenNote: 7.3.2
+RoxygenNote: 7.2.3
 Config/testthat/edition: 3
 Acknowledgments:

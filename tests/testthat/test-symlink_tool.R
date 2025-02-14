@@ -618,6 +618,29 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                 )
              })
 
+
+   # Integration - New Versions ---------------------------------------------------
+
+   test_that("get_new_version_name works",
+             {
+                expect_equal(
+                   slt$get_new_version_name()
+                   , format(Sys.Date(), "%Y_%m_%d.01")
+                )
+             })
+
+   new_version <- slt$get_new_version_name()
+   slt$create_date_version_folders_with_logs(new_version)
+   dir.create(file.path(root_list$root_input, format(Sys.Date(), "%Y_%m_%d.04")))
+
+   test_that("get_new_version_name finds the max possible version across all roots",
+             {
+                expect_equal(
+                   slt$get_new_version_name()
+                   , format(Sys.Date(), "%Y_%m_%d.05")
+                )
+             })
+
    # Test private methods ---------------------------------------------------------
 
    # 2024 Oct 16 - put this off for now and focus on some integration tests first

@@ -32,6 +32,7 @@ slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = 
 \item \href{#method-Symlink_Tool-roundup_remove}{\code{SLT$roundup_remove()}}
 \item \href{#method-Symlink_Tool-roundup_unmarked}{\code{SLT$roundup_unmarked()}}
 \item \href{#method-Symlink_Tool-roundup_by_date}{\code{SLT$roundup_by_date()}}
+\item \href{#method-Symlink_Tool-get_new_version_name}{\code{SLT$get_new_version_name()}}
 \item \href{#method-Symlink_Tool-create_date_version_folders_with_logs}{\code{SLT$create_date_version_folders_with_logs()}}
 \item \href{#method-Symlink_Tool-make_new_log}{\code{SLT$make_new_log()}}
 \item \href{#method-Symlink_Tool-delete_date_version_folders}{\code{SLT$delete_date_version_folders()}}
@@ -387,6 +388,30 @@ or 2020/01/01"}
 }
 \subsection{Returns}{
 [list] list of data.tables - one for each `root`
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Symlink_Tool-get_new_version_name"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Tool-get_new_version_name}{}}}
+\subsection{Method \code{get_new_version_name()}}{
+Get a new YYYY_MM_DD.VV version compatible with _ALL THE TOOL'S ROOTS_
+for a given date
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{SLT$get_new_version_name(date = "today", root_list = private$DICT$ROOTS)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{date}}{[chr] Default "today".  The date to use for the new version
+name.  Must be formatted "2020_01_01"}
+
+\item{\code{root_list}}{[list] named list of root directories for pipeline}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+[chr] format YYYY_MM_DD.VV
 }
 }
 \if{html}{\out{<hr>}}

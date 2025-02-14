@@ -2223,7 +2223,7 @@ SLT <- R6::R6Class(
          private$DICT$log_fields_user  <- setdiff(names(private$DICT$log_schema), private$DICT$log_fields_auto)
          ## CENTRAL LOG
          private$DICT$LOG_CENTRAL$path <- clean_path(private$DICT$LOG_CENTRAL$root,
-                                                    private$DICT$LOG_CENTRAL$fname)
+                                                     private$DICT$LOG_CENTRAL$fname)
          # Make sure this exists any time the class is initialized
          private$write_expected_central_log(fpath      = private$DICT$LOG_CENTRAL$path,
                                             log_schema = private$DICT$log_schema)
@@ -2600,6 +2600,24 @@ SLT <- R6::R6Class(
 
 
       ## Folder Creation -------------------------------------------------------
+
+      #' @description
+      #' Get a new YYYY_MM_DD.VV version compatible with _ALL THE TOOL'S ROOTS_
+      #' for a given date
+      #'
+      #' @param root_list [list] named list of root directories for pipeline
+      #'
+      #' @param date [chr] Default "today".  The date to use for the new version
+      #'  name.  Must be formatted "2020_01_01"
+      #'
+      #' @return [chr] format YYYY_MM_DD.VV
+      #'
+      #'
+      #'
+      get_new_version_name = function(date = "today", root_list = private$DICT$ROOTS){
+         return(max(unlist(lapply(root_list, get_new_version_name, date = date))))
+      },
+
 
       #' @description
       #' Create a new `version_name` folder in _ALL THE TOOL'S ROOTS_
