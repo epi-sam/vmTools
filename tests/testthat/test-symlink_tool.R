@@ -345,44 +345,17 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    #> - [x] new logs are created automatically when marking a folder
    #> - [ ] roundups work
    #>   - [x] dates
-   #>   - [ ] best
-   #>   - [ ] keep
-   #>   - [ ] remove
-   #>   - [ ] unmarked
-   #> - [ ] deletion works
-   #>   - [ ] fail if not marked 'remove'
-   #>   - [ ] succeed if marked 'remove'
+   #>   - [x] best
+   #>   - [x] keep
+   #>   - [x] remove
+   #>   - [x] unmarked
+   #> - [x] deletion works
+   #>   - [x] fail if not marked 'remove'
+   #>   - [x] succeed if marked 'remove'
    #> - add:
    #> - [ ] get_new_dv from SamsElves and test
    #>
 
-
-
-   # Integration - Roundups -------------------------------------------------------
-
-   test_that("Roundup by date throws expected errors",
-             {
-                expect_error(
-                   slt$roundup_by_date(user_date = "01-01-2023", date_selector = "gte")
-                   , regexp = "Invalid user_date. Must be formatted as YYYY MM DD, with one of these delimiters \\[-/_\\] between."
-                )
-                expect_error(
-                   slt$roundup_by_date(user_date = "2023-01-01", date_selector = "bte")
-                   , regexp = "Invalid date_selector. Must be one of \\(case-insensitive\\):.*\n  gt, gte, lt, lte, e"
-                )
-             })
-
-   test_that("Roundup by date works",
-             {
-                expect_equal(
-                   slt$roundup_by_date(user_date = "2023-01-01", date_selector = "gte")$root_input
-                   , data.table(
-                      version_name = unlist(dv_list)
-                      , dir_name = path_list$root_input
-                      , dir_name_resolved = path_list$root_input
-                   )
-                )
-             })
 
 
    # Integration - CSV readers ----------------------------------------------------
@@ -549,6 +522,101 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                 )
              })
 
+
+
+
+   # Integration - Roundups -------------------------------------------------------
+
+   test_that("Roundup by date throws expected errors",
+             {
+                expect_error(
+                   slt$roundup_by_date(user_date = "01-01-2023", date_selector = "gte")
+                   , regexp = "Invalid user_date. Must be formatted as YYYY MM DD, with one of these delimiters \\[-/_\\] between."
+                )
+                expect_error(
+                   slt$roundup_by_date(user_date = "2023-01-01", date_selector = "bte")
+                   , regexp = "Invalid date_selector. Must be one of \\(case-insensitive\\):.*\n  gt, gte, lt, lte, e"
+                )
+             })
+
+   test_that("Roundup by date works",
+             {
+                expect_equal(
+                   slt$roundup_by_date(user_date = "2023-01-01", date_selector = "gte")$root_input[1:3, ]
+                   , data.table(
+                      version_name = unlist(dv_list)
+                      , dir_name = path_list$root_input
+                      , dir_name_resolved = path_list$root_input
+                   )
+                )
+             })
+
+
+   slt$mark_best(version_name = "1990_01_03", user_entry = list(comment = "prepping for roundup best"))
+
+   test_that("Roundup best works",
+             {
+                expect_equal(
+                   slt$roundup_best()$root_input$version_name
+                   ,"1990_01_03"
+                )
+             })
+
+   test_that("Roundup keep works",
+             {
+                expect_equal(
+                   slt$roundup_keep()$root_input$version_name
+                   ,"1990_01_02"
+                )
+             })
+
+   test_that("Roundup remove works",
+             {
+                expect_equal(
+                   slt$roundup_remove()$root_input$version_name
+                   ,"1990_01_01"
+                )
+             })
+
+   lapply(dv_list, function(dv) slt$unmark(dv, list(comment = "unmarking for roundup test")))
+
+   test_that("Roundup unmarked works, even with a handmande-symlink pointing to a folder",
+             {
+                unmarked_list <- slt$roundup_unmarked()
+                expect_equal(
+                   unmarked_list$root_input$version_name
+                   , c("1990_01_02", "1990_01_03")
+                )
+
+                expect_equal(
+                   unmarked_list$root_output$version_name
+                   , c("1990_01_01", "1990_01_02", "1990_01_03")
+                )
+
+             })
+
+
+
+   # Integration - Deletion -------------------------------------------------------
+
+   test_that("Folder deletion works, and only for a folder marked _remove",
+             {
+                expect_message(
+                   slt$delete_date_version_folders(version_name = "1990_01_02", user_entry = list(comment = "testing folder deletion without marking"), require_user_input = FALSE)
+                   , regexp = "No valid `remove_` symlink found:"
+                )
+                expect_true(
+                   file.exists(path_list$root_input[["1990_01_02"]])
+                )
+                slt$mark_remove(version_name = "1990_01_02", user_entry = list(comment = "testing folder deletion"))
+                expect_message(
+                   slt$delete_date_version_folders(version_name = "1990_01_02", user_entry = list(comment = "testing folder deletion"), require_user_input = FALSE)
+                   , regexp = paste0("Deleting ", path_list$root_input[["1990_01_02"]])
+                )
+                expect_false(
+                   file.exists(path_list$root_input[["1990_01_02"]])
+                )
+             })
 
    # Test private methods ---------------------------------------------------------
 
