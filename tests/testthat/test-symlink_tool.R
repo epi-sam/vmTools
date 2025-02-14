@@ -14,13 +14,12 @@ make_directory(root_list[["root_input"]])
 make_directory(root_list[["root_output"]])
 # dir_tree(root_base)
 dv_list <- list(
-   dv1 = "1990_01_01"
-   , dv2 = "1990_01_02"
-   , dv3 = "1990_01_03"
+   "1990_01_01" = "1990_01_01"
+   , "1990_01_02" = "1990_01_02"
+   , "1990_01_03" = "1990_01_03"
 )
 path_list <- lapply(root_list, function(x) clean_path(x, dv_list))
-
-dv_list_fullpath <- lapply(root_list, function(root) clean_path(root, dv_list))
+path_list <- lapply(path_list, function(x) {names(x) <- names(dv_list); x})
 
 ue_list <- list(
    best = list(comment = "Testing mark best")
@@ -63,9 +62,18 @@ suppressMessages(
 
 
 
-# Test private methods ---------------------------------------------------------
 
-# 2024 Oct 16 - put this off for now and focus on some integration tests first
+# Paths ------------------------------------------------------------------------
+
+# file names used in tests - draw from within tool to ensure consistency
+fname_dv_log <- slt$return_dictionaries()$log_name
+fname_report_key_versions <- slt$return_dictionaries()$report_fnames$all_logs_tool_symlink
+fname_discrepnacy_report <- slt$return_dictionaries()$report_fnames$discrepancies
+
+fpaths_dv_logs <- lapply(path_list, function(path) file.path(path, fname_dv_log))
+fpaths_dv_logs <- lapply(fpaths_dv_logs, function(x) {names(x) <- names(dv_list); x})
+
+
 
 
 
@@ -119,7 +127,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
    test_that("Mark best works",
              {
-                slt$mark_best(version_name = dv_list[["dv1"]], user_entry = ue_list[["best"]])
+                slt$mark_best(version_name = dv_list[["1990_01_01"]], user_entry = ue_list[["best"]])
                 expect_true(
                    all(file.exists(clean_path(root_list, "best")))
                 )
@@ -128,7 +136,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
    test_that("Mark keep works",
              {
-                slt$mark_keep(version_name = dv_list[["dv1"]], user_entry = ue_list[["keep"]])
+                slt$mark_keep(version_name = dv_list[["1990_01_01"]], user_entry = ue_list[["keep"]])
                 expect_true(
                    all(file.exists(clean_path(root_list, "keep_1990_01_01")))
                 )
@@ -136,7 +144,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
    test_that("Mark remove works",
              {
-                slt$mark_remove(version_name = dv_list[["dv1"]], user_entry = ue_list[["remove"]])
+                slt$mark_remove(version_name = dv_list[["1990_01_01"]], user_entry = ue_list[["remove"]])
                 expect_true(
                    all(file.exists(clean_path(root_list, "remove_1990_01_01")))
                 )
@@ -144,7 +152,6 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
    test_that("Key version report has expected content",
              {
-                fname_report_key_versions <- slt$return_dictionaries()$report_fnames$all_logs_tool_symlink
                 report_key_versions <- data.table::fread(file.path(root_list[[1]], fname_report_key_versions))
                 # timestamp won't test well - keep testable columns
                 report_key_versions <- report_key_versions[, .(log_id, user, version_name, version_path, action, comment)]
@@ -170,7 +177,6 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    test_that("There is no discrepancy report after SLT marking",
              {
                 slt$reports()
-                fname_discrepnacy_report <- slt$return_dictionaries()$report_fnames$discrepancies
                 expect_false(
                    file.exists(file.path(root_list[[1]], fname_discrepnacy_report))
                 )
@@ -178,7 +184,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
    test_that("Mark unmark works",
              {
-                slt$unmark(version_name = dv_list[["dv1"]] , user_entry = ue_list[["unmark"]])
+                slt$unmark(version_name = dv_list[["1990_01_01"]] , user_entry = ue_list[["unmark"]])
                 expect_true(
                    all(!file.exists(clean_path(root_list, "remove_1990_01_01")))
                 )
@@ -186,7 +192,6 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
    test_that("Key version report is empty after unmarking",
              {
-                fname_report_key_versions <- slt$return_dictionaries()$report_fnames$all_logs_tool_symlink
                 report_key_versions <- data.table::fread(file.path(root_list[[1]], fname_report_key_versions))
                 # timestamp won't test well - keep testable columns
                 report_key_versions <- report_key_versions[, .(log_id, user, version_name, version_path, action, comment)]
@@ -210,11 +215,13 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                 )
              })
 
+   # Integration - Logs  ----------------------------------------------------------
+
    test_that("Only logs exist so far",
              {
-                dv_content_list <- lapply(dv_list_fullpath, list.files, full.names = TRUE)
+                dv_content_list <- lapply(path_list, list.files, full.names = TRUE)
 
-                dv_log_list <- lapply(dv_list_fullpath, function(dv_content){
+                dv_log_list <- lapply(path_list, function(dv_content){
                    fnames_logs <- list.files(dv_content, pattern = "log", full.names = TRUE)
                 })
                 expect_equal(dv_content_list, dv_log_list)
@@ -222,7 +229,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
    test_that("Marked logs have correct structure",
              {
-                dv_log_list <- lapply(dv_list_fullpath, function(dv_content){
+                dv_log_list <- lapply(path_list, function(dv_content){
                    fnames_logs <- list.files(dv_content, pattern = "log", full.names = TRUE)
                 })
                 expect_no_error(
@@ -244,98 +251,100 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                 }
              })
 
-test_that("Central log has expected content",
-          {
-             fpath_central_log <- slt$return_dictionaries()$LOG_CENTRAL$path
-             log_central <- data.table::fread(fpath_central_log)
-             # Timstamps won't test well, trim to testable columns
-             log_central <- log_central[, .(log_id, user, version_name, version_path, action, comment)]
-             log_central_test <- structure(
-                list(
-                   log_id = 0:12,
-                   user = rep(Sys.getenv("USER"), 13),
-                   version_name = c(
-                      "CENTRAL_LOG",
-                      "1990_01_01",
-                      "1990_01_01",
-                      "1990_01_01",
-                      "1990_01_01",
-                      "1990_01_01",
-                      "1990_01_01",
-                      "1990_01_01",
-                      "1990_01_01",
-                      "1990_01_01",
-                      "1990_01_01",
-                      "1990_01_01",
-                      "1990_01_01"
-                   ),
-                   version_path = file.path(
-                      root_base,
-                      c(
-                         "log_symlinks_central.csv",
-                         "dir_1/1990_01_01",
-                         "dir_2/1990_01_01",
-                         "dir_1/1990_01_01",
-                         "dir_1/1990_01_01",
-                         "dir_2/1990_01_01",
-                         "dir_2/1990_01_01",
-                         "dir_1/1990_01_01",
-                         "dir_1/1990_01_01",
-                         "dir_2/1990_01_01",
-                         "dir_2/1990_01_01",
-                         "dir_1/1990_01_01",
-                         "dir_2/1990_01_01"
+   test_that("Central log has expected content",
+             {
+                fpath_central_log <- slt$return_dictionaries()$LOG_CENTRAL$path
+                log_central <- data.table::fread(fpath_central_log)
+                # Timstamps won't test well, trim to testable columns
+                log_central <- log_central[, .(log_id, user, version_name, version_path, action, comment)]
+                log_central_test <- structure(
+                   list(
+                      log_id = 0:12,
+                      user = rep(Sys.getenv("USER"), 13),
+                      version_name = c(
+                         "CENTRAL_LOG",
+                         "1990_01_01",
+                         "1990_01_01",
+                         "1990_01_01",
+                         "1990_01_01",
+                         "1990_01_01",
+                         "1990_01_01",
+                         "1990_01_01",
+                         "1990_01_01",
+                         "1990_01_01",
+                         "1990_01_01",
+                         "1990_01_01",
+                         "1990_01_01"
+                      ),
+                      version_path = file.path(
+                         root_base,
+                         c(
+                            "log_symlinks_central.csv",
+                            "dir_1/1990_01_01",
+                            "dir_2/1990_01_01",
+                            "dir_1/1990_01_01",
+                            "dir_1/1990_01_01",
+                            "dir_2/1990_01_01",
+                            "dir_2/1990_01_01",
+                            "dir_1/1990_01_01",
+                            "dir_1/1990_01_01",
+                            "dir_2/1990_01_01",
+                            "dir_2/1990_01_01",
+                            "dir_1/1990_01_01",
+                            "dir_2/1990_01_01"
+                         )
+                      ),
+                      action = c(
+                         "create",
+                         "promote_best",
+                         "promote_best",
+                         "demote_best",
+                         "promote_keep",
+                         "demote_best",
+                         "promote_keep",
+                         "demote_keep",
+                         "promote_remove",
+                         "demote_keep",
+                         "promote_remove",
+                         "demote_remove",
+                         "demote_remove"
+                      ),
+                      comment = c(
+                         "log created",
+                         "Testing mark best",
+                         "Testing mark best",
+                         "Testing mark keep",
+                         "Testing mark keep",
+                         "Testing mark keep",
+                         "Testing mark keep",
+                         "Testing mark remove",
+                         "Testing mark remove",
+                         "Testing mark remove",
+                         "Testing mark remove",
+                         "Testing mark unmark",
+                         "Testing mark unmark"
                       )
                    ),
-                   action = c(
-                      "create",
-                      "promote_best",
-                      "promote_best",
-                      "demote_best",
-                      "promote_keep",
-                      "demote_best",
-                      "promote_keep",
-                      "demote_keep",
-                      "promote_remove",
-                      "demote_keep",
-                      "promote_remove",
-                      "demote_remove",
-                      "demote_remove"
-                   ),
-                   comment = c(
-                      "log created",
-                      "Testing mark best",
-                      "Testing mark best",
-                      "Testing mark keep",
-                      "Testing mark keep",
-                      "Testing mark keep",
-                      "Testing mark keep",
-                      "Testing mark remove",
-                      "Testing mark remove",
-                      "Testing mark remove",
-                      "Testing mark remove",
-                      "Testing mark unmark",
-                      "Testing mark unmark"
-                   )
-                ),
-                row.names = c(NA,
-                              -13L),
-                class = c("data.table", "data.frame")
-             )
+                   row.names = c(NA,
+                                 -13L),
+                   class = c("data.table", "data.frame")
+                )
 
-             expect_identical(log_central, log_central_test)
-          })
+                expect_identical(log_central, log_central_test)
+             })
 
 
-   #>  TODO SB - 2024 Oct 16
+
+   #>  TODO SB - 2024 Oct 16 ----
    #> - test that:
    #> - [x] the log files are created and have the expected content
    #> - [x] central log has expected content
    #> - [x] the key-version report file has expected content
    #> - [x] there's no discrepancy report after normal runs
-   #> - [ ] there is an appropriate discrepancy report after some key edits
+   #> - [x] there is an appropriate discrepancy report after some hand edits
+   #> - [x] new logs are created automatically when marking a folder
    #> - [ ] roundups work
-   #>   - [ ] dates
+   #>   - [x] dates
    #>   - [ ] best
    #>   - [ ] keep
    #>   - [ ] remove
@@ -414,6 +423,137 @@ test_that("Central log has expected content",
                    , slt_readcsv$roundup_by_date(user_date = "2023-01-01", date_selector = "gte")$root_input
                 )
              })
+
+
+
+
+   # Integration - Reports --------------------------------------------------------
+
+
+
+   test_that("Discrepancy report has expected structure after manual edits",
+             {
+
+                # Make some bad changes to logs
+                # - this should create a discrepancy report
+                log_list <- lapply(fpaths_dv_logs$root_input,  data.table::fread)
+                # insert an erroneous line
+                log_list[["1990_01_01"]] <- rbindlist(list(
+                   log_list[["1990_01_01"]]
+                   , data.table(
+                      log_id         = 12
+                      , timestamp    = ""
+                      , user         = Sys.getenv("USER")
+                      , version_name = dv_list[["1990_01_01"]]
+                      , version_path = path_list$root_input[["1990_01_01"]]
+                      , action       = "non_slt_event"
+                      , comment      = "This line was added by hand"
+                   )
+                ))
+                # delete a log
+                system(paste("rm -f", fpaths_dv_logs$root_input[["1990_01_02"]]))
+                log_list[["1990_01_02"]] <- NULL
+                # add a new column
+                log_list[["1990_01_03"]] <- log_list[["1990_01_03"]][, bad_column := "This column wasn't created by the tool"]
+                # write back to disk
+                lapply(names(log_list), function(log_name){
+                   fwrite(log_list[[log_name]], fpaths_dv_logs$root_input[[log_name]])
+                })
+                # make a bad symlink
+                file.symlink(
+                   path_list$root_input[["1990_01_01"]]
+                   , file.path(root_list$root_input, "bad_symlink")
+                )
+
+                # run reports
+                slt$reports()
+                # read discrepancy report
+                discrepancy_report <- data.table::fread(file.path(root_list[[1]], fname_discrepnacy_report))
+                discrepancy_report[, timestamp := NULL]
+
+                expect_identical(
+                   discrepancy_report
+                   , structure(
+                      list(
+                         log_id = c(NA, 12L, 12L, 0L),
+                         user = c("", "ssbyrne", "ssbyrne",
+                                  "ssbyrne"),
+                         version_name = c("", "1990_01_01", "1990_01_01",
+                                          "1990_01_03"),
+                         version_path = c(
+                            ""
+                            , rep(path_list$root_input[["1990_01_01"]], 2)
+                            , path_list$root_input[["1990_01_03"]]
+                         ),
+                         action = c("", "non_slt_event", "non_slt_event", "create"),
+                         comment = c(
+                            "",
+                            "This line was added by hand",
+                            "This line was added by hand",
+                            "log created"
+                         ),
+                         dir_name = c(file.path(root_list$root_input, "bad_symlink"), "", "", ""),
+                         bad_column = c("", "", "", "This column wasn't created by the tool"),
+                         vars_missing = c(NA, NA, NA, NA),
+                         vars_extra = c("", "", "", "bad_column"),
+                         discrepancy = c(
+                            "non-tool symlinks in root folder",
+                            "non-sequential log_ids",
+                            "invalid actions",
+                            "log schema differences - see vars_missing and vars_extra"
+                         )
+                      ),
+                      row.names = c(NA, -4L),
+                      class = c("data.table", "data.frame"))
+                )
+             })
+
+
+   test_that("demoting bad symlink causes no error and makes no log entry", {
+      expect_no_error(
+         slt$unmark(version_name = "1990_01_01", user_entry = list(comment = "testing unmark on hand-made symlink"))
+      )
+      expect_identical(
+         data.table::fread(fpaths_dv_logs$root_input[["1990_01_01"]])[log_id == 12, action]
+         , "non_slt_event"
+      )
+   })
+
+   test_that("promoting folder with handmade symlink does not alter the handmade symlink", {
+      expect_no_error(
+         slt$mark_remove(version_name = "1990_01_01", user_entry = list(comment = "testing mark_remove on hand-made symlinked folder"))
+      )
+      expect_equal(
+         normalizePath(file.path(root_list$root_input, "bad_symlink"))
+         , normalizePath(file.path(root_list$root_input, "remove_1990_01_01"))
+      )
+   })
+
+
+   test_that("make_new_log works when promoting an existing folder without a log",
+             {
+                # dir_tree(root_base)
+                # ensure no log before mark
+                expect_false(file.exists(fpaths_dv_logs$root_input[["1990_01_02"]]))
+                expect_no_error(
+                   {
+                      # make the mark
+                      slt$mark_keep(version_name = "1990_01_02", user_entry = list(comment = "testing mark_keep on folder without log"))
+                      log_list <- lapply(fpaths_dv_logs$root_input, data.table::fread)
+                   }
+                )
+                # expect a new log with two rows
+                expect_equal(
+                   log_list[["1990_01_02"]][, action]
+                   , c("create", "promote_keep")
+                )
+             })
+
+
+   # Test private methods ---------------------------------------------------------
+
+   # 2024 Oct 16 - put this off for now and focus on some integration tests first
+
 
 
 
