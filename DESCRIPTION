@@ -8,10 +8,11 @@ Authors@R: c(
     person("Andri", "Signorell", role = c("ctb"),
            comment = "Original author of DescTools SplitPath function"))
 Maintainer: Sam Byrne <ssbyrne@uw.edu>
-Description: Tools for data science versioning
+Description: Data Version Management for Small Projects
     - Symlink Tool 
-        - use the file system as a database to track 'best' pipeline outputs
-        with structured logging.
+        - use the file system symlinks to mark 'best' pipeline outputs
+        - get logs and reports for free
+        - manage out-of-date versions, delete, and maintain records
 License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true
