@@ -1,6 +1,21 @@
-# purpose: Functions borrowed from DescTools to remove dependency
-# - https://cran.r-project.org/web/packages/DescTools/index.html
-# - none should be exported
+# purpose: Limited set of I/O functions borrowed from DescTools_0.99.47
+# to remove import dependency.
+# Original author: Andri Signorell (https://orcid.org/0000-0003-4311-1969)
+# Source: https://cran.r-project.org/web/packages/DescTools/index.html
+# License: GPL-2 | GPL-3 [expanded from: GPL (≥ 2)]
+# Modifications: renamed SplitPath to split_path for internal consistency.
+#
+# At time of writing vmTools, the DescTools package contains the following
+# warning, which prompted this adpatation instead of importing DescTools.
+#
+# Warning: This package is still under development. Although the code seems
+# meanwhile quite stable, until release of version 1.0 you should be aware that
+# everything in the package might be subject to change. Backward compatibility
+# is not yet guaranteed. Functions may be deleted or renamed and new syntax may
+# be inconsistent with earlier versions. By release of version 1.0 the
+# "deprecated-defunct process" will be installed.
+
+
 
 #' Replace NAs by a user-defined string
 #'

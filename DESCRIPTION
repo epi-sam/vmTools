@@ -2,11 +2,17 @@ Package: vmTools
 Type: Package
 Title: Version Management Tools For Data Science Projects
 Version: 0.7.0
-Author: Sam Byrne
+Authors@R: c(
+    person("Sam", "Byrne", email = "ssbyrne@uw.edu", role = c("aut", "cre"), 
+          comment = c(ORCID = "0009-0008-1067-307X")),
+    person("Andri", "Signorell", role = c("ctb"),
+           comment = "Original author of DescTools SplitPath function"))
 Maintainer: Sam Byrne <ssbyrne@uw.edu>
-Description: Set of tools for managing pipeline output folders
-    Symlink Tool - an R6 class for managing output folder 'best' status with structured logging.
-License: GPL (>= 3)
+Description: Tools for data science versioning
+    - Symlink Tool 
+        - use the file system as a database to track 'best' pipeline outputs
+        with structured logging.
+License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true
 Imports:
@@ -14,6 +20,7 @@ Imports:
     data.table (>= 1.10.0)
 Suggests: 
     knitr (>= 1.46),
+    xfun(>= 0.42),
     rmarkdown (>= 2.27),
     testthat (>= 3.0.0),
     withr (>= 2.5.0),
@@ -22,3 +29,5 @@ VignetteBuilder: knitr
 RoxygenNote: 7.2.3
 Config/testthat/edition: 3
 Acknowledgments:
+URL: https://github.com/epi-sam/vmTools
+BugReports: https://github.com/epi-sam/vmTools/issues
