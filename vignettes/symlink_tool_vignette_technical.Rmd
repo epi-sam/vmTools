@@ -377,8 +377,8 @@ if(!date_version_input == date_version_output) {
 date_version_today  <- intersect(date_version_input, date_version_output)
 
 # This creates folders safely, and will not overwrite existing folders if called twice.
-slt$create_date_version_folders_with_logs(version_name = date_version_today)
-slt$create_date_version_folders_with_logs(version_name = date_version_today)
+slt$make_new_version_folder(version_name = date_version_today)
+slt$make_new_version_folder(version_name = date_version_today)
 ```
 
 Now we can see the new folders, with their logs and creation date-time stamps.
@@ -457,7 +457,7 @@ When it's time to remove those old folders, we can use this tool  to do that saf
 Think of the two-step process a bit like `git add` and `git commit`. 
 
 - First, you mark a folder with `mark_remove`, which puts it the the 'deletion staging area'.
-- Second, if you're sure you want to delete it, you run `delete_date_version_folders()` to actually delete the folder and update the central log.
+- Second, if you're sure you want to delete it, you run `delete_version_folders()` to actually delete the folder and update the central log.
 
 Let's demonstrate on the folder we made programmatically with today's date.
 
@@ -511,9 +511,9 @@ First, let's naively try to delete a folder we _haven't_ marked as ready for rem
 - this will try to delete folders in both output `root`s.
 
 ```{r delete_folder}
-slt$delete_date_version_folders(
+slt$delete_version_folders(
   version_name = "2024_02_02",
-  user_entry   = list(comment = "testing delete_date_version_folders")
+  user_entry   = list(comment = "testing delete_version_folders")
 )
 ```
 
@@ -526,9 +526,9 @@ Now let's delete the folder we _have_ marked as ready for removal.
     - E.g. keep outputs, but delete the inputs to free up disk space.
 
 ```{r delete_folder2}
-slt$delete_date_version_folders(
+slt$delete_version_folders(
   version_name       = date_version_today,
-  user_entry         = list(comment = "testing delete_date_version_folders"),
+  user_entry         = list(comment = "testing delete_version_folders"),
   require_user_input = FALSE
 )
 ```
@@ -618,13 +618,13 @@ You can view things like:
 
 ```{r reports_pt2}
 # Show the types of reports currently available
-slt$reports
+slt$make_reports
 ```
 
 ```{r reports_pt2b}
 # Run the reports
 suppressMessages({
-  slt$reports()
+  slt$make_reports()
 })
 print_tree()
 ```
@@ -657,13 +657,13 @@ We'll demonstrate by:
 ```{r roundup}
 # Make a set of dummy folders
 dv1  <- get_output_dir(root_input,  "today")
-slt$create_date_version_folders_with_logs(dv1)
+slt$make_new_version_folder(dv1)
 dv2  <- get_output_dir(root_input,  "today")
-slt$create_date_version_folders_with_logs(dv2)
+slt$make_new_version_folder(dv2)
 dv3  <- get_output_dir(root_input,  "today")
-slt$create_date_version_folders_with_logs(dv3)
+slt$make_new_version_folder(dv3)
 dv4  <- get_output_dir(root_input,  "today")
-slt$create_date_version_folders_with_logs(dv4)
+slt$make_new_version_folder(dv4)
 
 print_tree()
 ```
@@ -697,7 +697,7 @@ if(! identical(roundup_remove_list$root_input$version_name,
 ```{r roundup4}
 suppressMessages({
   for(dv in roundup_remove_list$root_input$version_name){
-    slt$delete_date_version_folders(
+    slt$delete_version_folders(
       version_name       = dv,
       user_entry         = list(comment = "roundup_remove"),
       require_user_input = FALSE

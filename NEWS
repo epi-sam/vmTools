@@ -9,6 +9,7 @@
 Updates:
 
 - Removed all lingering borrowed utilities
+- Renamed symlink_tool public and private methods for consistency
 
 
 

@@ -678,7 +678,7 @@ SLT <- R6::R6Class(
       #  @param version_path [chr] path to the versioned folder
       #
       #  @return [none] side effect of creating a log file on disk
-      create_folder_with_log = function(version_path){
+      make_folder_with_log = function(version_path){
 
          dir_exists <- validate_dir_exists(version_path, verbose = FALSE)
 
@@ -2632,14 +2632,14 @@ SLT <- R6::R6Class(
       #'
       #'
       #'
-      create_date_version_folders_with_logs = function(version_name){
+      make_new_version_folder = function(version_name){
 
          assert_scalar(x = version_name)
 
          private$handler_update_dynamic_fields(version_name = version_name)
 
          for(version_path in private$DYNAMIC$VERS_PATHS){
-            private$create_folder_with_log(version_path = version_path)
+            private$make_folder_with_log(version_path = version_path)
          }
 
       },
@@ -2709,7 +2709,7 @@ SLT <- R6::R6Class(
       #'
       #'
       #'
-      delete_date_version_folders = function(version_name, user_entry, require_user_input = TRUE){
+      delete_version_folders = function(version_name, user_entry, require_user_input = TRUE){
 
          private$handler_pre_mark(
             version_name = version_name,
@@ -2746,7 +2746,7 @@ SLT <- R6::R6Class(
       #'
       #'
       #'
-      reports = function(){
+      make_reports = function(){
 
          message("Writing last-row log reports for:\n")
          for(root in private$DICT$ROOTS){

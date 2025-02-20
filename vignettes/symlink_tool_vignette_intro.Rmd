@@ -338,7 +338,7 @@ Use the Symlink Tool to create a new folder in your output root.
 
 ```{r baseline_folder_display_1}
 date_vers1 <- get_output_dir(root_to_model, "2024_02_01")
-slt_prep$create_date_version_folders_with_logs(version_name = date_vers1)
+slt_prep$make_new_version_folder(version_name = date_vers1)
 ```
 
 Capture some paths, using the Symlink Tool to help.  We'll use these in a minute.
@@ -446,7 +446,7 @@ Run the pipeline two more times on the same day, inspect the models, and make a 
 ```{r two_new_runs}
 # Second run
 date_vers2 <- get_output_dir(root_to_model, "2024_02_01")
-slt_prep$create_date_version_folders_with_logs(version_name = date_vers2)
+slt_prep$make_new_version_folder(version_name = date_vers2)
 
 # note - the dynamic fields update when you make new folders, so we won't see the dv1 path anymore
 root_dv2   <- slt_prep$return_dynamic_fields()$VERS_PATHS
@@ -454,7 +454,7 @@ invisible(file.create(file.path(root_dv2, fnames_my_models)))
 
 # Third run
 date_vers3 <- get_output_dir(root_to_model, "2024_02_01")
-slt_prep$create_date_version_folders_with_logs(version_name = date_vers3)
+slt_prep$make_new_version_folder(version_name = date_vers3)
 root_dv3   <- slt_prep$return_dynamic_fields()$VERS_PATHS
 invisible(file.create(file.path(root_dv3, fnames_my_models)))
 ```
@@ -628,7 +628,7 @@ Next, we can handle them any way we choose.  For this demonstration, we'll delet
 
 ```{r delete_folders_2}
 for(dir_dv_remove in dt_to_remove$to_model$version_name){
-   slt_prep$delete_date_version_folders(
+   slt_prep$delete_version_folders(
       version_name       = dir_dv_remove,
       user_entry         = list(comment = "Deleting dev folder"),
       require_user_input = FALSE
@@ -678,7 +678,7 @@ We can generate more reports of the pipeline runs, and the status of the folders
 
 ```{r reports}
 # Generate reports
-slt_prep$reports()
+slt_prep$make_reports()
 ```
 
 

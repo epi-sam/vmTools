@@ -22,16 +22,16 @@ slt <- SLT$new(
 )
 
 # Go through all this again
-slt$create_date_version_folders_with_logs(version_name = "20240229_1")
-slt$create_date_version_folders_with_logs(version_name = "20240229_2")
-slt$create_date_version_folders_with_logs(version_name = "20240229_3")
+slt$make_new_version_folder(version_name = "20240229_1")
+slt$make_new_version_folder(version_name = "20240229_2")
+slt$make_new_version_folder(version_name = "20240229_3")
 
 # Get an automated new version_name compatible with all roots
 slt$get_new_version_name()
 
 # Make a non-SLT folder, try to re-create it, ensure a log writes
 dir.create(clean_path(root_list$root_input, "20240229_handmade"), recursive = TRUE, showWarnings = FALSE)
-slt$create_date_version_folders_with_logs(version_name = "20240229_handmade")
+slt$make_new_version_folder(version_name = "20240229_handmade")
 # now delete the non-SLT folder log, mark that folder 'keep' and also expect a log to be created
 file.remove(clean_path(root_list$root_input, "20240229_handmade", "log_version_history.csv"))
 slt$mark_keep(version_name = "20240229_handmade", user_entry = list(comment = "testing mark on new folder"))
@@ -64,9 +64,9 @@ slt$mark_remove(version_name = "20240229_3", user_entry = list(comment = "testin
 slt$mark_remove(version_name = "20240229_2", user_entry = list(comment = "testing mark on new folder"))
 slt$mark_remove(version_name = "20240229_1", user_entry = list(comment = "testing mark on new folder"))
 
-slt$delete_date_version_folders(version_name = "20240229_1", user_entry = list(comment = "testing folder deletion"), require_user_input = FALSE)
+slt$delete_version_folders(version_name = "20240229_1", user_entry = list(comment = "testing folder deletion"), require_user_input = FALSE)
 
-slt$reports()
+slt$make_reports()
 slt$roundup_best()
 slt$roundup_remove()
 slt$roundup_keep()

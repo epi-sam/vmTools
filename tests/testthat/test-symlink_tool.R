@@ -118,7 +118,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    test_that("SLT creates new folders",
              {
                 lapply(dv_list, function(dv){
-                   slt$create_date_version_folders_with_logs(version_name = dv)
+                   slt$make_new_version_folder(version_name = dv)
                 })
                 dirlist <- unlist(lapply(root_list, function(root) clean_path(root, dv_list)))
                 expect_true(
@@ -182,7 +182,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
    test_that("There is no discrepancy report after SLT marking",
              {
-                slt$reports()
+                slt$make_reports()
                 expect_false(
                    file.exists(file.path(root_list[[1]], fname_discrepnacy_report))
                 )
@@ -422,7 +422,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                 )
 
                 # run reports
-                slt$reports()
+                slt$make_reports()
                 # read discrepancy report
                 discrepancy_report <- data.table::fread(file.path(root_list[[1]], fname_discrepnacy_report))
                 discrepancy_report[, timestamp := NULL]
@@ -585,7 +585,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    test_that("Folder deletion works, and only for a folder marked _remove",
              {
                 expect_message(
-                   slt$delete_date_version_folders(version_name = "1990_01_02", user_entry = list(comment = "testing folder deletion without marking"), require_user_input = FALSE)
+                   slt$delete_version_folders(version_name = "1990_01_02", user_entry = list(comment = "testing folder deletion without marking"), require_user_input = FALSE)
                    , regexp = "No valid `remove_` symlink found:"
                 )
                 expect_true(
@@ -593,7 +593,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                 )
                 slt$mark_remove(version_name = "1990_01_02", user_entry = list(comment = "testing folder deletion"))
                 expect_message(
-                   slt$delete_date_version_folders(version_name = "1990_01_02", user_entry = list(comment = "testing folder deletion"), require_user_input = FALSE)
+                   slt$delete_version_folders(version_name = "1990_01_02", user_entry = list(comment = "testing folder deletion"), require_user_input = FALSE)
                    , regexp = paste0("Deleting ", path_list$root_input[["1990_01_02"]])
                 )
                 expect_false(
@@ -613,7 +613,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
              })
 
    new_version <- slt$get_new_version_name()
-   slt$create_date_version_folders_with_logs(new_version)
+   slt$make_new_version_folder(new_version)
    dir.create(file.path(root_list$root_input, format(Sys.Date(), "%Y_%m_%d.04")))
 
    test_that("get_new_version_name finds the max possible version across all roots",
@@ -639,7 +639,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
       "Cleanup is complete",
       {
          # unlink(root_base, recursive = TRUE)
-         system(paste("rm -rf", tempdir()))
+         system(paste("rm -rf", root_base))
          expect_error(dir_tree(root_base), regexp = "Failed to search directory.*no such file or directory")
       }
    )

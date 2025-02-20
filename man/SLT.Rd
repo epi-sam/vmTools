@@ -33,10 +33,10 @@ slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = 
 \item \href{#method-Symlink_Tool-roundup_unmarked}{\code{SLT$roundup_unmarked()}}
 \item \href{#method-Symlink_Tool-roundup_by_date}{\code{SLT$roundup_by_date()}}
 \item \href{#method-Symlink_Tool-get_new_version_name}{\code{SLT$get_new_version_name()}}
-\item \href{#method-Symlink_Tool-create_date_version_folders_with_logs}{\code{SLT$create_date_version_folders_with_logs()}}
+\item \href{#method-Symlink_Tool-make_new_version_folder}{\code{SLT$make_new_version_folder()}}
 \item \href{#method-Symlink_Tool-make_new_log}{\code{SLT$make_new_log()}}
-\item \href{#method-Symlink_Tool-delete_date_version_folders}{\code{SLT$delete_date_version_folders()}}
-\item \href{#method-Symlink_Tool-reports}{\code{SLT$reports()}}
+\item \href{#method-Symlink_Tool-delete_version_folders}{\code{SLT$delete_version_folders()}}
+\item \href{#method-Symlink_Tool-make_reports}{\code{SLT$make_reports()}}
 \item \href{#method-Symlink_Tool-clone}{\code{SLT$clone()}}
 }
 }
@@ -415,15 +415,15 @@ name.  Must be formatted "2020_01_01"}
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Symlink_Tool-create_date_version_folders_with_logs"></a>}}
-\if{latex}{\out{\hypertarget{method-Symlink_Tool-create_date_version_folders_with_logs}{}}}
-\subsection{Method \code{create_date_version_folders_with_logs()}}{
+\if{html}{\out{<a id="method-Symlink_Tool-make_new_version_folder"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Tool-make_new_version_folder}{}}}
+\subsection{Method \code{make_new_version_folder()}}{
 Create a new `version_name` folder in _ALL THE TOOL'S ROOTS_
 
 Create a new log in each folder.  No symlinks are created.  No
 `user_entry` is used.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$create_date_version_folders_with_logs(version_name)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$make_new_version_folder(version_name)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -467,9 +467,9 @@ instantiate the tool.}
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Symlink_Tool-delete_date_version_folders"></a>}}
-\if{latex}{\out{\hypertarget{method-Symlink_Tool-delete_date_version_folders}{}}}
-\subsection{Method \code{delete_date_version_folders()}}{
+\if{html}{\out{<a id="method-Symlink_Tool-delete_version_folders"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Tool-delete_version_folders}{}}}
+\subsection{Method \code{delete_version_folders()}}{
 Delete a `version_name` folder marked with a `remove_` symlink from
 _ALL ITS ROOTS_
 
@@ -479,11 +479,7 @@ central log if folders were removed.
 Writes:
 - appends a line to the central log file with a date and time stamp
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$delete_date_version_folders(
-  version_name,
-  user_entry,
-  require_user_input = TRUE
-)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$delete_version_folders(version_name, user_entry, require_user_input = TRUE)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -510,15 +506,15 @@ deletion.}
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Symlink_Tool-reports"></a>}}
-\if{latex}{\out{\hypertarget{method-Symlink_Tool-reports}{}}}
-\subsection{Method \code{reports()}}{
+\if{html}{\out{<a id="method-Symlink_Tool-make_reports"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Tool-make_reports}{}}}
+\subsection{Method \code{make_reports()}}{
 Make all reports
 
 Writes all reports to a summary .csv for every `root` defined in the
 tool.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$reports()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$make_reports()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{
