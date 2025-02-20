@@ -565,10 +565,7 @@ SLT <- R6::R6Class(
          assert_scalar(version_path)
          assert_scalar(symlink_type)
          if(!symlink_type %in% private$DICT$symlink_types) stop("Invalid symlink_type: ", symlink_type)
-         # root         <- split_path(version_path)$fullpath
          root         <- dirname(clean_path(version_path))
-         root         <- sub("/$", "", root) # remove trailing slash
-         # version_name <- split_path(version_path)$fullfilename
          version_name <- basename(clean_path(version_path))
 
          symlink_suffix <- switch(
