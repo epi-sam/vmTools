@@ -1,18 +1,13 @@
 Package: vmTools
 Type: Package
 Title: Version Management Tools For Data Science Projects
-Version: 0.7.0
+Version: 0.8.0
 Authors@R: c(
-    person("Sam", "Byrne", email = "ssbyrne@uw.edu", role = c("aut", "cre"), 
-          comment = c(ORCID = "0009-0008-1067-307X")),
-    person("Andri", "Signorell", role = c("ctb"),
-           comment = "Original author of DescTools SplitPath function"))
+    person("Sam", "Byrne", email = "ssbyrne@uw.edu", role = c("aut", "cre")
+    , comment = c(ORCID = "0009-0008-1067-307X"))
+           )
 Maintainer: Sam Byrne <ssbyrne@uw.edu>
-Description: Data Version Management for Small Projects
-    - Symlink Tool 
-        - use the file system symlinks to mark 'best' pipeline outputs
-        - get logs and reports for free
-        - manage out-of-date versions, delete, and maintain records
+Description: Data version management Tools for small data science projects.
 License: GPL (>= 2)
 Encoding: UTF-8
 LazyData: true
@@ -21,7 +16,6 @@ Imports:
     data.table (>= 1.10.0)
 Suggests: 
     knitr (>= 1.46),
-    xfun(>= 0.42),
     rmarkdown (>= 2.27),
     testthat (>= 3.0.0),
     withr (>= 2.5.0),
