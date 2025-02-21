@@ -447,7 +447,7 @@ Safely write an empty log file for first pipeline runs
 
 When you start a new pipeline run, make an empty log
 - helpful if you let this tool manage all your versions
-- you can roundup date_versions by creation date using the log's first entry
+- you can roundup version_names by creation date using the log's first entry
 - the file system doesn't track directory creation dates (at time of writing)
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$make_new_log(version_name)}\if{html}{\out{</div>}}

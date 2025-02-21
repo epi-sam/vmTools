@@ -6,6 +6,8 @@
 #'
 #' @return [chr] full file paths with consistent platform-specific structure
 #'
+#' @export
+#'
 #' @examples
 #' vmTools:::clean_path(tempdir(), "some/other/path/")
 clean_path <- function(..., normalize = TRUE, mustWork = FALSE){

@@ -369,16 +369,16 @@ In addition, the researcher may choose to have this tool manage folder creation.
 
 ```{r create_new_folders}
 # Let's use a programmatic example to build a new `version_name.`
-date_version_input  <- get_output_dir(root_input,  "today")
-date_version_output <- get_output_dir(root_output, "today")
-if(!date_version_input == date_version_output) {
-  stop("date_version_input and date_version_output must be the same")
+version_name_input  <- get_output_dir(root_input,  "today")
+version_name_output <- get_output_dir(root_output, "today")
+if(!version_name_input == version_name_output) {
+  stop("version_name_input and version_name_output must be the same")
 }
-date_version_today  <- intersect(date_version_input, date_version_output)
+version_name_today  <- intersect(version_name_input, version_name_output)
 
 # This creates folders safely, and will not overwrite existing folders if called twice.
-slt$make_new_version_folder(version_name = date_version_today)
-slt$make_new_version_folder(version_name = date_version_today)
+slt$make_new_version_folder(version_name = version_name_today)
+slt$make_new_version_folder(version_name = version_name_today)
 ```
 
 Now we can see the new folders, with their logs and creation date-time stamps.
@@ -393,14 +393,14 @@ print_tree()
 ```
 
 ```{r create_new_folders3}
-fread(file.path(root_input, date_version_today, "log_version_history.csv"))
+fread(file.path(root_input, version_name_today, "log_version_history.csv"))
 ```
 
 This folder can be marked best just as the others, and prior best will be demoted.
 
 ```{r create_new_folders4}
 suppressMessages({
-  slt$mark_best(version_name = date_version_today, user_entry = list(comment = "testing mark_best"))
+  slt$mark_best(version_name = version_name_today, user_entry = list(comment = "testing mark_best"))
 })
 fread(PATHS$log_cent)
 ```
@@ -421,7 +421,7 @@ Now let's say you review your results and _**no**_ version of outputs should be 
 
 ```{r demote_best}
 suppressMessages({
-  slt$unmark(version_name = date_version_today, user_entry = list(comment = "testing unmark_best"))
+  slt$unmark(version_name = version_name_today, user_entry = list(comment = "testing unmark_best"))
 })
 print_tree()
 ```
@@ -431,7 +431,7 @@ fread(PATHS$log_cent)
 ```
 
 ```{r demote_best3}
-fread(file.path(root_input, date_version_today, "log_version_history.csv"))
+fread(file.path(root_input, version_name_today, "log_version_history.csv"))
 ```
 
 ```{r demote_report}
@@ -464,7 +464,7 @@ Let's demonstrate on the folder we made programmatically with today's date.
 
 ```{r mark_remove}
 suppressMessages({
-  slt$mark_remove(version_name = date_version_today, user_entry = list(comment = "testing mark_remove"))
+  slt$mark_remove(version_name = version_name_today, user_entry = list(comment = "testing mark_remove"))
 })
 ```
 
@@ -488,7 +488,7 @@ And finally look at the log.
 - It should have a 'promote_remove' action in the last row.
 
 ```{r mark_remove4}
-fread(file.path(root_input, date_version_today, "log_version_history.csv"))
+fread(file.path(root_input, version_name_today, "log_version_history.csv"))
 ```
 
 The report should also update to show the new symlink.
@@ -527,7 +527,7 @@ Now let's delete the folder we _have_ marked as ready for removal.
 
 ```{r delete_folder2}
 slt$delete_version_folders(
-  version_name       = date_version_today,
+  version_name       = version_name_today,
   user_entry         = list(comment = "testing delete_version_folders"),
   require_user_input = FALSE
 )
@@ -690,7 +690,7 @@ roundup_remove_list <- slt$roundup_remove()
 if(! identical(roundup_remove_list$root_input$version_name, 
                roundup_remove_list$root_output$version_name)){
   
-  stop("roundup_remove found different date_versions in each `root` folder")
+  stop("roundup_remove found different version_names in each `root` folder")
 }
 ```
 

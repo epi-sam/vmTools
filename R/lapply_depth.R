@@ -15,7 +15,7 @@
 #' vmTools:::lapply_depth(list(A = list(one = 1, two = 2), B = list(one = 3, two = 4)), 1, `[[`, "one")
 lapply_depth <- function(.x, .depth, .f, ...) {
    assert_named_list(.x)
-   if (.depth == 0) {
+    if (.depth == 0) {
       return(.f(.x, ...))  # Apply function directly if at target depth
    }
    if (!is.list(.x)) {

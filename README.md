@@ -71,10 +71,3 @@ devtools::install_github("epi-sam/vmTools@v0.3.0")
 
 - The [Bitbucket] repository is _**INACTIVE**_.
 - Use the [Github](https://github.com/epi-sam/vmTools) repository for the most up-to-date version of the code.
-
-
-
-## Acknowledgments
-
-This package includes code adapted from the [DescTools](https://cloud.r-project.org/web/packages/DescTools/index.html) 
-package (version 0.99.47) by Andri Signorell, licensed under (GPL-2 | GPL-3 [expanded from: GPL (≥ 2)]).

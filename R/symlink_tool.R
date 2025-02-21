@@ -35,7 +35,7 @@ SLT <- R6::R6Class(
          #> - the tool expects that each 'version_name' exists in each 'root',
          #>   - i.e. you could split pipeline outputs from the same `version_name` into different 'root' folders
          #> - the tool can work with heterogeneous 'root' folders
-         #>   - i.e. you don't need exactly the same 'date_versions' in each, but the tool will try to manage `date_versions` across `roots` in parallel
+         #>   - i.e. you don't need exactly the same 'version_names' in each, but the tool will try to manage `version_names` across `roots` in parallel
          #>
          #> Every time the tool runs a 'mark' operation, it will update the report on tool-generated active symlinks
 
@@ -445,9 +445,6 @@ SLT <- R6::R6Class(
                  paste0(names(symlink_regex), collapse = "\n  ")
             )
          }
-
-         # subset to user's chosen symlink_type
-         # symlink_regex <- symlink_regex[names(symlink_regex) %in% symlink_type]
 
          folder_contents <- system(paste("ls -l", root), intern = TRUE)
          folder_contents <- folder_contents[-1] # remove "total xxx"
@@ -1518,9 +1515,7 @@ SLT <- R6::R6Class(
          log_list <- private$query_all_logs_tool_symlink(root, verbose = FALSE)
          last_row_dt <- private$query_logs_last_row(log_list)
          private$write_report(last_row_dt, clean_path(root, private$DICT$report_fnames$all_logs_tool_symlink))
-
          private$report_discrepancies(root = root)
-
       },
 
       #  Report last row of all non-symlinked folder logs in one root
@@ -1939,11 +1934,11 @@ SLT <- R6::R6Class(
          if(dir.exists(path_best_sym)) {
             # TODO SB - 2024 Feb 06 - Convert to `remove_one_symlink()` - requires arg updates
             path_best_real <- private$resolve_symlink(path_best_sym)
-            date_version_to_remove <- basename(path_best_real)
+            version_name_to_remove <- basename(path_best_real)
             message("-- Demoting from 'best': ", path_best_real)
 
             # set version to the folder the log will be written to, then reset it after
-            private$DYNAMIC$LOG$version_name <- date_version_to_remove
+            private$DYNAMIC$LOG$version_name <- version_name_to_remove
             private$append_to_log(version_path = path_best_real, user_entry = user_entry)
             private$append_to_central_log(version_path = path_best_real, user_entry = user_entry)
             private$DYNAMIC$LOG$version_name <- version_name
@@ -2196,6 +2191,8 @@ SLT <- R6::R6Class(
          # validate inputs
          assert_named_list(user_root_list)
          lapply(user_root_list, assert_dir_exists)
+         assert_scalar(schema_repair)
+         assert_type(schema_repair, "logical")
 
          # set roots
          private$DICT$ROOTS <- user_root_list
@@ -2649,7 +2646,7 @@ SLT <- R6::R6Class(
       #'
       #' When you start a new pipeline run, make an empty log
       #' - helpful if you let this tool manage all your versions
-      #' - you can roundup date_versions by creation date using the log's first entry
+      #' - you can roundup version_names by creation date using the log's first entry
       #' - the file system doesn't track directory creation dates (at time of writing)
       #'
       #' @param version_name [chr] The directory name of the output folder that
