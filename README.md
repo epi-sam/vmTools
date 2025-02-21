@@ -3,33 +3,30 @@
 ## What is it?
 
 - Version Management Tools For Data Science Projects using R6 classes.
-   - Lightweight data versioning with the file system
+   - Lightweight data versioning using the file system
       - No database required
-   - User-control of important versions with notes
+   - User-control of important versions with automated logs and reports
       - best   - a single best folder of data/outputs
       - keep   - an arbitrary number of important folders to keep
       - remove - an arbitrary number of folders staged for removal (with option to delete)
-   - Automated logs and reports
 
 
 
 ## Can you show me how it works?
 
 - See the vignettes folder for examples of how to use the package.
-   - 2024-11-19 Having issues building with installation - you can copy the 
-     vignette source and run for yourself after you install the package.
-
-
-
-## Who wrote it?  Who maintains it?
-
-- See the DESCRIPTION package file.
 
 
 
 ## When was it last updated, and how?
 
-- See the ChangeLog.md file
+- See the NEWS file
+
+
+
+## Who wrote it?  Who maintains it?
+
+- See the DESCRIPTION file.
 
 
 
@@ -69,5 +66,4 @@ devtools::install_github("epi-sam/vmTools@v0.3.0")
 
 ## Which Remote is actively maintained?
 
-- The [Bitbucket] repository is _**INACTIVE**_.
 - Use the [Github](https://github.com/epi-sam/vmTools) repository for the most up-to-date version of the code.
