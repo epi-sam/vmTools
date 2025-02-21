@@ -1,20 +1,28 @@
 Package: vmTools
 Type: Package
 Title: Version Management Tools For Data Science Projects
-Version: 0.7.0
-Author: Sam Byrne
+Version: 0.8.0
+Authors@R: c(
+    person("Sam", "Byrne", email = "ssbyrne@uw.edu", role = c("aut", "cre")
+    , comment = c(ORCID = "0009-0008-1067-307X"))
+           )
 Maintainer: Sam Byrne <ssbyrne@uw.edu>
-Description: Set of tools for managing pipeline output folders
-    Symlink Tool - an R6 class for managing output folder 'best' status with structured logging.
-License: What license is it under?
+Description: Data version management on the file system for smaller projects.
+License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
-Suggests: 
+Imports:
     R6 (>= 2.5.1),
-    data.table (>= 1.15.4),
+    data.table (>= 1.10.0)
+Suggests: 
     knitr (>= 1.46),
     rmarkdown (>= 2.27),
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    withr (>= 2.5.0),
+    qpdf
 VignetteBuilder: knitr
-RoxygenNote: 7.3.1
+RoxygenNote: 7.3.2
 Config/testthat/edition: 3
+Acknowledgments:
+URL: https://github.com/epi-sam/vmTools
+BugReports: https://github.com/epi-sam/vmTools/issues

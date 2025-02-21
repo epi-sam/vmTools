@@ -2,10 +2,7 @@
 % Please edit documentation in R/assertions.R
 \name{assert_scalar}
 \alias{assert_scalar}
-\title{Types of check functions:
-1. assert_x - stop if conditions are unmet
-2. validate_x - warn if conditions are unmet
-              - Return TRUE/FALSE}
+\title{Assert an element is atomic and length 1}
 \usage{
 assert_scalar(x)
 }
@@ -19,6 +16,6 @@ assert_scalar(x)
 Assert an element is atomic and length 1
 }
 \examples{
-assert_scalar("A") # OK
-assert_scalar(1:2) # Error
+vmTools:::assert_scalar("A") # OK
+# vmTools:::assert_scalar(1:2) # Error
 }

@@ -4,9 +4,17 @@
 
 
 
-## v.0.7.0
+# v.0.8.0 (2025-02-20)
 
-2025-01-30
+Updates:
+
+- Removed all lingering borrowed utilities
+- Renamed symlink_tool public and private methods for consistency
+
+
+
+
+# v.0.7.0 (2025-01-30)
 
 Updates:
 
@@ -16,27 +24,23 @@ Updates:
 
 
 
-## v.0.6.0
-
-2025-01-14
+# v.0.6.0 (2025-01-14)
 
 Update:
 
 - Removed lubridate package dependency
 
 
-## v.0.5.0
 
-2025-01-14
+# v.0.5.0 (2025-01-14)
 
 Update:
 
 - Added basic tests
 
 
-## v.0.4.0
 
-2025-01-14
+# v.0.4.0 (2025-01-14)
 
 Update:
 
@@ -44,9 +48,7 @@ Update:
 
 
 
-## v.0.3.7
-
-2024-11-19
+# v.0.3.7 (2024-11-19)
 
 Fixes:
 
@@ -54,9 +56,7 @@ Fixes:
 
 
 
-## v.0.3.6
-
-2024-11-19
+# v.0.3.6 (2024-11-19)
 
 Update:
 
@@ -66,9 +66,7 @@ Update:
 
 
 
-## v.0.3.5
-
-2024-11-15
+# v.0.3.5 (2024-11-15)
 
 Update:
 
@@ -76,9 +74,7 @@ Update:
 
 
 
-## v.0.3.4
-
-2024-10-16
+# v.0.3.4 (2024-10-16)
 
 Bugfixes:
 
@@ -86,9 +82,7 @@ Bugfixes:
 
 
 
-## v.0.3.3
-
-2024-10-16
+# v.0.3.3 (2024-10-16)
 
 Bugfixes:
 
@@ -96,9 +90,7 @@ Bugfixes:
 
 
 
-## v.0.3.2
-
-2024-10-16
+# v.0.3.2 (2024-10-16)
 
 Bugfixes:
 
@@ -106,9 +98,7 @@ Bugfixes:
 
 
 
-## v.0.3.1
-
-2024-10-16
+# v.0.3.1 (2024-10-16)
 
 Bugfixes:
 
@@ -120,41 +110,39 @@ Bugfixes:
 
 
 
-## v.0.3.0
-
-2024-10-15
+# v.0.3.0 (2024-10-15)
 
 Several improvements for consistency and sensible defaults based on trial deployment.
 
-### Logs
+## Logs
 
 - Central log now gets all demotions (previously only promotions were recorded, but this can create confusion).
 - Marked folders are no longer demoted and re-promoted if they are marked as the same folder type
    - Prevents log bloat.
    - Prevents confusion about when date-versions were elevated.
 
-### Reports
+## Reports
 
 - Main 'important versions' report has a sensible name.
 - Report names are consolidated to private dictionaries.
 - Reports are now sorted based on the `timestamp` field, which should keep all versions chronological based on when they were marked.
 
-### Methods
+## Methods
 
 - added `roundup_unmark()` method
    - Useful for finding folders that are not being tracked for easier bulk-removal.
 - added `roundup_best()` method
    - Back-filling a conspicuously absent option - allows the tool to be used for systematic operations with the `best` version, instead of hand-building file paths.
 
-### ChangeLog
+## NEWS
 
 - Added this file.
 
 
 
-## v.0.2.0
+# v.0.2.0
 
-### Vignettes
+## Vignettes
 
 Two written:
 
@@ -163,6 +151,6 @@ Two written:
 
 
 
-## v.0.1.0
+# v.0.1.0
 
 - Symlink tool is fully functional with basic tasks.

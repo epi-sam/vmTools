@@ -1,12 +1,8 @@
-# purpose: assertions for package internal functioning - not currently tested to work in a broader context
+# purpose: assertions for package internal functioning - not currently tested to
+# work in a broader context
 # - assertions `stop()` if conditions are violated
 # - none should be exported
 
-#' Types of check functions:
-#' 1. assert_x - stop if conditions are unmet
-#' 2. validate_x - warn if conditions are unmet
-#'               - Return TRUE/FALSE
-#'
 #' Assert an element is atomic and length 1
 #'
 #' @param x [any] Element to check
@@ -14,11 +10,11 @@
 #' @return [none] stop if assertion fails
 #'
 #' @examples
-#' assert_scalar("A") # OK
-#' assert_scalar(1:2) # Error
-assert_scalar = function(x){
+#' vmTools:::assert_scalar("A") # OK
+#' # vmTools:::assert_scalar(1:2) # Error
+assert_scalar <- function(x) {
    x_name <- deparse(substitute(x))
-   if(!(is.atomic(x) && length(x) == 1L)){
+   if (!(is.atomic(x) && length(x) == 1L)) {
       stop(x_name, " must be atomic and length 1L")
    }
 }
@@ -30,15 +26,14 @@ assert_scalar = function(x){
 #' @return [none] stop if assertion fails
 #'
 #' @examples
-#' assert_scalar_not_empty("A") # OK
-#' assert_scalar_not_empty(Inf) # Error - Inf considered non-meaningful - see validate_not_empty
-assert_scalar_not_empty = function(x){
+#' vmTools:::assert_scalar_not_empty("A") # OK
+#' # vmTools:::assert_scalar_not_empty(Inf) # Error - Inf considered non-meaningful
+assert_scalar_not_empty = function(x) {
    assert_scalar(x)
-   if(!isTRUE(validate_not_empty(x))){
+   if (!isTRUE(validate_not_empty(x))) {
       x_name <- deparse(substitute(x))
       stop(x_name, " is empty in some way.")
    }
-
 }
 
 #' Assert an object is a scalar of a certain type
@@ -49,34 +44,37 @@ assert_scalar_not_empty = function(x){
 #' @return [none] stop if assertion fails
 #'
 #' @examples
-#' assert_type("A", "character") # OK
-#' assert_type(1, "integer") # Error - need 1L
-assert_type = function(x, type){
+#' vmTools:::assert_type("A", "character") # OK
+#' # vmTools:::assert_type(1, "integer") # Error - need 1L
+assert_type = function(x, type) {
    assert_scalar(type)
    stopifnot(is.character(type))
-   if(!inherits(x, type)){
+   if (!inherits(x, type)) {
       x_name <- deparse(substitute(x))
       stop(x_name, " must be of type ", type)
    }
 }
 
+
 #' Assert an object is a list with named elements
 #'
 #' Stops if:
-#'  - x is not a list
-#'  - x is a data.frame
-#'  - x has no names
-#'  - x has any NA names
-#'  - x has any zero-length names
-#'  - x has any whitespace-only names
+#' \itemize{
+#'  \item{x is not a list}
+#'  \item{x is a data.frame}
+#'  \item{x has no names}
+#'  \item{x has any NA names}
+#'  \item{x has any zero-length names}
+#'  \item{x has any whitespace-only names}
+#' }
 #'
 #' @param x [list] List to check
 #'
 #' @return [none] stop if assertion fails
 #'
 #' @examples
-#' assert_named_list(list(a = 1, b = 2)) # OK
-#' assert_named_list(data.frame(a = 1, b = 2)) # Error
+#' vmTools:::assert_named_list(list(a = 1, b = 2)) # OK
+#' # vmTools:::assert_named_list(data.frame(a = 1, b = 2)) # Error
 assert_named_list = function(x){
    if(!is.null(x)){
       err_msg <- "x must be a named list, not vector or data.frame (list names may not be whitespace)"
@@ -89,16 +87,18 @@ assert_named_list = function(x){
    }
 }
 
-#'  @title Assert a directory exists on disk
+
+#' Assert a directory exists on disk
 #'
-#'  @param x [path] A directory path
+#' @param x [chr] A directory path
 #'
-#'  @return [none] stop if assertion fails
+#' @return [none] stop if assertion fails
 #'
-#'  @examples
-#'  assert_dir_exists(".") # OK
-#'  assert_dir_exists("nonexistent") # Error
+#' @examples
+#' vmTools:::assert_dir_exists(".") # OK
+#' # vmTools:::assert_dir_exists("nonexistent") # Error
 assert_dir_exists = function(x){
+   if(is.null(x)) stop("x is NULL")
    assert_scalar(x)
    root <- suppressWarnings(normalizePath(x))
    if(!dir.exists(root)) stop("root does not exist: ", x)

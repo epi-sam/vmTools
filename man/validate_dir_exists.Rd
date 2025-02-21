@@ -6,14 +6,18 @@
 \usage{
 validate_dir_exists(x, verbose = TRUE)
 }
-\description{
-@param x [path] A directory path
- @param verbose [lgl] message to std_out?
-}
-\details{
-@return [lgl] TRUE if directory exists, FALSE otherwise
+\arguments{
+\item{x}{[path] A directory path}
 
- @examples
- validate_dir_exists(".") # TRUE
- validate_dir_exists("nonexistent") # FALSE
+\item{verbose}{[lgl] message to std_out?}
+}
+\value{
+[lgl] TRUE if directory exists, FALSE otherwise
+}
+\description{
+Validate whether a directory exists
+}
+\examples{
+vmTools:::validate_dir_exists(".") # TRUE
+vmTools:::validate_dir_exists("nonexistent") # FALSE
 }

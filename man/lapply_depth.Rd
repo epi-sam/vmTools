@@ -24,5 +24,5 @@ but not very robust.  Internal package use only in select cases.
 }
 \examples{
 # intended use case - "pluck" a named list element out of each list
-lapply_depth(list(A = list(one = 1, two = 2), B = list(one = 3, two = 4)), 1, `[[`, "one")
+vmTools:::lapply_depth(list(A = list(one = 1, two = 2), B = list(one = 3, two = 4)), 1, `[[`, "one")
 }

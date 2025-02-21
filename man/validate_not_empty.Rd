@@ -16,6 +16,6 @@ validate_not_empty(x)
 Designed to also catch missing args when called inside a function.
 }
 \examples{
-validate_not_empty(1) # TRUE
-validate_not_empty(NULL) # FALSE
+vmTools:::validate_not_empty(1) # TRUE
+vmTools:::validate_not_empty(NULL) # FALSE
 }

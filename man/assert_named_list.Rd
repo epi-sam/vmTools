@@ -14,14 +14,16 @@ assert_named_list(x)
 }
 \description{
 Stops if:
- - x is not a list
- - x is a data.frame
- - x has no names
- - x has any NA names
- - x has any zero-length names
- - x has any whitespace-only names
+\itemize{
+ \item{x is not a list}
+ \item{x is a data.frame}
+ \item{x has no names}
+ \item{x has any NA names}
+ \item{x has any zero-length names}
+ \item{x has any whitespace-only names}
+}
 }
 \examples{
-assert_named_list(list(a = 1, b = 2)) # OK
-assert_named_list(data.frame(a = 1, b = 2)) # Error
+vmTools:::assert_named_list(list(a = 1, b = 2)) # OK
+# vmTools:::assert_named_list(data.frame(a = 1, b = 2)) # Error
 }
