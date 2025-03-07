@@ -2078,6 +2078,8 @@ SLT <- R6::R6Class(
       #'
       #' try(SLT$new()) # call with no arguments to see instructions
       #' slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
+      #' # view folder contents - expect to see a new central log
+      #' dir_tree(tempdir())
       initialize = function(
       user_root_list          = NULL
       , user_central_log_root = NULL

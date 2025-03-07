@@ -11,8 +11,10 @@
 #' the directory tree does not exist
 #'
 #' @examples
+#' \dontrun{
 #' vmTools:::get_latest_output_date_index("tests/testthat/fixtures/versioned-dirs/nested/1999_09_09"
-#'                              , date = "1999_09_09")
+#'                                        , date = "1999_09_09")
+#'}
 get_latest_output_date_index <- function(dir, date) {
    currentfolders <- list.files(dir)
 

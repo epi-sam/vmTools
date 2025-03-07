@@ -19,5 +19,5 @@ Assert an object is a scalar of a certain type
 }
 \examples{
 vmTools:::assert_type("A", "character") # OK
-# vmTools:::assert_type(1, "integer") # Error - need 1L
+try(vmTools:::assert_type(1, "integer")) # Error - need 1L
 }

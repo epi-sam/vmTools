@@ -17,5 +17,5 @@ Assert a directory exists on disk
 }
 \examples{
 vmTools:::assert_dir_exists(".") # OK
-# vmTools:::assert_dir_exists("nonexistent") # Error
+try(vmTools:::assert_dir_exists("nonexistent")) # Error
 }

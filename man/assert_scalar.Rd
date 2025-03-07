@@ -17,5 +17,5 @@ Assert an element is atomic and length 1
 }
 \examples{
 vmTools:::assert_scalar("A") # OK
-# vmTools:::assert_scalar(1:2) # Error
+try(vmTools:::assert_scalar(1:2)) # Error
 }

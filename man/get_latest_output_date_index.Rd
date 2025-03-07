@@ -20,6 +20,8 @@ directories are assumed to be named in YYYY_MM_DD.VV format with sane
 year/month/date/version values.
 }
 \examples{
+\dontrun{
 vmTools:::get_latest_output_date_index("tests/testthat/fixtures/versioned-dirs/nested/1999_09_09"
-                             , date = "1999_09_09")
+                                       , date = "1999_09_09")
+}
 }

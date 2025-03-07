@@ -1,5 +1,36 @@
 # vmTools
 
+## Installation
+
+**Current:**
+
+```r
+# Install to your standard package library
+devtools::install_github("epi-sam/vmTools")
+
+# Install to a team package library
+r_team_lib <- "/mnt/share/code/vaccines/R_library"
+withr::with_libpaths(new = r_team_lib, devtools::install_github("epi-sam/vmTools"))
+
+# Install to a team library and build vignettes (look in the 'doc' subfolder after installation)
+withr::with_libpaths(
+   new = r_team_lib
+   , devtools::install_github(
+      repo              = "epi-sam/vmTools"
+      , depencies       = TRUE # required for vignettes
+      , build_vignettes = TRUE
+   )
+)
+```
+
+**Coming Soon:**
+
+```
+install.packages("vmTools")
+```
+
+
+
 ## What is it?
 
 - Version Management Tools For Data Science Projects using R6 classes.
@@ -28,31 +59,6 @@
 
 - See the DESCRIPTION file.
 
-
-
-## How do I install it?
-
-```r
-# Setup
-library(callr) # may be necessary for some users
-# Install to your standard package library
-devtools::install_github("epi-sam/vmTools")
-
-# Install to a team package library
-r_team_lib <- "/mnt/share/code/vaccines/R_library"
-withr::with_libpaths(new = r_team_lib, devtools::install_github("epi-sam/vmTools"))
-
-# Install to a team library and build vignettes (look in the 'doc' subfolder after installation)
-withr::with_libpaths(
-   new = r_team_lib
-   , devtools::install_github(
-      repo              = "epi-sam/vmTools"
-      , depencies       = TRUE # required for vignettes
-      , build_vignettes = TRUE
-   )
-)
-
-```
 
 
 

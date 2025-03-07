@@ -11,7 +11,7 @@
 #'
 #' @examples
 #' vmTools:::assert_scalar("A") # OK
-#' # vmTools:::assert_scalar(1:2) # Error
+#' try(vmTools:::assert_scalar(1:2)) # Error
 assert_scalar <- function(x) {
    x_name <- deparse(substitute(x))
    if (!(is.atomic(x) && length(x) == 1L)) {
@@ -27,7 +27,7 @@ assert_scalar <- function(x) {
 #'
 #' @examples
 #' vmTools:::assert_scalar_not_empty("A") # OK
-#' # vmTools:::assert_scalar_not_empty(Inf) # Error - Inf considered non-meaningful
+#' try(vmTools:::assert_scalar_not_empty(Inf)) # Error - Inf considered non-meaningful
 assert_scalar_not_empty = function(x) {
    assert_scalar(x)
    if (!isTRUE(validate_not_empty(x))) {
@@ -45,7 +45,7 @@ assert_scalar_not_empty = function(x) {
 #'
 #' @examples
 #' vmTools:::assert_type("A", "character") # OK
-#' # vmTools:::assert_type(1, "integer") # Error - need 1L
+#' try(vmTools:::assert_type(1, "integer")) # Error - need 1L
 assert_type = function(x, type) {
    assert_scalar(type)
    stopifnot(is.character(type))
@@ -74,7 +74,7 @@ assert_type = function(x, type) {
 #'
 #' @examples
 #' vmTools:::assert_named_list(list(a = 1, b = 2)) # OK
-#' # vmTools:::assert_named_list(data.frame(a = 1, b = 2)) # Error
+#' try(vmTools:::assert_named_list(data.frame(a = 1, b = 2))) # Error
 assert_named_list = function(x){
    if(!is.null(x)){
       err_msg <- "x must be a named list, not vector or data.frame (list names may not be whitespace)"
@@ -96,7 +96,7 @@ assert_named_list = function(x){
 #'
 #' @examples
 #' vmTools:::assert_dir_exists(".") # OK
-#' # vmTools:::assert_dir_exists("nonexistent") # Error
+#' try(vmTools:::assert_dir_exists("nonexistent")) # Error
 assert_dir_exists = function(x){
    if(is.null(x)) stop("x is NULL")
    assert_scalar(x)

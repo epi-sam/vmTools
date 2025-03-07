@@ -14,6 +14,8 @@ test_that("get_latest_output_date_index returns correct value", {
 
 test_that("get_new_version_name functionality works", {
 
+   testthat::skip_if_not_installed("withr")
+
    # create random root directory with self-teardown (`teardown()` is deprecated)
    withr::local_file(dir_full)
    dir.create(dir_full, recursive = TRUE)

@@ -25,5 +25,5 @@ Stops if:
 }
 \examples{
 vmTools:::assert_named_list(list(a = 1, b = 2)) # OK
-# vmTools:::assert_named_list(data.frame(a = 1, b = 2)) # Error
+try(vmTools:::assert_named_list(data.frame(a = 1, b = 2))) # Error
 }

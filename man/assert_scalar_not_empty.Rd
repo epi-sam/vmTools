@@ -17,5 +17,5 @@ Assert x is a scalar, and not empty in some way
 }
 \examples{
 vmTools:::assert_scalar_not_empty("A") # OK
-# vmTools:::assert_scalar_not_empty(Inf) # Error - Inf considered non-meaningful
+try(vmTools:::assert_scalar_not_empty(Inf)) # Error - Inf considered non-meaningful
 }
