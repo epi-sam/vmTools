@@ -9,6 +9,7 @@
 #'
 #' @return [none] stop if assertion fails
 #'
+#' @family assertions
 #' @examples
 #' vmTools:::assert_scalar("A") # OK
 #' try(vmTools:::assert_scalar(1:2)) # Error
@@ -25,6 +26,7 @@ assert_scalar <- function(x) {
 #'
 #' @return [none] stop if assertion fails
 #'
+#' @family assertions
 #' @examples
 #' vmTools:::assert_scalar_not_empty("A") # OK
 #' try(vmTools:::assert_scalar_not_empty(Inf)) # Error - Inf considered non-meaningful
@@ -43,6 +45,7 @@ assert_scalar_not_empty = function(x) {
 #'
 #' @return [none] stop if assertion fails
 #'
+#' @family assertions
 #' @examples
 #' vmTools:::assert_type("A", "character") # OK
 #' try(vmTools:::assert_type(1, "integer")) # Error - need 1L
@@ -72,6 +75,7 @@ assert_type = function(x, type) {
 #'
 #' @return [none] stop if assertion fails
 #'
+#' @family assertions
 #' @examples
 #' vmTools:::assert_named_list(list(a = 1, b = 2)) # OK
 #' try(vmTools:::assert_named_list(data.frame(a = 1, b = 2))) # Error
@@ -94,6 +98,7 @@ assert_named_list = function(x){
 #'
 #' @return [none] stop if assertion fails
 #'
+#' @family assertions
 #' @examples
 #' vmTools:::assert_dir_exists(".") # OK
 #' try(vmTools:::assert_dir_exists("nonexistent")) # Error

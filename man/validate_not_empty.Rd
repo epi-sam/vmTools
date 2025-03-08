@@ -19,3 +19,9 @@ Designed to also catch missing args when called inside a function.
 vmTools:::validate_not_empty(1) # TRUE
 vmTools:::validate_not_empty(NULL) # FALSE
 }
+\seealso{
+Other validations: 
+\code{\link{is_an_error}()},
+\code{\link{validate_dir_exists}()}
+}
+\concept{validations}

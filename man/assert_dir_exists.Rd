@@ -19,3 +19,11 @@ Assert a directory exists on disk
 vmTools:::assert_dir_exists(".") # OK
 try(vmTools:::assert_dir_exists("nonexistent")) # Error
 }
+\seealso{
+Other assertions: 
+\code{\link{assert_named_list}()},
+\code{\link{assert_scalar_not_empty}()},
+\code{\link{assert_scalar}()},
+\code{\link{assert_type}()}
+}
+\concept{assertions}

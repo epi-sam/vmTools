@@ -19,3 +19,9 @@ Determine if an object is an error
 vmTools:::is_an_error(simpleError("error")) # TRUE
 vmTools:::is_an_error(message("error")) # FALSE
 }
+\seealso{
+Other validations: 
+\code{\link{validate_dir_exists}()},
+\code{\link{validate_not_empty}()}
+}
+\concept{validations}

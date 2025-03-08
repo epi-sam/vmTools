@@ -21,3 +21,9 @@ Validate whether a directory exists
 vmTools:::validate_dir_exists(".") # TRUE
 vmTools:::validate_dir_exists("nonexistent") # FALSE
 }
+\seealso{
+Other validations: 
+\code{\link{is_an_error}()},
+\code{\link{validate_not_empty}()}
+}
+\concept{validations}

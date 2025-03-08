@@ -19,3 +19,11 @@ Assert x is a scalar, and not empty in some way
 vmTools:::assert_scalar_not_empty("A") # OK
 try(vmTools:::assert_scalar_not_empty(Inf)) # Error - Inf considered non-meaningful
 }
+\seealso{
+Other assertions: 
+\code{\link{assert_dir_exists}()},
+\code{\link{assert_named_list}()},
+\code{\link{assert_scalar}()},
+\code{\link{assert_type}()}
+}
+\concept{assertions}
