@@ -30,8 +30,8 @@ try(vmTools:::assert_named_list(data.frame(a = 1, b = 2))) # Error
 \seealso{
 Other assertions: 
 \code{\link{assert_dir_exists}()},
-\code{\link{assert_scalar_not_empty}()},
 \code{\link{assert_scalar}()},
+\code{\link{assert_scalar_not_empty}()},
 \code{\link{assert_type}()}
 }
 \concept{assertions}
