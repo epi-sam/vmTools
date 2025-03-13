@@ -2099,17 +2099,13 @@ SLT <- R6::R6Class(
 
          if(tolower(.Platform$OS.type) == "windows") {
             if(verbose == TRUE) {
-               message(
-"WARNING! you are running on Windows
-  - symlinks may not function correctly on pre-NTFS file systems
-  - see ?file.symlink for more details."
-               )
+               message("WARNING! you are running on Windows. \n",
+                       "  - symlinks may not function correctly on pre-NTFS file systems \n",
+                       "  - see ?file.symlink for more details.")
             }
             if(is_windows_admin() == FALSE){
-               stop(
-"Symbolic links are not supported on Windows without admin privileges.
- To enable SLT to work:
-   - Right click on Rstudio > Run as administrator > Yes")
+               stop("Symbolic links are not supported on Windows without admin privileges. \n",
+                    "  To enable SLT to work: Right click on Rstudio > Run as administrator > Yes")
             }
          }
 
@@ -2226,6 +2222,11 @@ SLT <- R6::R6Class(
          private$write_expected_central_log(fpath      = private$DICT$LOG_CENTRAL$path,
                                             log_schema = private$DICT$log_schema)
       },
+
+      # TODO SB - 2025 Mar 12 - working on a custom print method - frustrating
+      # print = function() {
+         # cat("\n\nThis is an instance of SymlinkTool.\n")
+      # },
 
       ## Show Internals --------------------------------------------------------
 
@@ -2774,3 +2775,49 @@ SLT <- R6::R6Class(
    # CLOSING PARENTHEIS BELOW
 
 )
+
+# TODO SB - 2025 Mar 12 - working on a custom print method - not working
+# class(SLT) <- c(class(SLT), "Symlink_Tool") # add a new class
+# print.Symlink_Tool <- function(x, ...) { # define a print method for the class
+#    # none of these work
+#    # NextMethod()
+#    # print.R6ClassGenerator(x, ...)
+#    # NextMethod("print", x)  # Ensures default R6 generator print behavior
+#    # print.default(x, ...)
+#    R6:::print.R6(x, ...)  # Prints the default class output
+#    cat("\n\nSLT is an R6 class. Use SLT$new() to instantiate an object.\n\n")
+# }
+# # methods(print) # method is registered correctly
+# # methods(class = "Symlink_Tool") # OK
+# SLT # works in reprex, not for my class
+# print.Symlink_Tool(SLT) # works, but no one will use this
+
+# FIXME SB - 2025 Mar 12 - Remove after dev
+#  This is a working reprex
+# library(R6)
+# Define the R6 class
+# SymlinkTool_reprex <- R6Class(
+#    "SymlinkTool_reprex",
+#    public = list(
+#       initialize = function() {
+#          message("An instance of SymlinkTool_reprex has been created.")
+#       }
+#       # not necessary for the class-level printing to work
+#       # , print = function(...) {
+#       # cat("This is an instance of SymlinkTool_reprex\n")
+#       # }
+#    )
+# )
+# # Add a custom class to the generator (to distinguish it)
+# class(SymlinkTool_reprex) <- c("SymlinkTool_reprex", class(SymlinkTool_reprex))
+# # Define the print method for the custom class generator
+# print.SymlinkTool_reprex <- function(x, ...) {
+#    # Ensure default R6 behavior by calling the internal print function for R6
+#    R6:::print.R6(x, ...)  # This prints the standard R6 class details
+#    # Custom message when calling the class generator directly
+#    cat("\n\nSLT is an R6 class. Use SLT$new() to instantiate an object.\n\n")
+# }
+# methods(print) # registered correctly
+# # Test the class by calling it directly
+# SymlinkTool_reprex  # Calling the class directly should trigger custom print and default behavior
+# SymlinkTool_reprex$new()
