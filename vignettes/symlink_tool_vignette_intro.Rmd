@@ -20,12 +20,10 @@ vignette: >
 ---
 
 
-```{r, include = FALSE}
-# library(ragg)
+```{r setup, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
-  # dev = "ragg_png"
 )
 
 # Chunk options
@@ -54,13 +52,6 @@ knitr::knit_hooks$set(output = function(x, options) {
   }
   hook_output(x, options)
 })
-```
-
-
-```{r setup, include = FALSE}
-# devtools::load_all() # for interactive use
-library(vmTools) # to build vignettes
-library(data.table)
 ```
 
 
