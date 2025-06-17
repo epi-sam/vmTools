@@ -15,9 +15,13 @@ Class for lightweight file-system level data versioning, logs
 
 
 try(SLT$new()) # call with no arguments to see instructions
-slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
-# view folder contents - expect to see a new central log
-dir_tree(tempdir())
+# Tool will not instantiate on Windows unless running with Admin permissions
+# - requirement for symlink creation on Windows
+if (vmTools:::is_windows_admin() | .Platform$OS.type \%in\% c("unix", "linux")) {
+   slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
+   # view folder contents - expect to see a new central log
+   dir_tree(tempdir())
+}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -103,9 +107,13 @@ use for datestamps in logs. Must be a valid `OlsonNames()` string.}
 \if{html}{\out{<div class="r example copy">}}
 \preformatted{
 try(SLT$new()) # call with no arguments to see instructions
-slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
-# view folder contents - expect to see a new central log
-dir_tree(tempdir())
+# Tool will not instantiate on Windows unless running with Admin permissions
+# - requirement for symlink creation on Windows
+if (vmTools:::is_windows_admin() | .Platform$OS.type \%in\% c("unix", "linux")) {
+   slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
+   # view folder contents - expect to see a new central log
+   dir_tree(tempdir())
+}
 }
 \if{html}{\out{</div>}}
 

@@ -2077,9 +2077,13 @@ SLT <- R6::R6Class(
       #' @examples
       #'
       #' try(SLT$new()) # call with no arguments to see instructions
-      #' slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
-      #' # view folder contents - expect to see a new central log
-      #' dir_tree(tempdir())
+      #' # Tool will not instantiate on Windows unless running with Admin permissions
+      #' # - requirement for symlink creation on Windows
+      #' if (vmTools:::is_windows_admin() | .Platform$OS.type %in% c("unix", "linux")) {
+      #'    slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
+      #'    # view folder contents - expect to see a new central log
+      #'    dir_tree(tempdir())
+      #' }
       initialize = function(
       user_root_list          = NULL
       , user_central_log_root = NULL
@@ -2793,7 +2797,7 @@ class(SLT) <- c("Symlink_Tool", class(SLT))
 #'
 #' @examples SLT
 print.Symlink_Tool <- function(x, ...) {
-   R6:::print.R6(x, ...)  # Prints the default class output
+   NextMethod("print") # Prints the default class output, then cumstom message
    cat("\n\n -- Call SLT$new() to make a Symlink Tool, with startup guidance messages!\n\n")
 }
 

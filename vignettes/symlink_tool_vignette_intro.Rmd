@@ -81,7 +81,6 @@ if(!flag_eval_chunk){
 
 
 ```{r utils, include = FALSE}
-
 # Defining a couple vignette utilities
 print_tree <- function() {vmTools:::dir_tree(root_to_model)}
 
@@ -158,15 +157,14 @@ show_vars <- c("log_id",
                "action",
                "comment")
 
-print_public_methods <- function(SLT){
-  output <- capture.output(print(SLT))
-  idx_private <- which(output %like% "Private")
-  idx_clone <- which(output %like% "clone")
-  idx_custom <- which(output %like% "startup guidance messages") # can't get this to print - frustrating
-  idx_initialize <- which(output %like% "initialize")
+print_public_methods <- function(class){
+  output <- capture.output(print(class))
+  idx_private <- which(grepl("Private", output))
+  idx_clone <- which(grepl("clone", output))
+  idx_custom <- which(grepl("startup guidance messages", output))
   # `initialize` is not the name of the method, may confuse new users
+  idx_initialize <- which(grepl("initialize", output))
   output[idx_initialize] <- sub("initialize", "new", output[idx_initialize])
-  # idx_custom <- which(output %like% "foo")
   idx_keep <- c(1:idx_private - 1, idx_custom)
   idx_keep <- setdiff(idx_keep, idx_clone)
   cat(paste0(output[idx_keep], collapse = "\n"))
@@ -319,6 +317,7 @@ ST-GPR models go into an output folder, which we'll ignore for simplicity.
 
 
 ```{r define_root, include = TRUE}
+library(vmTools)
 # Make the root folder
 root_to_model <- file.path(tempdir(), "slt", "to_model")
 dir.create(root_to_model, 
