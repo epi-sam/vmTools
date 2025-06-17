@@ -1,12 +1,14 @@
 ---
 title: "Symlink Tool Intro Vignette"
-# interactive
-# output: 
+
+# Interactive
+# output:
 #   html_document:
 #      highlight: zenburn
 #      theme: readable # simplex # readable
 #      toc: true
 #      toc_float: true
+
 # for package builds
 output: rmarkdown::html_vignette
 Encoding: UTF-8
@@ -14,13 +16,17 @@ vignette: >
   %\VignetteIndexEntry{Symlink Tool Intro Vignette}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+
 # knitr:
 #   opts_chunk:
 #     dev: "svg"
 ---
 
-
 ```{r setup, include = FALSE}
+# Interactive
+# library(vmTools)
+# library(data.table)
+
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
@@ -28,13 +34,15 @@ knitr::opts_chunk$set(
 
 # Chunk options
 
-# This is a nice default so log output doesn't wrap
 options(width = 450)
 
 # save the built-in output hook
 hook_output <- knitr::knit_hooks$get("output")
+# flags to determine output
+flag_eval_chunk <- if (vmTools:::is_windows_admin() | .Platform$OS.type %in% c("unix", "linux")) TRUE else FALSE
 
 # set a new output hook to truncate text output
+# - set a chunk option as e.g. : `{r chunk_name, out.lines = 15}`
 # if the output is too long, it will be truncated like:
 # 
 # top output
@@ -53,6 +61,23 @@ knitr::knit_hooks$set(output = function(x, options) {
   hook_output(x, options)
 })
 ```
+
+
+```{r windows_non_admin, echo=FALSE}
+if(!flag_eval_chunk){
+
+ knitr::asis_output("
+> **Note:** This vignette demonstrates symbolic link creation, which requires administrator privileges on Windows.
+> 
+> On systems without these privileges, code chunks are not evaluated, but all code is shown.
+> 
+> To fully run this vignette, use a Unix-based system or Windows with administrator rights.
+")
+
+} 
+
+```
+
 
 
 ```{r utils, include = FALSE}
@@ -132,6 +157,20 @@ show_vars <- c("log_id",
                # "version_path", # causes ouput to be too wide
                "action",
                "comment")
+
+print_public_methods <- function(SLT){
+  output <- capture.output(print(SLT))
+  idx_private <- which(output %like% "Private")
+  idx_clone <- which(output %like% "clone")
+  idx_custom <- which(output %like% "startup guidance messages") # can't get this to print - frustrating
+  idx_initialize <- which(output %like% "initialize")
+  # `initialize` is not the name of the method, may confuse new users
+  output[idx_initialize] <- sub("initialize", "new", output[idx_initialize])
+  # idx_custom <- which(output %like% "foo")
+  idx_keep <- c(1:idx_private - 1, idx_custom)
+  idx_keep <- setdiff(idx_keep, idx_clone)
+  cat(paste0(output[idx_keep], collapse = "\n"))
+}
 ```
 
 
@@ -279,15 +318,6 @@ different parameters without needing to re-prep the inputs. The results of the
 ST-GPR models go into an output folder, which we'll ignore for simplicity.
 
 
-
-### Make the Symlink Tool
-
-When you make a new tool, this tool is **_tied to a specific output folder_**.  You can't change the output folder once you've made the tool.
-
-- You _**can**_ make a second tool for a different output folder, but they operate separately.
-- There are more advanced options available in the `symlink_tool_vignette_technical.Rmd` file.
-
-
 ```{r define_root, include = TRUE}
 # Make the root folder
 root_to_model <- file.path(tempdir(), "slt", "to_model")
@@ -297,10 +327,34 @@ dir.create(root_to_model,
 ```
 
 
+
+### Make the Symlink Tool
+
+
+Call on SLT bare to print class information and methods (functions linked with the tool).
+
+```{r call_SLT, eval = FALSE}
+# For this Intro Vignette, we're only showing public methods 
+# - for all methods, see the Technical Vignette
+SLT
+```
+
+```{r print_public, echo = FALSE}
+# For the intro vignettee, hide private methods
+print_public_methods(SLT)
+```
+
+
+When you make a new tool, this tool is **_tied to a specific output folder_**.  You can't change the output folder once you've made the tool.
+
+- You _**can**_ make a second tool for a different output folder, but they operate separately.
+- There are more advanced options available in the `symlink_tool_vignette_technical.Rmd` file.
+
+
 **Note:** You can define the root for results outputs and logs separately, but we're using the same root for simplicity.
 
 
-```{r instantiate_slt_prep_display, warning=FALSE}
+```{r instantiate_slt_prep_display, warning=FALSE, eval = flag_eval_chunk}
 # Instantiate (create) a new Symlink Tool object
 slt_prep <- SLT$new(
       user_root_list        = list("to_model" = root_to_model),
@@ -311,7 +365,7 @@ slt_prep <- SLT$new(
 
 **Note:** `SLT` is an R6 class included with the vmTools package that manages the symlink tool.
 
-```{r instantiate_slt_prep_display_1}
+```{r instantiate_slt_prep_display_1, eval = flag_eval_chunk}
 # Look at the directory tree
 print_tree()
 ```
@@ -327,7 +381,7 @@ Use the Symlink Tool to create a new folder in your output root.
     - The Symlink Tool itself **_does not_** auto-increment.  
     - It allows the user to decide folder names.
 
-```{r baseline_folder_display_1}
+```{r baseline_folder_display_1, eval = flag_eval_chunk}
 date_vers1 <- get_output_dir(root_to_model, "2024_02_01")
 slt_prep$make_new_version_folder(version_name = date_vers1)
 ```
@@ -336,7 +390,7 @@ Capture some paths, using the Symlink Tool to help.  We'll use these in a minute
 
 - **Note:** These can be drawn from within the Symlink Tool 
 
-```{r capture_paths_dv1}
+```{r capture_paths_dv1, eval = flag_eval_chunk}
 path_log_central <- slt_prep$return_dictionaries()[["LOG_CENTRAL"]][["path"]]
 fname_dv_log     <- slt_prep$return_dictionaries()[["log_name"]]
 root_dv1         <- slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]]
@@ -346,19 +400,19 @@ path_log_dv1     <- file.path(root_dv1, fname_dv_log)
 
 Show the file tree.
 
-```{r baseline_folder_display_2, echo=FALSE}
+```{r baseline_folder_display_2, echo=FALSE, eval = flag_eval_chunk}
 print_tree()
 ```
 
 Show central log.
 
-```{r baseline_folder_display_3, echo=FALSE}
+```{r baseline_folder_display_3, echo=FALSE, eval = flag_eval_chunk}
 (log_central <- fread(path_log_central)[, ..show_vars])
 ```
 
 Show new run version folder log.
 
-```{r baseline_folder_display_4, echo=FALSE}
+```{r baseline_folder_display_4, echo=FALSE, eval = flag_eval_chunk}
 (log_dv1 <- fread(path_log_dv1)[, ..show_vars])
 ```
 
@@ -370,20 +424,21 @@ Show new run version folder log.
 Now let's make some files representing models in this folder.
 
 
-```{r dummy_results_invis_1}
+```{r dummy_results_invis_1, eval = flag_eval_chunk}
 # Make some dummy files
 fnames_my_models <- paste0("my_model_", 1:5, ".csv")
 invisible(file.create(file.path(root_dv1, fnames_my_models)))
 ```
 
 
-```{r dummy_results_invis_2}
+```{r dummy_results_invis_2, eval = flag_eval_chunk}
 print_tree()
 ```
 
 
 
 --------------------------------------------------------------------------------
+
 
 
 ## Mark Best
@@ -395,7 +450,7 @@ We like the models!  We want to elevate this run version folder to `best_` statu
 
 - Only a `comment` field is currently supported (future version will expand).
 
-```{r mark_best_dv1}
+```{r mark_best_dv1, eval = flag_eval_chunk}
 # Mark best, and take note of messaging
 slt_prep$mark_best(version_name = date_vers1,
                    user_entry   = list(comment = "Best model GBD2023"))
@@ -404,20 +459,20 @@ slt_prep$mark_best(version_name = date_vers1,
 
 Inspect both the central log and ...
 
-```{r mark_best_dv1_display_1, echo=FALSE}
+```{r mark_best_dv1_display_1, echo=FALSE, eval = flag_eval_chunk}
 (log_central <- fread(path_log_central)[, ..show_vars])
 ```
 
 ...the run version folder log.
 
-```{r mark_best_dv1_display_2, echo=FALSE}
+```{r mark_best_dv1_display_2, echo=FALSE, eval = flag_eval_chunk}
 (log_dv1 <- fread(path_log_dv1)[, ..show_vars])
 ```
 
 
 We now have a 'best' symlink that points to our 'best' run version, `2024_02_01.01`
 
-```{r mark_best_dv1_display_3}
+```{r mark_best_dv1_display_3, eval = flag_eval_chunk}
 print_tree()
 
 resolve_symlink(file.path(root_to_model, "best"))
@@ -434,7 +489,7 @@ Run the pipeline two more times on the same day, inspect the models, and make a 
 
 - Use the helper function to increment pipeline run versions.
 
-```{r two_new_runs}
+```{r two_new_runs, eval = flag_eval_chunk}
 # Second run
 date_vers2 <- get_output_dir(root_to_model, "2024_02_01")
 slt_prep$make_new_version_folder(version_name = date_vers2)
@@ -457,11 +512,11 @@ Now let's look at our file output structure, and central log.
 
 - We see three total folders, and the central log hasn't changed yet, because we haven't done any more 'marking'.
 
-```{r two_new_runs_display_1}
+```{r two_new_runs_display_1, eval = flag_eval_chunk}
 print_tree()
 ```
 
-```{r two_new_runs_display_2, echo=FALSE}
+```{r two_new_runs_display_2, echo=FALSE, eval = flag_eval_chunk}
 (log_central <- fread(path_log_central)[, ..show_vars])
 ```
 
@@ -473,7 +528,7 @@ After inspecting our results, we decide the third run is _**actually**_ the `bes
 
 - **Note:** In the messaging - the first version was automatically demoted from `best_` status.
 
-```{r mark_best_dv3}
+```{r mark_best_dv3, eval = flag_eval_chunk}
 # Mark best, and take note of messaging
 slt_prep$mark_best(version_name = date_vers3,
                    user_entry   = list(comment = "New best model GBD2023"))
@@ -481,7 +536,7 @@ slt_prep$mark_best(version_name = date_vers3,
 
 Inspect the central log - The third version is now bested.
 
-```{r mark_best_dv3_display_1, echo=FALSE}
+```{r mark_best_dv3_display_1, echo=FALSE, eval = flag_eval_chunk}
 (log_central <- fread(path_log_central)[, ..show_vars])
 ```
 
@@ -489,7 +544,7 @@ Inspect the central log - The third version is now bested.
 
 **Note:** Multiple "marks" on the same folder will produce no results (but reports will still run)
 
-```{r mark_best_dv3_second_time}
+```{r mark_best_dv3_second_time, eval = flag_eval_chunk}
 slt_prep$mark_best(version_name = date_vers3,
                    user_entry   = list(comment = "New best model GBD2023"))
 ```
@@ -508,19 +563,19 @@ Let's also take a look inside each of the run version folder logs.
 
 Looking at all three run-version logs we see:
 
-```{r mark_best_dv3_display_2, echo=FALSE}
+```{r mark_best_dv3_display_2, echo=FALSE, eval = flag_eval_chunk}
 (log_dv1 <- fread(path_log_dv1)[, ..show_vars])
 ```
 
-```{r mark_best_dv3_display_3, echo=FALSE}
+```{r mark_best_dv3_display_3, echo=FALSE, eval = flag_eval_chunk}
 (log_dv2 <- fread(file.path(root_dv2, fname_dv_log))[, ..show_vars])
 ```
 
-```{r mark_best_dv3_display_5, echo=FALSE}
+```{r mark_best_dv3_display_5, echo=FALSE, eval = flag_eval_chunk}
 (log_dv3 <- fread(file.path(root_dv3, fname_dv_log))[, ..show_vars])
 ```
 
-```{r mark_best_dv3_display_4}
+```{r mark_best_dv3_display_4, eval = flag_eval_chunk}
 print_tree()
 
 resolve_symlink(file.path(root_to_model, "best"))
@@ -538,7 +593,7 @@ We want to keep the first run, even though it's not the best anymore.
 - Maybe we want to retain some intermediate modeling results, or simply keep a record of previous `best` runs.  We can mark this version with a `keep_` symlink.
 
 
-```{r mark_keep_dv1}
+```{r mark_keep_dv1, eval = flag_eval_chunk}
 # Mark keep, and take note of messaging
 slt_prep$mark_keep(
    version_name = date_vers1,
@@ -548,17 +603,17 @@ slt_prep$mark_keep(
 
 The first version is now marked as `keep`.
 
-```{r mark_keep_dv1_display_1, echo=FALSE}
+```{r mark_keep_dv1_display_1, echo=FALSE, eval = flag_eval_chunk}
 (log_central <- fread(path_log_central)[, ..show_vars])
 ```
 
 **Note:** Marking a folder `keep_` does not make it unique, like `best_`.  Many folders can be marked `keep_`.
 
-```{r mark_keep_dv1_display_2, echo=FALSE}
+```{r mark_keep_dv1_display_2, echo=FALSE, eval = flag_eval_chunk}
 (log_dv1 <- fread(path_log_dv1)[, ..show_vars])
 ```
 
-```{r mark_keep_dv1_display_3}
+```{r mark_keep_dv1_display_3, eval = flag_eval_chunk}
 print_tree()
 
 resolve_symlink(file.path(root_to_model, "keep_2024_02_01.01"))
@@ -576,7 +631,7 @@ We want to remove the second run, because the model was experimental, or perform
 - We'll mark it with a `remove_` symlink.  From here we could use the Symlink Tool to delete the folders, or round them up for ST-GPR model deletion, etc.  Either way, we now have a record of which folders are no longer needed, and why.
 
 
-```{r mark_remove_dv2}
+```{r mark_remove_dv2, eval = flag_eval_chunk}
 # Mark remove, and take note of messaging
 slt_prep$mark_remove(
    version_name = date_vers2,
@@ -587,12 +642,12 @@ Inspect the central log - The second version is now marked as `remove_`.
 
 - **Note:** Marking a folder `remove_` does not make it unique, like `best_`.  Many folders can be marked `remove`_`.
 
-```{r mark_remove_dv2_display_1, echo=FALSE}
+```{r mark_remove_dv2_display_1, echo=FALSE, eval = flag_eval_chunk}
 (log_central <- fread(path_log_central)[, ..show_vars])
 ```
 
 
-```{r mark_remove_dv2_display_3}
+```{r mark_remove_dv2_display_3, eval = flag_eval_chunk}
 print_tree()
 
 resolve_symlink(file.path(root_to_model, "remove_2024_02_01.02"))
@@ -609,7 +664,7 @@ Now that we have marked the second run as `remove_`, we can use the Symlink Tool
 
 First, we'll find (`roundup`) all our `remove_` folders.
 
-```{r delete_folders}
+```{r delete_folders, eval = flag_eval_chunk}
 (dt_to_remove <- slt_prep$roundup_remove())
 ```
 
@@ -617,7 +672,7 @@ Next, we can handle them any way we choose.  For this demonstration, we'll delet
 
 - You could also build your own process to remove all ST-GPR models associated with `_remove`-marked runs to free quota space, for example.
 
-```{r delete_folders_2}
+```{r delete_folders_2, eval = flag_eval_chunk}
 for(dir_dv_remove in dt_to_remove$to_model$version_name){
    slt_prep$delete_version_folders(
       version_name       = dir_dv_remove,
@@ -638,7 +693,7 @@ for(dir_dv_remove in dt_to_remove$to_model$version_name){
 
 Check the central log - since the folder is gone, this will maintain a record of when this folder was deleted.
 
-```{r delete_folders_display_1, echo=FALSE}
+```{r delete_folders_display_1, echo=FALSE, eval = flag_eval_chunk}
 (log_central <- fread(path_log_central)[, ..show_vars])
 ```
 
@@ -656,7 +711,7 @@ Check the central log - since the folder is gone, this will maintain a record of
 - Recall, the 'source of truth' log is within each folder, not the central log.
 - We should not see the second model run, since it was deleted.
 
-```{r reports_display_2}
+```{r reports_display_2, eval = flag_eval_chunk}
 (fread(file.path(root_to_model, "report_key_versions.csv")))
 ```
 
@@ -667,20 +722,20 @@ We can generate more reports of the pipeline runs, and the status of the folders
 - In this case, we don't have any, so the report self-removes to avoid confusion.
 
 
-```{r reports}
+```{r reports, eval = flag_eval_chunk}
 # Generate reports
 slt_prep$make_reports()
 ```
 
 
-```{r reports_display_1}
+```{r reports_display_1, eval = flag_eval_chunk}
 print_tree()
 ```
 
 
 The `report_all_logs.csv` file will scan _every_ run-version for a log, and show its last row (current status).  
 
-```{r reports_display_3}
+```{r reports_display_3, eval = flag_eval_chunk}
 
 (fread(file.path(root_to_model, "report_all_logs.csv")))
 ```

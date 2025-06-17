@@ -1,12 +1,14 @@
 ---
 title: "Symlink Tool Technical Vignette"
-# interactive
-# output: 
+
+# Interactive
+# output:
 #   html_document:
 #      highlight: zenburn
 #      theme: readable # simplex # readable
 #      toc: true
 #      toc_float: true
+
 # for package builds
 output: rmarkdown::html_vignette
 Encoding: UTF-8
@@ -14,12 +16,17 @@ vignette: >
   %\VignetteIndexEntry{Symlink Tool Technical Vignette}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
+
 # knitr:
 #   opts_chunk:
 #     dev: "svg"
 ---
 
 ```{r setup, include = FALSE}
+# Interactive
+# library(vmTools)
+# library(data.table)
+
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
@@ -27,12 +34,20 @@ knitr::opts_chunk$set(
 
 # Chunk options
 
-options(width = 320)
+options(width = 450)
 
 # save the built-in output hook
 hook_output <- knitr::knit_hooks$get("output")
+# flags to determine output
+flag_eval_chunk <- if (vmTools:::is_windows_admin() | .Platform$OS.type %in% c("unix", "linux")) TRUE else FALSE
 
 # set a new output hook to truncate text output
+# - set a chunk option as e.g. : `{r chunk_name, out.lines = 15}`
+# if the output is too long, it will be truncated like:
+# 
+# top output
+# ...
+# bottom output
 knitr::knit_hooks$set(output = function(x, options) {
   if (!is.null(n <- options$out.lines)) {
     x <- vmTools:::split_line_breaks(x)
@@ -48,6 +63,20 @@ knitr::knit_hooks$set(output = function(x, options) {
 
 ```
 
+```{r windows_non_admin, echo=FALSE}
+if(!flag_eval_chunk){
+
+ knitr::asis_output("
+> **Note:** This vignette demonstrates symbolic link creation, which requires administrator privileges on Windows.
+> 
+> On systems without these privileges, code chunks are not evaluated, but all code is shown.
+> 
+> To fully run this vignette, use a Unix-based system or Windows with administrator rights.
+")
+
+} 
+
+```
 
 ```{r utils, include = FALSE}
 
@@ -105,6 +134,17 @@ get_latest_output_date_index <- function(root, date) {
   
   return(max(as.numeric(inds)))
 }
+
+print_public_methods <- function(SLT){
+  output <- capture.output(print(SLT))
+  idx_private <- which(output %like% "Private")
+  idx_clone <- which(output %like% "clone")
+  idx_custom <- which(output %like% "startup guidance messages") # can't get this to print - frustrating
+  # idx_custom <- which(output %like% "foo")
+  idx_keep <- c(1:idx_private - 1, idx_custom)
+  idx_keep <- setdiff(idx_keep, idx_clone)
+  cat(paste0(output[idx_keep], collapse = "\n"))
+}
 ```
 
 
@@ -152,7 +192,7 @@ Let's start by calling `$new()` with no arguments.
 
 - We expect an error, with some helpful messages about what arguments the tool template expects, in order to make the type of tool we need. 
 
-```{r naive_tool}
+```{r naive_tool, eval = flag_eval_chunk}
 slt <- try(SLT$new())
 ```
 
@@ -180,7 +220,7 @@ In addition, the tool needs a location for a central log.  I'll set that one lev
 - The tool manages outputs at the `version_name` level, not the folder level, so one 'best' promotion affects folders in _both_ my output roots.
 
 
-```{r first_tool}
+```{r first_tool, eval = flag_eval_chunk}
 # a safe temporary directory every user has access to, that we'll clean up later
 root_base   <- file.path(tempdir(), "slt")
 root_input  <- file.path(root_base, "to_model")
@@ -195,7 +235,7 @@ PATHS       <- list(
 
 Try to make the tool naively.
 
-```{r first_tool2}
+```{r first_tool2, eval = flag_eval_chunk}
 slt <- try(SLT$new(
   user_root_list = list(
     root_input  = root_input,
@@ -206,7 +246,7 @@ slt <- try(SLT$new(
 ```
 
 
-```{r first_tool3}
+```{r first_tool3, eval = flag_eval_chunk}
 # We need to ensure all output folders exist first
 dir.create(root_input, recursive = TRUE, showWarnings = FALSE)
 dir.create(root_output, recursive = TRUE, showWarnings = FALSE)
@@ -227,7 +267,7 @@ suppressWarnings({ # idiosyncratic and benign cluster message
 
 What do we have in our root_base folder?
 
-```{r first_tool4}
+```{r first_tool4, eval = flag_eval_chunk}
 print_tree()
 ```
 
@@ -258,7 +298,7 @@ You can mark any output folder as 'best', and give it a 'best' symlink in each o
 
 First we'll create two `version_name` folders to play with in each root.
 
-```{r mark_best2}
+```{r mark_best2, eval = flag_eval_chunk}
 dir.create(file.path(root_input, "2024_02_02"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path(root_output, "2024_02_02"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path(root_input, "2024_02_10"), recursive = TRUE, showWarnings = FALSE)
@@ -269,38 +309,38 @@ print_tree()
 
 Then we'll mark one as best.
 
-```{r mark_best3}
+```{r mark_best3, eval = flag_eval_chunk}
 slt$mark_best(version_name = "2024_02_02", user_entry = list(comment = "testing mark_best"))
 ```
 
 Look at the folder structure again.
 
-```{r mark_best_tree}
+```{r mark_best_tree, eval = flag_eval_chunk}
 print_tree()
 ```
 
 
 Where does the 'best' folder point to?
 
-```{r mark_best3.1}
+```{r mark_best3.1, eval = flag_eval_chunk}
 print_symlink("best")
 ```
 
 Now let's mark the other one as best, and see what happens to the symlinks.
 
-```{r mark_best4}
+```{r mark_best4, eval = flag_eval_chunk}
 # The tool is chatty by default at the console, but it's easy to make it quite if it's part of a pipeline.
 suppressMessages({
   slt$mark_best(version_name = "2024_02_10", user_entry = list(comment = "testing mark_best"))
 })
 ```
 
-```{r mark_best_tree2}
+```{r mark_best_tree2, eval = flag_eval_chunk}
 print_tree()
 ```
 
 
-```{r mark_best_tree3}
+```{r mark_best_tree3, eval = flag_eval_chunk}
 print_symlink("best")
 ```
 
@@ -315,17 +355,17 @@ In this trio, we see the central log, and each versioned folder's log of best pr
 - Note each log comes with a creation date - this is the log creation date, not the folder creation date (that information isn't available on the cluster). 
 
 
-```{r mark_best_logs1}
+```{r mark_best_logs1, eval = flag_eval_chunk}
 fread(PATHS$log_cent)
 ```
 
 
-```{r mark_best_logs2}
+```{r mark_best_logs2, eval = flag_eval_chunk}
 fread(PATHS$log_2024_02_02)
 ```
 
 
-```{r mark_best_logs3}
+```{r mark_best_logs3, eval = flag_eval_chunk}
 fread(PATHS$log_2024_02_10)
 ```
 
@@ -340,11 +380,11 @@ You've probably also noticed a report.  This also shows the current state of all
     - Other reports are possible (see 'Other Features' section.)
 - It runs separately for each root, and pulls the last log entry.
 
-```{r reports}
+```{r reports, eval = flag_eval_chunk}
 fread(file.path(root_input, "report_key_versions.csv"))
 ```
 
-```{r reports2}
+```{r reports2, eval = flag_eval_chunk}
 fread(file.path(root_output, "report_key_versions.csv"))
 ```
 
@@ -359,7 +399,7 @@ In addition, the researcher may choose to have this tool manage folder creation.
 - The Linux filesystem _**does not record the creation date**_ of folders.
 
 
-```{r create_new_folders}
+```{r create_new_folders, eval = flag_eval_chunk}
 # Let's use a programmatic example to build a new `version_name.`
 version_name_input  <- get_output_dir(root_input,  "today")
 version_name_output <- get_output_dir(root_output, "today")
@@ -380,24 +420,24 @@ Now we can see the new folders, with their logs and creation date-time stamps.
 - Note this behavior is _outside_ the tool, for demonstration purposes only.
 - The tool assumes the research team determines its own folder-naming conventions.
 
-```{r create_new_folders2}
+```{r create_new_folders2, eval = flag_eval_chunk}
 print_tree()
 ```
 
-```{r create_new_folders3}
+```{r create_new_folders3, eval = flag_eval_chunk}
 fread(file.path(root_input, version_name_today, "log_version_history.csv"))
 ```
 
 This folder can be marked best just as the others, and prior best will be demoted.
 
-```{r create_new_folders4}
+```{r create_new_folders4, eval = flag_eval_chunk}
 suppressMessages({
   slt$mark_best(version_name = version_name_today, user_entry = list(comment = "testing mark_best"))
 })
 fread(PATHS$log_cent)
 ```
 
-```{r create_new_folders5}
+```{r create_new_folders5, eval = flag_eval_chunk}
 fread(PATHS$log_2024_02_10)
 ```
 
@@ -411,22 +451,22 @@ Now let's say you review your results and _**no**_ version of outputs should be 
 - The tool-symlink report should now be empty.
 
 
-```{r demote_best}
+```{r demote_best, eval = flag_eval_chunk}
 suppressMessages({
   slt$unmark(version_name = version_name_today, user_entry = list(comment = "testing unmark_best"))
 })
 print_tree()
 ```
 
-```{r demote_best2}
+```{r demote_best2, eval = flag_eval_chunk}
 fread(PATHS$log_cent)
 ```
 
-```{r demote_best3}
+```{r demote_best3, eval = flag_eval_chunk}
 fread(file.path(root_input, version_name_today, "log_version_history.csv"))
 ```
 
-```{r demote_report}
+```{r demote_report, eval = flag_eval_chunk}
 fread(file.path(root_input, "report_key_versions.csv"))
 ```
 
@@ -454,7 +494,7 @@ Think of the two-step process a bit like `git add` and `git commit`.
 Let's demonstrate on the folder we made programmatically with today's date.
 
 
-```{r mark_remove}
+```{r mark_remove, eval = flag_eval_chunk}
 suppressMessages({
   slt$mark_remove(version_name = version_name_today, user_entry = list(comment = "testing mark_remove"))
 })
@@ -464,12 +504,12 @@ And let's look at the folder structure.
 
 - since many folders can be marked `remove_`, we combine 'remove_' with the `version_name` to make the folder name unique.
 
-```{r mark_remove2}
+```{r mark_remove2, eval = flag_eval_chunk}
 print_tree()
 ```
 
 
-```{r mark_remove3}
+```{r mark_remove3, eval = flag_eval_chunk}
 print_symlink("remove")
 ```
 
@@ -479,13 +519,13 @@ And finally look at the log.
 
 - It should have a 'promote_remove' action in the last row.
 
-```{r mark_remove4}
+```{r mark_remove4, eval = flag_eval_chunk}
 fread(file.path(root_input, version_name_today, "log_version_history.csv"))
 ```
 
 The report should also update to show the new symlink.
 
-```{r mark_remove5}
+```{r mark_remove5, eval = flag_eval_chunk}
 fread(file.path(root_input, "report_key_versions.csv"))
 ```
 
@@ -502,7 +542,7 @@ First, let's naively try to delete a folder we _haven't_ marked as ready for rem
 
 - this will try to delete folders in both output `root`s.
 
-```{r delete_folder}
+```{r delete_folder, eval = flag_eval_chunk}
 slt$delete_version_folders(
   version_name = "2024_02_02",
   user_entry   = list(comment = "testing delete_version_folders")
@@ -517,7 +557,7 @@ Now let's delete the folder we _have_ marked as ready for removal.
     - This allow the user to choose what to keep.
     - E.g. keep outputs, but delete the inputs to free up disk space.
 
-```{r delete_folder2}
+```{r delete_folder2, eval = flag_eval_chunk}
 slt$delete_version_folders(
   version_name       = version_name_today,
   user_entry         = list(comment = "testing delete_version_folders"),
@@ -530,7 +570,7 @@ Let's look at the folder structure.
 
 - The folder and `remove_` symlink should be gone.
 
-```{r delete_folder4} 
+```{r delete_folder4, eval = flag_eval_chunk} 
 print_tree()
 ```
 
@@ -540,7 +580,7 @@ Since we no longer have a `version_name` log, we can't look at it.  But we can l
     - the 'promote_remove' action
     - the 'delete_remove_folder' action
 
-```{r delete_folder3}
+```{r delete_folder3, eval = flag_eval_chunk}
 fread(PATHS$log_cent)
 ```
 
@@ -549,7 +589,7 @@ Let's look at the report.
 - We should expect to not see the `version_name` in the report, since it's been deleted.
 
 
-```{r delete_folder5}
+```{r delete_folder5, eval = flag_eval_chunk}
 fread(file.path(root_input, "report_key_versions.csv"))
 ```
 
@@ -573,17 +613,17 @@ It's likely you'll have other output versions you want to keep, but not as 'best
 
 - This will produce symlinks of the form `keep_<version_name>`
 
-```{r mark_keep}
+```{r mark_keep, eval = flag_eval_chunk}
 suppressMessages(
   slt$mark_keep(version_name = "2024_02_10", user_entry = list(comment = "testing mark_keep"))
 )
 ```
 
-```{r mark_keep2}
+```{r mark_keep2, eval = flag_eval_chunk}
 print_tree()
 ```
 
-```{r mark_keep3}
+```{r mark_keep3, eval = flag_eval_chunk}
 print_symlink("keep")
 ```
 
@@ -608,12 +648,12 @@ You can view things like:
     - There is currently no issue queue, but this may be added if there is demand.
 
 
-```{r reports_pt2}
+```{r reports_pt2, eval = flag_eval_chunk}
 # Show the types of reports currently available
 slt$make_reports
 ```
 
-```{r reports_pt2b}
+```{r reports_pt2b, eval = flag_eval_chunk}
 # Run the reports
 suppressMessages({
   slt$make_reports()
@@ -622,14 +662,14 @@ print_tree()
 ```
 
 
-```{r reports_pt2d}
+```{r reports_pt2d, eval = flag_eval_chunk}
 # View an example report - logs for folders with no active symlink
 # - you can see this folder was previously marked 'best'
 fread(file.path(root_input, "report_all_logs_non_symlink.csv"))
 ```
 
 
-```{r reports_pt2e}
+```{r reports_pt2e, eval = flag_eval_chunk}
 # Expect this to be absent for the vignette
 try(fread(file.path(root_input, "REPORT_DISCREPANCIES.csv")))
 ```
@@ -646,7 +686,7 @@ We'll demonstrate by:
     1. Round up the rest by date
         1. Mark these as `keep_`
 
-```{r roundup}
+```{r roundup, eval = flag_eval_chunk, eval = flag_eval_chunk}
 # Make a set of dummy folders
 dv1  <- get_output_dir(root_input,  "today")
 slt$make_new_version_folder(dv1)
@@ -662,7 +702,7 @@ print_tree()
 
 ### roundup_remove
 
-```{r roundup2}
+```{r roundup2, eval = flag_eval_chunk, eval = flag_eval_chunk}
 # Mark some as 'remove_'
 suppressMessages({
   for(dv in c(dv1, dv2)){
@@ -672,13 +712,13 @@ suppressMessages({
 ```
 
 
-```{r roundup3}
+```{r roundup3, eval = flag_eval_chunk}
 # Round up and delete
 roundup_remove_list <- slt$roundup_remove()
 ```
 
 
-```{r roundup3.1, include = FALSE}
+```{r roundup3.1, include = FALSE, eval = flag_eval_chunk}
 if(! identical(roundup_remove_list$root_input$version_name, 
                roundup_remove_list$root_output$version_name)){
   
@@ -686,7 +726,7 @@ if(! identical(roundup_remove_list$root_input$version_name,
 }
 ```
 
-```{r roundup4}
+```{r roundup4, eval = flag_eval_chunk}
 suppressMessages({
   for(dv in roundup_remove_list$root_input$version_name){
     slt$delete_version_folders(
@@ -705,7 +745,7 @@ print_tree()
 
 Use the log creation date (first row) to round up folders created on, before, or after that date.
 
-```{r roundup6}
+```{r roundup6, eval = flag_eval_chunk}
 my_date <- format(Sys.Date(), "%Y_%m_%d")
 roundup_date_list <- slt$roundup_by_date(
   user_date     = my_date,
@@ -714,7 +754,7 @@ roundup_date_list <- slt$roundup_by_date(
 )
 ```
 
-```{r roundup7}
+```{r roundup7, eval = flag_eval_chunk}
 # mark all our dummy folders (with the ".VV" pattern) as keepers
 dv_keep <- grep(
   pattern = "\\.\\d\\d"
@@ -741,13 +781,13 @@ the creation date if you know when the folder was made.
 - The tool tries to resolve all operations in each `root` independently.  So even though we're not creating a folder in both our `root`s, the tool will create as many logs as it can.
 
 
-```{r make_new_log}
+```{r make_new_log, eval = flag_eval_chunk}
 # Make a naive folder without a log
 dir.create(file.path(root_output, "2024_02_10_naive"))
 try(slt$make_new_log(version_name = "2024_02_10_naive"))
 ```
 
-```{r make_new_log2}
+```{r make_new_log2, eval = flag_eval_chunk}
 print_tree()
 ```
 
@@ -755,17 +795,17 @@ print_tree()
 
 You can audit the internal state of the tool with the `print_` functions.
 
-```{r print, out.lines = 22}
+```{r print, out.lines = 22, eval = flag_eval_chunk}
 # Print all static fields (output truncated)
 slt$return_dictionaries()
 ```
 
-```{r print2}
+```{r print2, eval = flag_eval_chunk}
 # ROOTS are likely most interesting to the user.
 slt$return_dictionaries(item_names = "ROOTS")
 ```
 
-```{r print3}
+```{r print3, eval = flag_eval_chunk}
 # Show the last 'action' the tool performed
 # - these fields are set as part of each 'marking' new action.
 slt$return_dynamic_fields()
@@ -774,7 +814,7 @@ slt$return_dynamic_fields()
 
 # Clean Up
 
-```{r clean_up, eval = FALSE}
+```{r clean_up, eval = FALSE, eval = flag_eval_chunk}
 # Finally, clean up all our temporary folders
 unlink(root_base, recursive = TRUE, force = TRUE)
 ```
