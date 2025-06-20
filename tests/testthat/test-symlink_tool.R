@@ -19,6 +19,7 @@ dv_list <- list(
 )
 path_list <- lapply(root_list, function(x) clean_path(x, dv_list))
 path_list <- lapply(path_list, function(x) {names(x) <- names(dv_list); x})
+path_list_logs <- lapply(path_list, function(x) clean_path(x, 'logs'))
 
 ue_list <- list(
    best = list(comment = "Testing mark best")
@@ -112,7 +113,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
       fname_report_key_versions <- slt$return_dictionaries()$report_fnames$all_logs_tool_symlink
       fname_discrepnacy_report <- slt$return_dictionaries()$report_fnames$discrepancies
 
-      fpaths_dv_logs <- lapply(path_list, function(path) file.path(path, fname_dv_log))
+      fpaths_dv_logs <- lapply(path_list_logs, function(path) file.path(path, fname_dv_log))
       fpaths_dv_logs <- lapply(fpaths_dv_logs, function(x) {names(x) <- names(dv_list); x})
 
 
@@ -229,9 +230,9 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
       test_that("Only logs exist so far",
                 {
-                   dv_content_list <- lapply(path_list, list.files, full.names = TRUE)
+                   dv_content_list <- lapply(path_list_logs, list.files, full.names = TRUE)
 
-                   dv_log_list <- lapply(path_list, function(dv_content){
+                   dv_log_list <- lapply(path_list_logs, function(dv_content){
                       fnames_logs <- list.files(dv_content, pattern = "log", full.names = TRUE)
                    })
                    expect_equal(dv_content_list, dv_log_list)
@@ -239,7 +240,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
       test_that("Marked logs have correct structure",
                 {
-                   dv_log_list <- lapply(path_list, function(dv_content){
+                   dv_log_list <- lapply(path_list_logs, function(dv_content){
                       fnames_logs <- list.files(dv_content, pattern = "log", full.names = TRUE)
                    })
                    expect_no_error(

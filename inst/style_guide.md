@@ -49,18 +49,12 @@ Lean into the [Tidyverse Style Guide](https://style.tidyverse.org) when possible
 my_list <- list(name1 = "value1", 
                 name2 = "value2", 
                 name3 = "value3")
-# Good
-my_list <- list(
-  name1 = "value1"
-  , name2 = "value2"
-  , name3 = "value3"
-)
-
-# Better
+# OK
 my_list <- list(
   name1   = "value1"
   , name2 = "value2"
   , name3 = "value3"
+)
 
 # Best
 my_list <- list(
@@ -89,8 +83,8 @@ my_list <- list(
 ### Function Arguments
 
 - **Order**: Arguments should be ordered from most general to most specific.
-  - **First argument**: When a function primarily operates on some object `x`, the first argument should _always_ be `x`.
-  - **Second argument**: For I/O functions, if the first argument is an object, the second argument should _always_ be a `/file/path`.
+  - **First argument**: When a function primarily operates on some object `x`, the first argument is _always_ be `x`.
+  - **Second argument**: For I/O functions, if the first argument is an object, the second argument is _always_ be a `/file/path`.
 - **Default arguments**: Avoid default arguments when possible. If you must use them, use `NULL` as the default value, and handle `NULL` behavior explicitly in the function.
 - **Argument data types**: Avoid types in argument names - use `data` instead of `data_df` or `data_tbl`.  Types in argument names makes function maintenance more difficult.  If a type needs to change, then the function argument also needs to change, which breaks backward compatibility.  Handle type-checking explicitly within the function instead.
 
