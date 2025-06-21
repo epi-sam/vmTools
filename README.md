@@ -57,7 +57,7 @@ Please note that the vmTools project is released with a [Contributor Code of Con
 
 ## Style Guide
 
-Please note that the vmTools project is contains a Style Guide (.github/style_guide.md). By contributing to this project, you agree to read and adhere to these styles.
+Please note that the vmTools project is contains a [Contribution Style Guide](https://github.com/epi-sam/vmTools/blob/main/CONTRIBUTING.md). By contributing to this project, you agree to read and adhere to these styles.
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/epi-sam/vmTools/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/epi-sam/vmTools/actions/workflows/R-CMD-check.yaml)
