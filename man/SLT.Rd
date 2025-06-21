@@ -15,7 +15,13 @@ Class for lightweight file-system level data versioning, logs
 
 
 try(SLT$new()) # call with no arguments to see instructions
-slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
+# Tool will not instantiate on Windows unless running with Admin permissions
+# - requirement for symlink creation on Windows
+if (vmTools:::is_windows_admin() | .Platform$OS.type \%in\% c("unix", "linux", "Darwin")) {
+   slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
+   # view folder contents - expect to see a new central log
+   vmTools:::dir_tree(tempdir())
+}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -32,7 +38,7 @@ slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = 
 \item \href{#method-Symlink_Tool-roundup_remove}{\code{SLT$roundup_remove()}}
 \item \href{#method-Symlink_Tool-roundup_unmarked}{\code{SLT$roundup_unmarked()}}
 \item \href{#method-Symlink_Tool-roundup_by_date}{\code{SLT$roundup_by_date()}}
-\item \href{#method-Symlink_Tool-get_new_version_name}{\code{SLT$get_new_version_name()}}
+\item \href{#method-Symlink_Tool-get_common_new_version_name}{\code{SLT$get_common_new_version_name()}}
 \item \href{#method-Symlink_Tool-make_new_version_folder}{\code{SLT$make_new_version_folder()}}
 \item \href{#method-Symlink_Tool-make_new_log}{\code{SLT$make_new_log()}}
 \item \href{#method-Symlink_Tool-delete_version_folders}{\code{SLT$delete_version_folders()}}
@@ -101,7 +107,13 @@ use for datestamps in logs. Must be a valid `OlsonNames()` string.}
 \if{html}{\out{<div class="r example copy">}}
 \preformatted{
 try(SLT$new()) # call with no arguments to see instructions
-slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
+# Tool will not instantiate on Windows unless running with Admin permissions
+# - requirement for symlink creation on Windows
+if (vmTools:::is_windows_admin() | .Platform$OS.type \%in\% c("unix", "linux", "Darwin")) {
+   slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
+   # view folder contents - expect to see a new central log
+   vmTools:::dir_tree(tempdir())
+}
 }
 \if{html}{\out{</div>}}
 
@@ -391,13 +403,16 @@ or 2020/01/01"}
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Symlink_Tool-get_new_version_name"></a>}}
-\if{latex}{\out{\hypertarget{method-Symlink_Tool-get_new_version_name}{}}}
-\subsection{Method \code{get_new_version_name()}}{
-Get a new YYYY_MM_DD.VV version compatible with _ALL THE TOOL'S ROOTS_
-for a given date
+\if{html}{\out{<a id="method-Symlink_Tool-get_common_new_version_name"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Tool-get_common_new_version_name}{}}}
+\subsection{Method \code{get_common_new_version_name()}}{
+Get a new YYYY_MM_DD.VV version compatible with _ALL THE
+TOOL'S ROOTS_
+
+If root1 has 2025_01_01.01 and root2 has 2025_01_01.03, then a new
+folder would need to be 2025_01_01.04
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$get_new_version_name(date = "today", root_list = private$DICT$ROOTS)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$get_common_new_version_name(date = "today", root_list = private$DICT$ROOTS)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -418,20 +433,22 @@ name.  Must be formatted "2020_01_01"}
 \if{html}{\out{<a id="method-Symlink_Tool-make_new_version_folder"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-make_new_version_folder}{}}}
 \subsection{Method \code{make_new_version_folder()}}{
-Create a new `version_name` folder in _ALL THE TOOL'S ROOTS_
+Create a new `version_name` folder in _ALL THE TOOL'S
+  ROOTS_
 
-Create a new log in each folder.  No symlinks are created.  No
-`user_entry` is used.
+  Create a new log in each folder.  No symlinks are created.  No
+  `user_entry` is used.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$make_new_version_folder(version_name)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$make_new_version_folder(version_name = self$get_common_new_version_name())}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{version_name}}{[chr] The directory name of the output folder that
-lives directly under one of the `root`s you define when you
-instantiate the tool.}
+\item{\code{version_name}}{[chr] The directory name of the
+output folder that lives directly under one of the `root`s you define
+when you instantiate the tool.  For convenience, user may leave NULL
+(default) and `get_common_new_version_name()` is used on that root.}
 }
 \if{html}{\out{</div>}}
 }

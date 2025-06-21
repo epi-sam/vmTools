@@ -1,3 +1,13 @@
+#' Is the current OS windows
+#'
+#' @returns [lgl]
+#'
+#' @examples
+#' vmTools:::is_windows()
+is_windows <- function(){
+   .Platform$OS.type == "windows"
+}
+
 #' If running on windows, check if the user has admin privileges
 #'
 #' @return [lgl] TRUE if the user in on a windows OS and has admin privileges, FALSE otherwise
@@ -5,7 +15,7 @@
 #' @examples
 #' vmTools:::is_windows_admin()
 is_windows_admin <- function() {
-   if (.Platform$OS.type != "windows") {
+   if (!is_windows()) {
       return(FALSE)  # Not relevant for non-Windows systems
    }
 

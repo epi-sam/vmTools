@@ -1,13 +1,18 @@
 Package: vmTools
 Type: Package
-Title: Version Management Tools For Data Science Projects
+Title: Version Management Tools on the File System
 Version: 0.8.0
 Authors@R: c(
-    person("Sam", "Byrne", email = "ssbyrne@uw.edu", role = c("aut", "cre")
+    person("Sam", "Byrne", email = "ssbyrne@uw.edu"
+    , role = c("aut", "cre", "cph")
     , comment = c(ORCID = "0009-0008-1067-307X"))
            )
 Maintainer: Sam Byrne <ssbyrne@uw.edu>
 Description: Data version management on the file system for smaller projects.
+    Manage data pipeline outputs with symbolic folder links, structured logging
+    and reports, using 'R6' classes for encapsulation and 'data.table' for
+    speed. Directory-specific logs used as source of truth to allow portability
+    of versioned data folders.
 License: MIT + file LICENSE
 Encoding: UTF-8
 LazyData: true
@@ -15,6 +20,7 @@ Imports:
     R6 (>= 2.5.1),
     data.table (>= 1.10.0)
 Suggests: 
+    devtools (>= 2.4.5),
     knitr (>= 1.46),
     rmarkdown (>= 2.27),
     testthat (>= 3.0.0),

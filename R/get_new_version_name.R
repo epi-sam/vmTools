@@ -11,8 +11,11 @@
 #' the directory tree does not exist
 #'
 #' @examples
+#' \dontrun{
+#' # this function is not exported
 #' vmTools:::get_latest_output_date_index("tests/testthat/fixtures/versioned-dirs/nested/1999_09_09"
-#'                              , date = "1999_09_09")
+#'                                        , date = "1999_09_09")
+#'}
 get_latest_output_date_index <- function(dir, date) {
    currentfolders <- list.files(dir)
 
@@ -45,6 +48,7 @@ get_latest_output_date_index <- function(dir, date) {
 #' vmTools:::find_latest_output_dir(tempdir())
 #' \dontrun{
 #' # causes an error in R CMD check
+#' # this function is not exported
 #' vmTools:::find_latest_output_dir("tests/testthat/fixtures/versioned-dirs/nested/1999_09_09")
 #' }
 find_latest_output_dir <- function(root) {

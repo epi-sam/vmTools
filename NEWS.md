@@ -4,7 +4,7 @@
 
 
 
-# v.0.8.0 (2025-02-20)
+# vmTools 0.8.0 (2025-02-20)
 
 Updates:
 
@@ -14,7 +14,7 @@ Updates:
 
 
 
-# v.0.7.0 (2025-01-30)
+# vmTools 0.7.0 (2025-01-30)
 
 Updates:
 
@@ -24,7 +24,7 @@ Updates:
 
 
 
-# v.0.6.0 (2025-01-14)
+# vmTools 0.6.0 (2025-01-14)
 
 Update:
 
@@ -32,7 +32,7 @@ Update:
 
 
 
-# v.0.5.0 (2025-01-14)
+# vmTools 0.5.0 (2025-01-14)
 
 Update:
 
@@ -40,7 +40,7 @@ Update:
 
 
 
-# v.0.4.0 (2025-01-14)
+# vmTools 0.4.0 (2025-01-14)
 
 Update:
 
@@ -48,7 +48,7 @@ Update:
 
 
 
-# v.0.3.7 (2024-11-19)
+# vmTools 0.3.7 (2024-11-19)
 
 Fixes:
 
@@ -56,7 +56,7 @@ Fixes:
 
 
 
-# v.0.3.6 (2024-11-19)
+# vmTools 0.3.6 (2024-11-19)
 
 Update:
 
@@ -66,7 +66,7 @@ Update:
 
 
 
-# v.0.3.5 (2024-11-15)
+# vmTools 0.3.5 (2024-11-15)
 
 Update:
 
@@ -74,7 +74,7 @@ Update:
 
 
 
-# v.0.3.4 (2024-10-16)
+# vmTools 0.3.4 (2024-10-16)
 
 Bugfixes:
 
@@ -82,7 +82,7 @@ Bugfixes:
 
 
 
-# v.0.3.3 (2024-10-16)
+# vmTools 0.3.3 (2024-10-16)
 
 Bugfixes:
 
@@ -90,7 +90,7 @@ Bugfixes:
 
 
 
-# v.0.3.2 (2024-10-16)
+# vmTools 0.3.2 (2024-10-16)
 
 Bugfixes:
 
@@ -98,7 +98,7 @@ Bugfixes:
 
 
 
-# v.0.3.1 (2024-10-16)
+# vmTools 0.3.1 (2024-10-16)
 
 Bugfixes:
 
@@ -110,7 +110,7 @@ Bugfixes:
 
 
 
-# v.0.3.0 (2024-10-15)
+# vmTools 0.3.0 (2024-10-15)
 
 Several improvements for consistency and sensible defaults based on trial deployment.
 
@@ -140,7 +140,7 @@ Several improvements for consistency and sensible defaults based on trial deploy
 
 
 
-# v.0.2.0
+# vmTools 0.2.0
 
 ## Vignettes
 
@@ -151,6 +151,6 @@ Two written:
 
 
 
-# v.0.1.0
+# vmTools 0.1.0
 
 - Symlink tool is fully functional with basic tasks.

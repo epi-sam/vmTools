@@ -10,6 +10,7 @@
 #'
 #' @return [lgl] FALSE if empty in some way, TRUE otherwise
 #'
+#' @family validations
 #' @examples
 #' vmTools:::validate_not_empty(1) # TRUE
 #' vmTools:::validate_not_empty(NULL) # FALSE
@@ -36,6 +37,7 @@ validate_not_empty = function(x) {
 #'
 #' @return [lgl] TRUE if directory exists, FALSE otherwise
 #'
+#' @family validations
 #' @examples
 #' vmTools:::validate_dir_exists(".") # TRUE
 #' vmTools:::validate_dir_exists("nonexistent") # FALSE
@@ -56,6 +58,7 @@ validate_dir_exists = function(x, verbose = TRUE){
 #'
 #' @return [lgl] TRUE / FALSE
 #'
+#' @family validations
 #' @examples
 #' vmTools:::is_an_error(simpleError("error")) # TRUE
 #' vmTools:::is_an_error(message("error")) # FALSE

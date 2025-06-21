@@ -5,6 +5,6 @@
 inst/doc
 inst/symlink_tool_tester.R
 inst/local_installer.R
-*/.html
+*.html
 /doc/
 /Meta/

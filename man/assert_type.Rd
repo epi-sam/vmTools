@@ -19,5 +19,13 @@ Assert an object is a scalar of a certain type
 }
 \examples{
 vmTools:::assert_type("A", "character") # OK
-# vmTools:::assert_type(1, "integer") # Error - need 1L
+try(vmTools:::assert_type(1, "integer")) # Error - need 1L
 }
+\seealso{
+Other assertions: 
+\code{\link{assert_dir_exists}()},
+\code{\link{assert_named_list}()},
+\code{\link{assert_scalar}()},
+\code{\link{assert_scalar_not_empty}()}
+}
+\concept{assertions}

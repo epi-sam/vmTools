@@ -60,7 +60,9 @@ SLT <- R6::R6Class(
             path  = NULL
          ),
 
+         log_dir  = "logs",
          log_name = "log_version_history.csv",
+         log_path = "logs/log_version_history.csv",
 
          log_schema = list(
             log_id         = "integer"
@@ -104,7 +106,7 @@ SLT <- R6::R6Class(
          TZ = NULL,
 
 
-         # Reports - summary of last log entries across date-versioned folders
+         # Reports - summary of last log entries across version_nameed folders
          # - Since these are the most visible/useful user summary, these could be set by `initialize()` in the future.
 
          report_fnames = list(
@@ -629,7 +631,7 @@ SLT <- R6::R6Class(
             private$DYNAMIC$LOG$action <- paste0("demote_", symlink_type)
             private$DYNAMIC$LOG$version_name <- version_name
 
-            message("-- removing ", symlink_full)
+            message("   removing ", symlink_full)
             system(paste("unlink", symlink_full))
 
             private$append_to_log(version_path = path_real, user_entry = user_entry)
@@ -637,7 +639,7 @@ SLT <- R6::R6Class(
 
 
          } else {
-            message("---- No symlink found for: ", version_name, " - ", symlink_type)
+            message("     No symlink found for: ", version_name, " - ", symlink_type)
          }
       },
 
@@ -672,7 +674,7 @@ SLT <- R6::R6Class(
 
       #  Create a new folder with a log file
       #
-      #  @param version_path [chr] path to the versioned folder
+      #  @param version_path [chr] path to a version_name folder
       #
       #  @return [none] side effect of creating a log file on disk
       make_folder_with_log = function(version_path){
@@ -718,8 +720,8 @@ SLT <- R6::R6Class(
             message(
                "\n",
                "No valid `remove_` symlink found:\n",
-               "  -- for: ", version_name, "\n",
-               "  -- in root: ", root
+               "     for: ", version_name, "\n",
+               "     in root: ", root
             )
 
             ret_val_deleted_TF <- NULL
@@ -819,33 +821,52 @@ SLT <- R6::R6Class(
          return(dt_log)
       },
 
-      #  Write a new log file with the schema defined in `private$DICT$log_schema`
+      # If log_version_history.csv is not in a 'logs' subfolder, send it there.
       #
-      #  Write a 'create' row if there are 0 rows in the log.
+      # Otherwise, do nothing
       #
-      #  @param version_path [chr] path to the log file root
-      #  @param log_schema [named list] named list of column names and data types
+      # @param version_path [chr] path to a version_name folder
       #
-      #  @return none
-      write_new_log = function(version_path, log_schema = private$DICT$log_schema){
-         fpath <- clean_path(version_path, private$DICT$log_name)
-         dt_log <- private$make_schema_dt(log_schema)
-         # Safely write first 'create' row if it doesn't exist
-         dt_log <- private$ensure_log_creation_entry(version_path, dt_log)
-         private$csv_writer(dt_log, fpath, row.names = FALSE)
+      # @returns [none] renames the log file, or makes a new one in 'logs' subdirectory if rename fails
+      move_log_to_subdir = function(version_path){
+
+         path_log_bare   <- clean_path(version_path, private$DICT$log_name)
+         path_log_subdir <- clean_path(version_path, private$DICT$log_path)
+
+         # if path_log_bare exists and path_log_subdir does not, move it
+         # if path_log_bare does not exist, move on doing nothing
+         # if path_log_bare exists and path_log_subdir exists, move on and do nothing
+         # if neither exists, move on and do nothing
+
+         move_log_tf <- if(
+            file.exists(path_log_bare)
+            && !file.exists(path_log_subdir)
+         ) TRUE else FALSE
+
+         if(move_log_tf == TRUE){
+            message("     Moving log file to 'logs' subfolder: ", path_log_bare, " -> ", path_log_subdir)
+            dir.create(dirname(path_log_subdir), recursive = TRUE, showWarnings = FALSE)
+            rename_flag <- file.rename(path_log_bare, path_log_subdir)
+
+            if(rename_flag == FALSE){
+               message("     Could not move existing log file, creating a new log in 'logs' subdirectory.")
+               private$write_new_log(version_path)
+            }
+         }
+
       },
 
-      #   Return a time-stamp in private$DICT$datestamp_format format, e.g. "2024_02_21_104202"
+      #  Return a time-stamp in private$DICT$datestamp_format format, e.g. "2024_02_21_104202"
       #
       #  @return [chr] time-stamp in private$DICT$datestamp_format format
       make_current_timestamp = function(){
          return(format(as.POSIXct(Sys.time(), tz = "UTC"), tz = private$DICT$TZ, format = private$DICT$datestamp_format))
       },
 
-      #   Write a log creation row IF the log is empty
+      #  Write a log creation row IF the log is empty
       #
       #  @param dt_log [data.table] log data.table
-      #  @param version_name [chr] date version in format 'YYYY_MM_DD' default private$DYNAMIC$LOG$version_name
+      #  @param version_name [chr] version_name in format 'YYYY_MM_DD.VV' default private$DYNAMIC$LOG$version_name
       #
       #  @return [data.table] log data.table with creation row if it was empty
       ensure_log_creation_entry = function(version_path, dt_log, version_name = private$DYNAMIC$LOG$version_name){
@@ -867,23 +888,20 @@ SLT <- R6::R6Class(
          return(dt_log)
       },
 
-      #  Safely write an expected log with creation entry if it doesn't exist.
+      #  Write a new log file with the schema defined in `private$DICT$log_schema`
       #
-      #  @param version_path [chr] path to the log file root
+      #  Write a 'create' row if there are 0 rows in the log.
+      #
+      #  @param version_path [chr] path to a version_name folder
       #  @param log_schema [named list] named list of column names and data types
       #
       #  @return none
-      write_expected_log = function(version_path, log_schema = private$DICT$log_schema){
-         assert_scalar(version_path)
-         fpath <- clean_path(version_path, private$DICT$log_name)
-         if(!file.exists(fpath)) {
-            private$write_new_log(version_path)
-         } else {
-            dt_log <- private$read_log(fpath, log_schema)
-            # Safely write first 'create' row if it doesn't exist
-            dt_log <- private$ensure_log_creation_entry(version_path, dt_log)
-            private$csv_writer(dt_log, fpath, row.names = FALSE)
-         }
+      write_new_log = function(version_path, log_schema = private$DICT$log_schema){
+         fpath <- clean_path(version_path, private$DICT$log_path)
+         dt_log <- private$make_schema_dt(log_schema)
+         # Safely write first 'create' row if it doesn't exist
+         dt_log <- private$ensure_log_creation_entry(version_path, dt_log)
+         private$csv_writer(dt_log, fpath, row.names = FALSE)
       },
 
       #  Safely correct a null log, if found (all dim == 0).
@@ -924,6 +942,30 @@ SLT <- R6::R6Class(
          return(dt_log)
       },
 
+      #  Safely write an expected log with creation entry if it doesn't exist.
+      #
+      #  Ensure log is in proper subfolder
+      #
+      #  @param version_path [chr] path to a version_name folder
+      #  @param log_schema [named list] named list of column names and data types
+      #
+      #  @return none
+      write_expected_log = function(version_path, log_schema = private$DICT$log_schema){
+         assert_scalar(version_path)
+         private$move_log_to_subdir(version_path)
+         fpath <- clean_path(version_path, private$DICT$log_path)
+         log_dir <- dirname(fpath)
+         if(!file.exists(log_dir)) dir.create(log_dir, showWarnings = FALSE, recursive = TRUE)
+         if(!file.exists(fpath)) {
+            private$write_new_log(version_path)
+         } else {
+            dt_log <- private$read_log(fpath, log_schema)
+            # Safely write first 'create' row if it doesn't exist
+            dt_log <- private$ensure_log_creation_entry(version_path, dt_log)
+            private$csv_writer(dt_log, fpath, row.names = FALSE)
+         }
+      },
+
       #  Append a one-row entry to a log and write to disk
       #
       #  @param version_path [chr] path to a version_name folder
@@ -937,7 +979,7 @@ SLT <- R6::R6Class(
          assert_scalar(version_path)
 
          # needs to read a log to bump the log_id number
-         fpath <- clean_path(version_path, private$DICT$log_name)
+         fpath <- clean_path(version_path, private$DICT$log_path)
          private$write_expected_log(version_path)
          dt_log <- private$read_log(fpath)
          private$assert_schema_vs_user_entry(user_entry)
@@ -963,7 +1005,7 @@ SLT <- R6::R6Class(
          dt_log <- rbindlist(list(dt_log, log_entry), fill = private$DICT$FLAGS$allow_schema_repair)
          data.table::setcolorder(dt_log, names(private$DICT$log_schema))
 
-         message("---- Writing log to ", fpath)
+         message("  Writing log to ", fpath)
          private$csv_writer(dt_log, fpath, row.names = FALSE)
       },
 
@@ -1097,13 +1139,13 @@ SLT <- R6::R6Class(
             dt_log <- rbindlist(list(dt_log, log_entry), fill = private$DICT$FLAGS$allow_schema_repair)
             data.table::setcolorder(dt_log, names(private$DICT$log_schema))
 
-            message("---- Writing central log to ", fpath)
+            message("  Writing central log to ", fpath)
             private$csv_writer(dt_log, fpath, row.names = FALSE)
 
          } else {
 
-            message("-- No action defined, not writing to central log.\n",
-                    "---- This is expected if no symlinks were found or user-input did not produce an action for: ", private$DYNAMIC$LOG$version_name)
+            message("  No action defined, not writing to central log.\n",
+                    "    This is expected if no symlinks were found or user-input did not produce an action for: ", private$DYNAMIC$LOG$version_name)
          }
 
       },
@@ -1116,7 +1158,7 @@ SLT <- R6::R6Class(
       # The 'query' function family is for reporting on the state of the symlinks.
       # It differs from the 'read' family, which is for promotion/demotion, and will create a new log
 
-      #  Query one date-version folder for a log
+      #  Query one version_name folder for a log
       #
       #  `tryCatch()` to find a folder's log, read it if it exists, in a consistent format
       #
@@ -1128,7 +1170,7 @@ SLT <- R6::R6Class(
          tryCatch(
             {
                log <- private$csv_reader(
-                  clean_path(version_path, private$DICT$log_name)
+                  clean_path(version_path, private$DICT$log_path)
                   , colClasses = unlist(private$DICT$log_schema)
                )
             },
@@ -1178,7 +1220,10 @@ SLT <- R6::R6Class(
 
       },
 
+      #  FUNDAMENTAL QUERY METHOD FOR THE SYMLINK TOOL.
+      #
       #  Query the folder types (bare of symlink) of all version_name folders in one `root`.
+      #  - Moves all logs to subfolders for a proper query
       #
       #  @param root [chr] path to a root folder defined at instantiation (`STL$new()`)
       #
@@ -1212,6 +1257,11 @@ SLT <- R6::R6Class(
          tool_symlink_regex  <- paste(tool_symlink_regex, collapse = "|")
          folder_dt[, is_symlink := dir_name != dir_name_resolved]
          folder_dt[, is_tool_symlink := grepl(tool_symlink_regex, dir_leaf)]
+
+         # reporting requires logs to be in a consistent location
+         has_bare_log <- file.exists(clean_path(folder_dt$dir_name_resolved, basename(private$DICT$log_name)))
+         catch <- lapply(folder_dt[has_bare_log, dir_name_resolved], private$move_log_to_subdir)
+
          return(folder_dt)
       },
 
@@ -1419,7 +1469,7 @@ SLT <- R6::R6Class(
          )
          tryCatch({
             as.POSIXct(log_id_0_dt$timestamp2, format = private$DICT$datestamp_format, tz = private$DICT$TZ)
-         }, warning = function(w) message("Some logs failed creation-date parsing (must be in yyyy_mm_dd format): \n  ",
+         }, warning = function(w) message("Some logs failed creation-date parsing (must be in %Y_%m_%d_%H%M%S format): \n  ",
                                           paste(capture.output(dt_failed_parse), collapse = "\n"),
                                           "\n")
          )
@@ -1623,7 +1673,7 @@ SLT <- R6::R6Class(
          unique_version_paths_tool_symlink        <- unique(folder_dt[is_tool_symlink == TRUE, dir_name_resolved])
          names(unique_version_paths_tool_symlink) <- unique_version_paths_tool_symlink
          tool_symlink_has_log                     <- unlist(lapply(unique_version_paths_tool_symlink, function(path){
-            file.exists(clean_path(path, private$DICT$log_name))
+            file.exists(clean_path(path, private$DICT$log_path))
          }))
          tool_symlink_no_log                <- names(tool_symlink_has_log[tool_symlink_has_log == FALSE])
          dirs_tool_symlink_no_logs_dt       <- folder_dt[dir_name_resolved %in% tool_symlink_no_log, .N, by = .(dir_name_resolved)][N > 0]
@@ -1703,11 +1753,11 @@ SLT <- R6::R6Class(
          if(nrow(discrepancy_report_dt) == 0) {
             # If there's nothing to report, delete the discrepancy report, otherwise stay quiet
             if(file.exists(path_discrepancy_report)){
-               if(verbose) message("-- No discrepancies found in ", root, ", removing ", private$DICT$report_fnames$discrepancies, " (if it exists now)")
+               if(verbose) message("  No discrepancies found in ", root, ", removing ", private$DICT$report_fnames$discrepancies, " (if it exists now)")
                file.remove(path_discrepancy_report)
             }
          } else {
-            if(verbose) message("-- DISCREPANCIES FOUND: Writing discrepancy report to ", path_discrepancy_report)
+            if(verbose) message("  DISCREPANCIES FOUND: Writing discrepancy report to ", path_discrepancy_report)
             private$write_report(discrepancy_report_dt, path_discrepancy_report)
          }
       },
@@ -1728,7 +1778,7 @@ SLT <- R6::R6Class(
       #  - resets DYNAMIC private fields
       #  - updates DYNAMIC private fields
       #
-      #  @param version_name [chr] Date version folder to mark
+      #  @param version_name [chr] version_name folder to mark
       #  @param user_entry [named list] User-supplied log entry
       #  @param roots [named list] All user-defined `root`s defined at instantiation
       #
@@ -1775,7 +1825,7 @@ SLT <- R6::R6Class(
       #  - ensure the tool_symlink report is up-to-date
       #  - handle central log updates
       #
-      #  @param version_name [chr] Date version folder to mark
+      #  @param version_name [chr] version_name folder to mark
       #  @param user_entry [named list] User-supplied log entry
       #
       #  @return [none] no machine-state updates, only write to disk
@@ -1805,7 +1855,7 @@ SLT <- R6::R6Class(
       #
       #  Build versioned paths from roots, assert existence
       #
-      #  @param version_name [chr] Date version folder to mark
+      #  @param version_name [chr] version_name folder to mark
       #
       #  @return [none] Updates `private$DYNAMIC$VERS_PATHS`
       handler_update_version_paths = function(version_name){
@@ -1820,7 +1870,7 @@ SLT <- R6::R6Class(
       #
       #  update all dynamic fields except log action
       #
-      #  @param version_name [chr] Date version folder
+      #  @param version_name [chr] version_name folder
       #
       #  @return [none] Updates `private$DYNAMIC$LOG` and `private$DYNAMIC$VERS_PATHS`
       handler_update_dynamic_fields = function(version_name){
@@ -1866,7 +1916,7 @@ SLT <- R6::R6Class(
       #  Unlinks the symlink to a version_name folder.
       #
       #  @param version_path [chr] Path to a version_name folder
-      #  @param version_name [chr] Date version folder to demote
+      #  @param version_name [chr] version_name folder to demote
       #  @param user_entry [named list] User-supplied log entry
       #  @param symlink_types [chr] `private$DICT$symlink_types`
       #
@@ -1895,7 +1945,7 @@ SLT <- R6::R6Class(
          }
 
          if(length(symlink) > 0) {
-            message("-- Demoting existing symlink: ", symlink)
+            message("Demoting existing symlink: ", symlink)
             symlink                    <- private$extract_symlink(symlink)
             symlink                    <- paste0(root, symlink)
             private$DYNAMIC$LOG$action <- paste0("demote_", symlink_type)
@@ -1905,7 +1955,7 @@ SLT <- R6::R6Class(
             # only unlink if logging is successful
             system(paste0("unlink ", symlink))
          } else {
-            message("-- No existing symlinks found - moving on")
+            message("No existing symlinks found - moving on")
          }
 
 
@@ -1920,7 +1970,7 @@ SLT <- R6::R6Class(
       #  - we need to simultaneously demote and promote
       #
       #  @param version_path [chr] Path to a version_name folder for `best_` demotion
-      #  @param version_name [chr] Date version folder to demote from `best_`
+      #  @param version_name [chr] version_name folder to demote from `best_`
       #  @param user_entry [named list] User-supplied log entry
       #
       #  @return [none] Unlinks the 'best' symlink on disk
@@ -1935,7 +1985,7 @@ SLT <- R6::R6Class(
             # TODO SB - 2024 Feb 06 - Convert to `remove_one_symlink()` - requires arg updates
             path_best_real <- private$resolve_symlink(path_best_sym)
             version_name_to_remove <- basename(path_best_real)
-            message("-- Demoting from 'best': ", path_best_real)
+            message("Demoting from 'best': ", path_best_real)
 
             # set version to the folder the log will be written to, then reset it after
             private$DYNAMIC$LOG$version_name <- version_name_to_remove
@@ -1946,14 +1996,14 @@ SLT <- R6::R6Class(
             # only unlink if logging is successful
             system(paste0("unlink ", path_best_sym))
          } else {
-            message("-- No 'best' symlink found - moving on: ", path_best_sym)
+            message("No 'best' symlink found - moving on: ", path_best_sym)
          }
       },
 
       #  Promote a version_name folder to 'best' status.
       #
       #  @param version_path [chr] Path to a version_name folder for `best_` promotion
-      #  @param version_name [chr] Date version folder to promote to `best_`
+      #  @param version_name [chr] version_name folder to promote to `best_`
       #  @param user_entry [named list] User-supplied log entry
       #
       #  @return [none] Creates a symlink on disk
@@ -1964,7 +2014,7 @@ SLT <- R6::R6Class(
          # Highlander - there can be only one (best)
          private$demote_previous_best(version_path = version_path, version_name = version_name, user_entry = user_entry)
          # make new symlink
-         message("-- Promoting to 'best': ", path_best_new)
+         message("Promoting to 'best': ", path_best_new)
          private$DYNAMIC$LOG$action <- "promote_best"
          private$append_to_log(version_path = path_best_new, user_entry = user_entry)
          private$append_to_central_log(version_path = path_best_new, user_entry = user_entry)
@@ -1983,7 +2033,7 @@ SLT <- R6::R6Class(
       promote_keep = function(version_path, user_entry){
          private$DYNAMIC$LOG$action <- "promote_keep"
          path_keep_sym <- private$make_symlink_path(version_path = version_path, symlink_type = "keep")
-         message("-- Promoting to 'keep': ", path_keep_sym)
+         message("Promoting to 'keep': ", path_keep_sym)
          if(!dir.exists(path_keep_sym)){
             private$append_to_log(version_path = version_path, user_entry = user_entry)
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
@@ -1991,7 +2041,7 @@ SLT <- R6::R6Class(
             # only symlink if logging is successful
             file.symlink(version_path, path_keep_sym)
          } else {
-            message("---- Keep symlink already exists - moving on: ", path_keep_sym)
+            message("  Keep symlink already exists - moving on: ", path_keep_sym)
          }
       },
 
@@ -2004,7 +2054,7 @@ SLT <- R6::R6Class(
       promote_remove = function(version_path, user_entry){
          private$DYNAMIC$LOG$action <- "promote_remove"
          path_remove_sym <- private$make_symlink_path(version_path = version_path, symlink_type = "remove")
-         message("-- Promoting to 'remove': ", path_remove_sym)
+         message("Promoting to 'remove': ", path_remove_sym)
          if(!dir.exists(path_remove_sym)){
             private$append_to_log(version_path = version_path, user_entry = user_entry)
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
@@ -2012,7 +2062,7 @@ SLT <- R6::R6Class(
             # only symlink if logging is successful
             file.symlink(version_path, path_remove_sym)
          } else {
-            message("---- Keep symlink already exists - moving on: ", path_remove_sym)
+            message("  Keep symlink already exists - moving on: ", path_remove_sym)
          }
 
       }
@@ -2077,7 +2127,13 @@ SLT <- R6::R6Class(
       #' @examples
       #'
       #' try(SLT$new()) # call with no arguments to see instructions
-      #' slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
+      #' # Tool will not instantiate on Windows unless running with Admin permissions
+      #' # - requirement for symlink creation on Windows
+      #' if (vmTools:::is_windows_admin() | .Platform$OS.type %in% c("unix", "linux", "Darwin")) {
+      #'    slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
+      #'    # view folder contents - expect to see a new central log
+      #'    vmTools:::dir_tree(tempdir())
+      #' }
       initialize = function(
       user_root_list          = NULL
       , user_central_log_root = NULL
@@ -2092,22 +2148,31 @@ SLT <- R6::R6Class(
          assert_scalar(verbose)
          assert_type(verbose, "logical")
 
+         # allow lazy defaults
+         # - do this here to suppress startup messages
+         # - assertions are done below
+         if(!is.null(user_root_list) && is.null(user_central_log_root)){
+            if(length(user_root_list) == 1){
+               user_central_log_root <- data.table::copy(user_root_list)
+            }
+            # 2025 Jun 20 - not sure if I want to allow this since it's ambiguous
+            # if (length(user_root_list) > 1){
+            #    user_central_log_root <- user_root_list[1]
+            # }
+         }
+
          # try to boost efficiency
-         try(n_cores <-data.table::setDTthreads(system("nproc", intern = TRUE)))
+         try(n_cores <- data.table::setDTthreads(find_n_cores()))
 
          if(tolower(.Platform$OS.type) == "windows") {
             if(verbose == TRUE) {
-               message(
-"WARNING! you are running on Windows
-  - symlinks may not function correctly on pre-NTFS file systems
-  - see ?file.symlink for more details."
-               )
+               message("WARNING! you are running on Windows. \n",
+                       "  - symlinks may not function correctly on pre-NTFS file systems \n",
+                       "  - see ?file.symlink for more details.")
             }
             if(is_windows_admin() == FALSE){
-               stop(
-"Symbolic links are not supported on Windows without admin privileges.
- To enable SLT to work:
-   - Right click on Rstudio > Run as administrator > Yes")
+               stop("Symbolic links are not supported on Windows without admin privileges. \n",
+                       "  To enable SLT to work: Right click on Rstudio > Run as administrator > Yes")
             }
          }
 
@@ -2138,7 +2203,7 @@ SLT <- R6::R6Class(
                     "e.g.
                  '/mnt/share/my_team' \n\n  ",
 
-                    "The central log receives all the marking actions of all the date-version logs across all roots, \n  ",
+                    "The central log receives all the marking actions of all the version_name logs across all roots, \n  ",
                     "  but is not used for report generation. \n\n  ",
                     "The central log is *created* on initialization i.e. when calling `SLT$new()`. \n\n  "
             )
@@ -2224,6 +2289,11 @@ SLT <- R6::R6Class(
          private$write_expected_central_log(fpath      = private$DICT$LOG_CENTRAL$path,
                                             log_schema = private$DICT$log_schema)
       },
+
+      # TODO SB - 2025 Mar 12 - working on a custom print method - frustrating
+      # print = function() {
+         # cat("\n\nThis is an instance of SymlinkTool.\n")
+      # },
 
       ## Show Internals --------------------------------------------------------
 
@@ -2312,9 +2382,9 @@ SLT <- R6::R6Class(
          # Manage symlinks and append logs
          for(version_path in private$DYNAMIC$VERS_PATHS){
 
-            if(!validate_dir_exists(version_path)) next()
+            if(validate_dir_exists(version_path) == FALSE) next()
             if(private$already_marked(version_path, "best")) {
-               message("-- ", version_path, " - already marked best - moving on.")
+               message(version_path, " - already marked best - moving on.")
                next()
             }
 
@@ -2371,9 +2441,9 @@ SLT <- R6::R6Class(
 
          for(version_path in private$DYNAMIC$VERS_PATHS){
 
-            if(!validate_dir_exists(version_path)) next()
+            if(validate_dir_exists(version_path) == FALSE) next()
             if(private$already_marked(version_path, "keep")) {
-               message("-- ", version_path, " - already marked keep - moving on.")
+               message(version_path, " - already marked keep - moving on.")
                next()
             }
 
@@ -2432,9 +2502,9 @@ SLT <- R6::R6Class(
 
          for(version_path in private$DYNAMIC$VERS_PATHS){
 
-            if(!validate_dir_exists(version_path)) next()
+            if(validate_dir_exists(version_path) == FALSE) next()
             if(private$already_marked(version_path, "remove")) {
-               message("-- ", version_path, " - already marked remove - moving on.")
+               message(version_path, " - already marked remove - moving on.")
                next()
             }
 
@@ -2597,41 +2667,44 @@ SLT <- R6::R6Class(
 
       ## Folder Creation -------------------------------------------------------
 
-      #' @description
-      #' Get a new YYYY_MM_DD.VV version compatible with _ALL THE TOOL'S ROOTS_
-      #' for a given date
+      #' @description Get a new YYYY_MM_DD.VV version compatible with _ALL THE
+      #' TOOL'S ROOTS_
+      #'
+      #' If root1 has 2025_01_01.01 and root2 has 2025_01_01.03, then a new
+      #' folder would need to be 2025_01_01.04
       #'
       #' @param root_list [list] named list of root directories for pipeline
       #'
       #' @param date [chr] Default "today".  The date to use for the new version
-      #'  name.  Must be formatted "2020_01_01"
+      #'   name.  Must be formatted "2020_01_01"
       #'
       #' @return [chr] format YYYY_MM_DD.VV
       #'
       #'
       #'
-      get_new_version_name = function(date = "today", root_list = private$DICT$ROOTS){
+      get_common_new_version_name = function(date = "today", root_list = private$DICT$ROOTS){
          return(max(unlist(lapply(root_list, get_new_version_name, date = date))))
       },
 
 
-      #' @description
-      #' Create a new `version_name` folder in _ALL THE TOOL'S ROOTS_
+      #' @description Create a new `version_name` folder in _ALL THE TOOL'S
+      #'   ROOTS_
       #'
-      #' Create a new log in each folder.  No symlinks are created.  No
-      #' `user_entry` is used.
+      #'   Create a new log in each folder.  No symlinks are created.  No
+      #'   `user_entry` is used.
       #'
-      #' @param version_name [chr] The directory name of the output folder that
-      #'   lives directly under one of the `root`s you define when you
-      #'   instantiate the tool.
+      #' @param version_name [chr] The directory name of the
+      #'   output folder that lives directly under one of the `root`s you define
+      #'   when you instantiate the tool.  For convenience, user may leave NULL
+      #'   (default) and `get_common_new_version_name()` is used on that root.
       #'
       #' @return [std_err] Messages about the folder creation.
       #'
       #'
       #'
-      make_new_version_folder = function(version_name){
+      make_new_version_folder = function(version_name = self$get_common_new_version_name()){
 
-         assert_scalar(x = version_name)
+         assert_scalar_not_empty(x = version_name)
 
          private$handler_update_dynamic_fields(version_name = version_name)
 
@@ -2671,7 +2744,7 @@ SLT <- R6::R6Class(
                {
                   private$write_expected_log(version_path)
                },
-               error = function(e) message("Error reading log: \n  ||---- ", e)
+               error = function(e) message("Error reading log: \n  ||     ", e)
             )
          }
 
@@ -2747,7 +2820,7 @@ SLT <- R6::R6Class(
 
          message("Writing last-row log reports for:\n")
          for(root in private$DICT$ROOTS){
-            message(root)
+            message("  ", root)
             private$report_all_logs(root = root)
             private$report_all_logs_symlink(root = root)
             private$report_all_logs_tool_symlink(root = root)
@@ -2772,3 +2845,25 @@ SLT <- R6::R6Class(
    # CLOSING PARENTHEIS BELOW
 
 )
+
+# Add a new class and print method
+# - ORDER MATTERS for class additions
+# - THE _NEW_ CLASS MUST COME FIRST for priting to function correctly when
+#   calling the bare class
+class(SLT) <- c("Symlink_Tool", class(SLT))
+
+
+#' Symlink Tool custom print method
+#'
+#' @param x [Symlink_Tool] The SLT class
+#' @param ... [any] Additional arguments to `print()`
+#'
+#' @return [stdout]
+#' @exportS3Method print Symlink_Tool
+#'
+#' @examples SLT
+print.Symlink_Tool <- function(x, ...) {
+   NextMethod("print") # Prints the default class output, then cumstom message
+   cat("\n\n    Call SLT$new() to make a Symlink Tool, with startup guidance messages!\n\n")
+}
+
