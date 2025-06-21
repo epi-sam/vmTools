@@ -362,7 +362,7 @@ slt_prep <- SLT$new(
 
 # Debug output
 message("=== DEBUGGING ===\n")
-message("flag_eval_chunk: ", flag_eval_chunk)
+stop("flag_eval_chunk: ", flag_eval_chunk)
 message("tempdir():", tempdir(), "\n")
 message("root_to_model:", root_to_model, "\n")
 message("Directory exists:", dir.exists(root_to_model), "\n")
