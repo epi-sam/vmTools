@@ -2132,7 +2132,7 @@ SLT <- R6::R6Class(
       #' if (vmTools:::is_windows_admin() | .Platform$OS.type %in% c("unix", "linux", "Darwin")) {
       #'    slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
       #'    # view folder contents - expect to see a new central log
-      #'    # vmTools:::dir_tree(tempdir())
+      #'    vmTools:::dir_tree(tempdir())
       #' }
       initialize = function(
       user_root_list          = NULL

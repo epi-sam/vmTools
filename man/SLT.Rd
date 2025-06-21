@@ -17,10 +17,10 @@ Class for lightweight file-system level data versioning, logs
 try(SLT$new()) # call with no arguments to see instructions
 # Tool will not instantiate on Windows unless running with Admin permissions
 # - requirement for symlink creation on Windows
-if (vmTools:::is_windows_admin() | .Platform$OS.type \%in\% c("unix", "linux")) {
+if (vmTools:::is_windows_admin() | .Platform$OS.type \%in\% c("unix", "linux", "Darwin")) {
    slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
    # view folder contents - expect to see a new central log
-   dir_tree(tempdir())
+   vmTools:::dir_tree(tempdir())
 }
 }
 \section{Methods}{
@@ -109,10 +109,10 @@ use for datestamps in logs. Must be a valid `OlsonNames()` string.}
 try(SLT$new()) # call with no arguments to see instructions
 # Tool will not instantiate on Windows unless running with Admin permissions
 # - requirement for symlink creation on Windows
-if (vmTools:::is_windows_admin() | .Platform$OS.type \%in\% c("unix", "linux")) {
+if (vmTools:::is_windows_admin() | .Platform$OS.type \%in\% c("unix", "linux", "Darwin")) {
    slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
    # view folder contents - expect to see a new central log
-   dir_tree(tempdir())
+   vmTools:::dir_tree(tempdir())
 }
 }
 \if{html}{\out{</div>}}
