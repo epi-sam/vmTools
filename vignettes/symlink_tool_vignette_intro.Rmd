@@ -363,8 +363,8 @@ slt_prep <- SLT$new(
 # Debug output
 message("=== DEBUGGING ===\n")
 stop(
-  "is_winows: ", is_windows(),
-  "is_window_admin: ", is_windows_admin(),
+  "is_winows: ", vmTools:::is_windows(),
+  "is_window_admin: ", vmTools:::is_windows_admin(),
   "flag_eval_chunk: ", flag_eval_chunk, "\n",
   "tempdir():", tempdir(), "\n",
   "root_to_model:", root_to_model, "\n",
