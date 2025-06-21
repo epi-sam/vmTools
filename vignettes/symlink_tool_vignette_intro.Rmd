@@ -397,7 +397,7 @@ Capture some paths, using the Symlink Tool to help.  We'll use these in a minute
 
 ```{r capture_paths_dv1, eval = flag_eval_chunk}
 path_log_central <- slt_prep$return_dictionaries()[["LOG_CENTRAL"]][["path"]]
-fname_dv_log     <- slt_prep$return_dictionaries()[["log_name"]]
+fname_dv_log     <- slt_prep$return_dictionaries()[["log_path"]]
 root_dv1         <- slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]]
 path_log_dv1     <- file.path(root_dv1, fname_dv_log)
 
@@ -414,7 +414,7 @@ stop(
   "R6 to_model path:", slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]], "\n",
   "Final file path:", file.path(
     slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]], 
-    slt_prep$return_dictionaries()[["log_name"]]
+    slt_prep$return_dictionaries()[["log_path"]]
   ), "\n",
   "dv1 exists: ", file.exists(file.path(root_to_model, date_vers1)), "\n",
   "log_central exists: ", file.exists(path_log_central), "\n",

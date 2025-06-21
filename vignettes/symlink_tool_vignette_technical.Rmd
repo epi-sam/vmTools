@@ -228,8 +228,8 @@ root_output <- file.path(root_base, "modeled")
 
 PATHS       <- list(
   log_cent       = file.path(root_base, "log_symlinks_central.csv"),
-  log_2024_02_02 = file.path(root_input, "2024_02_02", "log_version_history.csv"),
-  log_2024_02_10 = file.path(root_input, "2024_02_10", "log_version_history.csv")
+  log_2024_02_02 = file.path(root_input, "2024_02_02", "logs/log_version_history.csv"),
+  log_2024_02_10 = file.path(root_input, "2024_02_10", "logs/log_version_history.csv")
 )
 ```
 
@@ -430,7 +430,7 @@ print_tree()
 ```
 
 ```{r create_new_folders3, eval = flag_eval_chunk}
-data.table::fread(file.path(root_input, version_name_today, "log_version_history.csv"))
+data.table::fread(file.path(root_input, version_name_today, "logs/log_version_history.csv"))
 ```
 
 This folder can be marked best just as the others, and prior best will be demoted.
@@ -468,7 +468,7 @@ data.table::fread(PATHS$log_cent)
 ```
 
 ```{r demote_best3, eval = flag_eval_chunk}
-data.table::fread(file.path(root_input, version_name_today, "log_version_history.csv"))
+data.table::fread(file.path(root_input, version_name_today, "logs/log_version_history.csv"))
 ```
 
 ```{r demote_report, eval = flag_eval_chunk}
@@ -525,7 +525,7 @@ And finally look at the log.
 - It should have a 'promote_remove' action in the last row.
 
 ```{r mark_remove4, eval = flag_eval_chunk}
-data.table::fread(file.path(root_input, version_name_today, "log_version_history.csv"))
+data.table::fread(file.path(root_input, version_name_today, "logs/log_version_history.csv"))
 ```
 
 The report should also update to show the new symlink.
