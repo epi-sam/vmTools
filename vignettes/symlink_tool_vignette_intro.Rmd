@@ -25,7 +25,7 @@ vignette: >
 ```{r setup, include = FALSE}
 # Interactive
 # library(vmTools)
-# library(data.table)
+library(data.table)
 
 knitr::opts_chunk$set(
   collapse = TRUE,
