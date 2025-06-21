@@ -1,7 +1,7 @@
 
 # Setup ------------------------------------------------------------------------
 
-
+.user <- Sys.info()['user']
 # system(paste("rm -rf", tempdir()))
 make_directory <- function(path) dir.create(path, recursive = TRUE, showWarnings = FALSE)
 root_base      <- clean_path(tempdir(), "slt")
@@ -431,20 +431,19 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                    # read discrepancy report
                    discrepancy_report <- data.table::fread(clean_path(root_list[[1]], fname_discrepnacy_report))
                    discrepancy_report[, timestamp := NULL]
+                   discrepancy_report[, version_path := clean_path(version_path)]
 
                    expect_identical(
                       discrepancy_report
                       , structure(
                          list(
                             log_id = c(NA, 12L, 12L, 0L),
-                            user = c("", "ssbyrne", "ssbyrne",
-                                     "ssbyrne"),
-                            version_name = c("", "1990_01_01", "1990_01_01",
-                                             "1990_01_03"),
+                            user = c("", .user, .user, .user),
+                            version_name = c("", "1990_01_01", "1990_01_01", "1990_01_03"),
                             version_path = c(
                                ""
-                               , rep(path_list$root_input[["1990_01_01"]], 2)
-                               , path_list$root_input[["1990_01_03"]]
+                               , rep(clean_path(path_list$root_input[["1990_01_01"]]), 2)
+                               , clean_path(path_list$root_input[["1990_01_03"]])
                             ),
                             action = c("", "non_slt_event", "non_slt_event", "create"),
                             comment = c(
@@ -533,8 +532,8 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                       slt$roundup_by_date(user_date = "2023-01-01", date_selector = "gte")$root_input[1:3, ]
                       , data.table(
                          version_name = unlist(dv_list)
-                         , dir_name = path_list$root_input
-                         , dir_name_resolved = path_list$root_input
+                         , dir_name = clean_path(path_list$root_input)
+                         , dir_name_resolved = clean_path(path_list$root_input)
                       )
                    )
                 })
