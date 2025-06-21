@@ -447,7 +447,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                             )
                             , action       = c("", "non_slt_event", "non_slt_event", "create")
                             , comment      = c("", "This line was added by hand", "This line was added by hand", "log created")
-                            , dir_name     = c(file.path(root_list$root_input, "bad_symlink"), "", "", "")
+                            , dir_name     = c(file.path(clean_path(root_list$root_input), "bad_symlink"), "", "", "")
                             , bad_column   = c("", "", "", "This column was not created by the tool")
                             , vars_missing = c(NA, NA, NA, NA)
                             , vars_extra   = c("", "", "", "bad_column")
