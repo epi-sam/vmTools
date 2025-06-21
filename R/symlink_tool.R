@@ -2172,7 +2172,7 @@ SLT <- R6::R6Class(
             }
             if(is_windows_admin() == FALSE){
                stop("Symbolic links are not supported on Windows without admin privileges. \n",
-                    "  To enable SLT to work: Right click on Rstudio > Run as administrator > Yes")
+                       "  To enable SLT to work: Right click on Rstudio > Run as administrator > Yes")
             }
          }
 
@@ -2667,41 +2667,44 @@ SLT <- R6::R6Class(
 
       ## Folder Creation -------------------------------------------------------
 
-      #' @description
-      #' Get a new YYYY_MM_DD.VV version compatible with _ALL THE TOOL'S ROOTS_
-      #' for a given date
+      #' @description Get a new YYYY_MM_DD.VV version compatible with _ALL THE
+      #' TOOL'S ROOTS_
+      #'
+      #' If root1 has 2025_01_01.01 and root2 has 2025_01_01.03, then a new
+      #' folder would need to be 2025_01_01.04
       #'
       #' @param root_list [list] named list of root directories for pipeline
       #'
       #' @param date [chr] Default "today".  The date to use for the new version
-      #'  name.  Must be formatted "2020_01_01"
+      #'   name.  Must be formatted "2020_01_01"
       #'
       #' @return [chr] format YYYY_MM_DD.VV
       #'
       #'
       #'
-      get_new_version_name = function(date = "today", root_list = private$DICT$ROOTS){
+      get_common_new_version_name = function(date = "today", root_list = private$DICT$ROOTS){
          return(max(unlist(lapply(root_list, get_new_version_name, date = date))))
       },
 
 
-      #' @description
-      #' Create a new `version_name` folder in _ALL THE TOOL'S ROOTS_
+      #' @description Create a new `version_name` folder in _ALL THE TOOL'S
+      #'   ROOTS_
       #'
-      #' Create a new log in each folder.  No symlinks are created.  No
-      #' `user_entry` is used.
+      #'   Create a new log in each folder.  No symlinks are created.  No
+      #'   `user_entry` is used.
       #'
-      #' @param version_name [chr] The directory name of the output folder that
-      #'   lives directly under one of the `root`s you define when you
-      #'   instantiate the tool.
+      #' @param version_name [chr] The directory name of the
+      #'   output folder that lives directly under one of the `root`s you define
+      #'   when you instantiate the tool.  For convenience, user may leave NULL
+      #'   (default) and `get_common_new_version_name()` is used on that root.
       #'
       #' @return [std_err] Messages about the folder creation.
       #'
       #'
       #'
-      make_new_version_folder = function(version_name){
+      make_new_version_folder = function(version_name = self$get_common_new_version_name()){
 
-         assert_scalar(x = version_name)
+         assert_scalar_not_empty(x = version_name)
 
          private$handler_update_dynamic_fields(version_name = version_name)
 
