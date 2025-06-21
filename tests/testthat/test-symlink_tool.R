@@ -441,9 +441,9 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                             , version_name = c("", "1990_01_01", "1990_01_01", "1990_01_03")
                             , version_path = c(
                                ""
-                               , path_list$root_input[["1990_01_01"]]
-                               , path_list$root_input[["1990_01_01"]]
-                               , path_list$root_input[["1990_01_03"]]
+                               , clean_path(path_list$root_input[["1990_01_01"]])
+                               , clean_path(path_list$root_input[["1990_01_01"]])
+                               , clean_path(path_list$root_input[["1990_01_03"]])
                             )
                             , action       = c("", "non_slt_event", "non_slt_event", "create")
                             , comment      = c("", "This line was added by hand", "This line was added by hand", "log created")
