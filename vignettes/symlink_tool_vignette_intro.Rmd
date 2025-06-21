@@ -361,6 +361,12 @@ slt_prep <- SLT$new(
    )
 ```
 
+```{r reset_cores include=FALSE}
+# multithreading can cause github actions issues
+options(mc.cores = 1)
+```
+
+
 
 **Note:** `SLT` is an R6 class included with the vmTools package that manages the symlink tool.
 
