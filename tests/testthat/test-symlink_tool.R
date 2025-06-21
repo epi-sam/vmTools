@@ -1,6 +1,8 @@
 
 # Setup ------------------------------------------------------------------------
 
+# use clean_path() liberally for github/cran checks
+
 .user <- Sys.info()[['user']]
 # system(paste("rm -rf", tempdir()))
 make_directory <- function(path) dir.create(path, recursive = TRUE, showWarnings = FALSE)
@@ -72,7 +74,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    # Create tool ------------------------------------------------------------------
 
    # Suppress test noise unless helpful for debugging
-   suppressMessages({
+   # suppressMessages({
 
 
 
@@ -485,7 +487,6 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
       test_that("make_new_log works when promoting an existing folder without a log",
                 {
-                   # dir_tree(root_base)
                    # ensure no log before mark
                    expect_false(file.exists(fpaths_dv_logs$root_input[["1990_01_02"]]))
                    expect_no_error(
@@ -642,6 +643,6 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
       )
 
 
-   }) # suppressMessages
+   # }) # suppressMessages
 
 }
