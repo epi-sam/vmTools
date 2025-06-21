@@ -23,9 +23,6 @@ vignette: >
 ---
 
 ```{r setup, include = FALSE}
-# Interactive
-# library(vmTools)
-library(data.table)
 
 knitr::opts_chunk$set(
   collapse = TRUE,
@@ -318,6 +315,7 @@ ST-GPR models go into an output folder, which we'll ignore for simplicity.
 
 ```{r define_root, include = TRUE}
 library(vmTools)
+library(data.table)
 # Make the root folder
 root_to_model <- file.path(tempdir(), "slt", "to_model")
 dir.create(root_to_model, 

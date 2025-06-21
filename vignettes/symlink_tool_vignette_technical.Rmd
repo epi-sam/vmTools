@@ -23,10 +23,6 @@ vignette: >
 ---
 
 ```{r setup, include = FALSE}
-# Interactive
-# library(vmTools)
-library(data.table)
-
 knitr::opts_chunk$set(
   collapse = TRUE,
   comment = "#>"
@@ -193,6 +189,8 @@ Let's start by calling `$new()` with no arguments.
 - We expect an error, with some helpful messages about what arguments the tool template expects, in order to make the type of tool we need. 
 
 ```{r naive_tool, eval = flag_eval_chunk}
+library(vmTools)
+library(data.table)
 slt <- try(SLT$new())
 ```
 
