@@ -20,6 +20,7 @@ Imports:
     R6 (>= 2.5.1),
     data.table (>= 1.10.0)
 Suggests: 
+    devtools (>= 2.4.5),
     knitr (>= 1.46),
     rmarkdown (>= 2.27),
     testthat (>= 3.0.0),
