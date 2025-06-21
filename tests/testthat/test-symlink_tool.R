@@ -394,7 +394,6 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
       test_that("Discrepancy report has expected structure after manual edits",
                 {
-
                    # Make some bad changes to logs
                    # - this should create a discrepancy report
                    log_list <- lapply(fpaths_dv_logs$root_input,  data.table::fread)
@@ -415,7 +414,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                    system(paste("rm -f", fpaths_dv_logs$root_input[["1990_01_02"]]))
                    log_list[["1990_01_02"]] <- NULL
                    # add a new column
-                   log_list[["1990_01_03"]] <- log_list[["1990_01_03"]][, bad_column := "This column wasn't created by the tool"]
+                   log_list[["1990_01_03"]] <- log_list[["1990_01_03"]][, bad_column := "This column was not created by the tool"]
                    # write back to disk
                    lapply(names(log_list), function(log_name){
                       fwrite(log_list[[log_name]], fpaths_dv_logs$root_input[[log_name]])
@@ -431,27 +430,28 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                    # read discrepancy report
                    discrepancy_report <- data.table::fread(clean_path(root_list[[1]], fname_discrepnacy_report))
                    discrepancy_report[, timestamp := NULL]
+                   discrepancy_report[, version_path := clean_path(version_path)]
 
                    expect_identical(
                       discrepancy_report
                       , structure(
                          list(
-                            log_id = c(NA, 12L, 12L, 0L)
-                            , user = c("", .user, .user, .user)
+                            log_id         = c(NA, 12L, 12L, 0L)
+                            , user         = c("", .user, .user, .user)
                             , version_name = c("", "1990_01_01", "1990_01_01", "1990_01_03")
                             , version_path = c(
                                ""
-                               , clean_path(path_list$root_input[["1990_01_01"]])
-                               , clean_path(path_list$root_input[["1990_01_01"]])
-                               , clean_path(path_list$root_input[["1990_01_03"]])
+                               , path_list$root_input[["1990_01_01"]]
+                               , path_list$root_input[["1990_01_01"]]
+                               , path_list$root_input[["1990_01_03"]]
                             )
-                            , action = c("", "non_slt_event", "non_slt_event", "create")
-                            , comment = c("", "This line was added by hand", "This line was added by hand", "log created")
-                            , dir_name = c(file.path(root_list$root_input, "bad_symlink"), "", "", "")
-                            , bad_column = c("", "", "", "This column wasn't created by the tool")
+                            , action       = c("", "non_slt_event", "non_slt_event", "create")
+                            , comment      = c("", "This line was added by hand", "This line was added by hand", "log created")
+                            , dir_name     = c(file.path(root_list$root_input, "bad_symlink"), "", "", "")
+                            , bad_column   = c("", "", "", "This column was not created by the tool")
                             , vars_missing = c(NA, NA, NA, NA)
-                            , vars_extra = c("", "", "", "bad_column")
-                            , discrepancy = c(
+                            , vars_extra   = c("", "", "", "bad_column")
+                            , discrepancy  = c(
                                "non-tool symlinks in root folder"
                                , "non-sequential log_ids"
                                , "invalid actions"
