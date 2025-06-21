@@ -2162,11 +2162,7 @@ SLT <- R6::R6Class(
          }
 
          # try to boost efficiency
-         if (is_windows()) {
-            n_cores <- try(data.table::setDTthreads(shell('echo %NUMBER_OF_PROCESSORS%')))
-         } else {
-            try(n_cores <- data.table::setDTthreads(system("nproc", intern = TRUE)))
-         }
+         try(n_cores <- data.table::setDTthreads(find_n_cores()))
 
          if(tolower(.Platform$OS.type) == "windows") {
             if(verbose == TRUE) {
