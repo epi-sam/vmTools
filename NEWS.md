@@ -4,6 +4,19 @@
 
 
 
+# vmTools 1.0.0 (2025-06-20)
+
+Updates:
+- symlink_tool logs now save to 'logs' subdirectory
+  - running reports moves existing legacy logs safely to subdirectories
+- SLT made some processes lazier
+  - init: if only one user_root is defined, central_log_root defaults to this folder
+  - make_new_version_folder: finds a new version_name by default
+- vignettes display code but do not evaluate on Windows without admin privileges
+- all github CRAN checks passing
+
+
+
 # vmTools 0.8.0 (2025-02-20)
 
 Updates:

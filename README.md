@@ -49,6 +49,16 @@ install.packages("vmTools")
 devtools::install_github("epi-sam/vmTools@v0.0.0")
 ```
 
+## Code of Conduct
+
+Please note that the vmTools project is released with a [Contributor Code of Conduct](https://contributor-covenant.org/version/2/1/CODE_OF_CONDUCT.html). By contributing to this project, you agree to abide by its terms.
+
+
+
+## Style Guide
+
+Please note that the vmTools project is contains a Style Guide (.github/style_guide.md). By contributing to this project, you agree to read and adhere to these styles.
+
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/epi-sam/vmTools/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/epi-sam/vmTools/actions/workflows/R-CMD-check.yaml)
 <!-- badges: end -->
