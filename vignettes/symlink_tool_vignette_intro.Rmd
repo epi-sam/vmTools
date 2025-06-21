@@ -359,27 +359,6 @@ slt_prep <- SLT$new(
       user_root_list        = list("to_model" = root_to_model),
       user_central_log_root = root_to_model
    )
-
-# Debug output
-message("=== DEBUGGING ===\n")
-stop(
-  "is_winows: ", vmTools:::is_windows(),
-  "is_window_admin: ", vmTools:::is_windows_admin(),
-  "flag_eval_chunk: ", flag_eval_chunk, "\n",
-  "tempdir():", tempdir(), "\n",
-  "root_to_model:", root_to_model, "\n",
-  "Directory exists:", dir.exists(root_to_model), "\n",
-  "R6 LOG_CENTRAL path:", slt_prep$return_dictionaries()[["LOG_CENTRAL"]][["path"]], "\n",
-  "R6 to_model path:", slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]], "\n",
-  "Final file path:", file.path(
-    slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]], 
-    slt_prep$return_dictionaries()[["log_name"]]
-  )
-)
-
-# Check what files actually exist
-message("Files in root_to_model:", paste(list.files(root_to_model, recursive = TRUE), collapse = ", "), "\n")
-message("=== END DEBUG ===\n")
 ```
 
 ```{r reset_cores, include=FALSE}
@@ -410,6 +389,23 @@ Use the Symlink Tool to create a new folder in your output root.
 ```{r baseline_folder_display_1, eval = flag_eval_chunk}
 date_vers1 <- get_output_dir(root_to_model, "2024_02_01")
 slt_prep$make_new_version_folder(version_name = date_vers1)
+# Debug output
+message("=== DEBUGGING ===\n")
+stop(
+  "is_winows: ", vmTools:::is_windows(), "\n",
+  "is_window_admin: ", vmTools:::is_windows_admin(), "\n",
+  "flag_eval_chunk: ", flag_eval_chunk, "\n",
+  "tempdir():", tempdir(), "\n",
+  "root_to_model:", root_to_model, "\n",
+  "Directory exists:", dir.exists(root_to_model), "\n",
+  "R6 LOG_CENTRAL path:", slt_prep$return_dictionaries()[["LOG_CENTRAL"]][["path"]], "\n",
+  "R6 to_model path:", slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]], "\n",
+  "Final file path:", file.path(
+    slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]], 
+    slt_prep$return_dictionaries()[["log_name"]]
+  ), "\n",
+  "dv1 exists: ", file.exists(file.path(root_to_model, date_vers1))
+)
 ```
 
 Capture some paths, using the Symlink Tool to help.  We'll use these in a minute.
