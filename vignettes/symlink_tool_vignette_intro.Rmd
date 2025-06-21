@@ -402,24 +402,24 @@ root_dv1         <- slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"
 path_log_dv1     <- file.path(root_dv1, fname_dv_log)
 
 # Debug output
-message("=== DEBUGGING ===\n")
-stop(
-  "is_winows: ", vmTools:::is_windows(), "\n",
-  "is_window_admin: ", vmTools:::is_windows_admin(), "\n",
-  "flag_eval_chunk: ", flag_eval_chunk, "\n",
-  "tempdir():", tempdir(), "\n",
-  "root_to_model:", root_to_model, "\n",
-  "Directory exists:", dir.exists(root_to_model), "\n",
-  "R6 LOG_CENTRAL path:", slt_prep$return_dictionaries()[["LOG_CENTRAL"]][["path"]], "\n",
-  "R6 to_model path:", slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]], "\n",
-  "Final file path:", file.path(
-    slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]], 
-    slt_prep$return_dictionaries()[["log_path"]]
-  ), "\n",
-  "dv1 exists: ", file.exists(file.path(root_to_model, date_vers1)), "\n",
-  "log_central exists: ", file.exists(path_log_central), "\n",
-  "log_dv exists: ", file.exists(path_log_dv1), "\n"
-)
+# stop(
+#   "=== DEBUGGING ===\n",
+#   "is_winows: ", vmTools:::is_windows(), "\n",
+#   "is_window_admin: ", vmTools:::is_windows_admin(), "\n",
+#   "flag_eval_chunk: ", flag_eval_chunk, "\n",
+#   "tempdir():", tempdir(), "\n",
+#   "root_to_model:", root_to_model, "\n",
+#   "Directory exists:", dir.exists(root_to_model), "\n",
+#   "R6 LOG_CENTRAL path:", slt_prep$return_dictionaries()[["LOG_CENTRAL"]][["path"]], "\n",
+#   "R6 to_model path:", slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]], "\n",
+#   "Final file path:", file.path(
+#     slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]], 
+#     slt_prep$return_dictionaries()[["log_path"]]
+#   ), "\n",
+#   "dv1 exists: ", file.exists(file.path(root_to_model, date_vers1)), "\n",
+#   "log_central exists: ", file.exists(path_log_central), "\n",
+#   "log_dv exists: ", file.exists(path_log_dv1), "\n"
+# )
 ```
 
 
