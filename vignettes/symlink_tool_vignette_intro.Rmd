@@ -361,7 +361,7 @@ slt_prep <- SLT$new(
    )
 ```
 
-```{r reset_cores include=FALSE}
+```{r reset_cores, include=FALSE}
 # multithreading can cause github actions issues
 options(mc.cores = 1)
 ```
