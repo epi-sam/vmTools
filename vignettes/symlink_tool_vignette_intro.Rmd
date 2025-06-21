@@ -362,14 +362,20 @@ slt_prep <- SLT$new(
 
 # Debug output
 message("=== DEBUGGING ===\n")
-stop("flag_eval_chunk: ", flag_eval_chunk)
-message("tempdir():", tempdir(), "\n")
-message("root_to_model:", root_to_model, "\n")
-message("Directory exists:", dir.exists(root_to_model), "\n")
-message("R6 LOG_CENTRAL path:", slt_prep$return_dictionaries()[["LOG_CENTRAL"]][["path"]], "\n")
-message("R6 to_model path:", slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]], "\n")
-message("Final file path:", file.path(slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]], 
-                                 slt_prep$return_dictionaries()[["log_name"]]), "\n")
+stop(
+  "is_winows: ", is_windows(),
+  "is_window_admin: ", is_windows_admin(),
+  "flag_eval_chunk: ", flag_eval_chunk, "\n",
+  "tempdir():", tempdir(), "\n",
+  "root_to_model:", root_to_model, "\n",
+  "Directory exists:", dir.exists(root_to_model), "\n",
+  "R6 LOG_CENTRAL path:", slt_prep$return_dictionaries()[["LOG_CENTRAL"]][["path"]], "\n",
+  "R6 to_model path:", slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]], "\n",
+  "Final file path:", file.path(
+    slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]], 
+    slt_prep$return_dictionaries()[["log_name"]]
+  )
+)
 
 # Check what files actually exist
 message("Files in root_to_model:", paste(list.files(root_to_model, recursive = TRUE), collapse = ", "), "\n")
