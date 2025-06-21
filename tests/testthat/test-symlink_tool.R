@@ -113,7 +113,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
       fname_report_key_versions <- slt$return_dictionaries()$report_fnames$all_logs_tool_symlink
       fname_discrepnacy_report <- slt$return_dictionaries()$report_fnames$discrepancies
 
-      fpaths_dv_logs <- lapply(path_list_logs, function(path) file.path(path, fname_dv_log))
+      fpaths_dv_logs <- lapply(path_list_logs, function(path) clean_path(path, fname_dv_log))
       fpaths_dv_logs <- lapply(fpaths_dv_logs, function(x) {names(x) <- names(dv_list); x})
 
 
@@ -163,7 +163,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
       test_that("Key version report has expected content",
                 {
-                   report_key_versions <- data.table::fread(file.path(root_list[[1]], fname_report_key_versions))
+                   report_key_versions <- data.table::fread(clean_path(root_list[[1]], fname_report_key_versions))
                    # timestamp won't test well - keep testable columns
                    report_key_versions <- report_key_versions[, .(log_id, user, version_name, version_path, action, comment)]
                    report_key_versions_test <- structure(
@@ -171,7 +171,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                          log_id = 5L,
                          user = Sys.info()[["user"]],
                          version_name = "1990_01_01",
-                         version_path = file.path(root_base, "dir_1/1990_01_01"),
+                         version_path = clean_path(root_base, "dir_1/1990_01_01"),
                          action = "promote_remove",
                          comment = "Testing mark remove"
                       ),
@@ -189,7 +189,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                 {
                    slt$make_reports()
                    expect_false(
-                      file.exists(file.path(root_list[[1]], fname_discrepnacy_report))
+                      file.exists(clean_path(root_list[[1]], fname_discrepnacy_report))
                    )
                 })
 
@@ -203,7 +203,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
       test_that("Key version report is empty after unmarking",
                 {
-                   report_key_versions <- data.table::fread(file.path(root_list[[1]], fname_report_key_versions))
+                   report_key_versions <- data.table::fread(clean_path(root_list[[1]], fname_report_key_versions))
                    # timestamp won't test well - keep testable columns
                    report_key_versions <- report_key_versions[, .(log_id, user, version_name, version_path, action, comment)]
                    expect_equal(nrow(report_key_versions), 0)
@@ -287,7 +287,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                             "1990_01_01",
                             "1990_01_01"
                          ),
-                         version_path = file.path(
+                         version_path = clean_path(
                             root_base,
                             c(
                                "log_symlinks_central.csv",
@@ -423,13 +423,13 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                    # make a bad symlink
                    file.symlink(
                       path_list$root_input[["1990_01_01"]]
-                      , file.path(root_list$root_input, "bad_symlink")
+                      , clean_path(root_list$root_input, "bad_symlink")
                    )
 
                    # run reports
                    slt$make_reports()
                    # read discrepancy report
-                   discrepancy_report <- data.table::fread(file.path(root_list[[1]], fname_discrepnacy_report))
+                   discrepancy_report <- data.table::fread(clean_path(root_list[[1]], fname_discrepnacy_report))
                    discrepancy_report[, timestamp := NULL]
 
                    expect_identical(
@@ -453,7 +453,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                                "This line was added by hand",
                                "log created"
                             ),
-                            dir_name = c(file.path(root_list$root_input, "bad_symlink"), "", "", ""),
+                            dir_name = c(clean_path(root_list$root_input, "bad_symlink"), "", "", ""),
                             bad_column = c("", "", "", "This column wasn't created by the tool"),
                             vars_missing = c(NA, NA, NA, NA),
                             vars_extra = c("", "", "", "bad_column"),
@@ -485,8 +485,8 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
             slt$mark_remove(version_name = "1990_01_01", user_entry = list(comment = "testing mark_remove on hand-made symlinked folder"))
          )
          expect_equal(
-            normalizePath(file.path(root_list$root_input, "bad_symlink"))
-            , normalizePath(file.path(root_list$root_input, "remove_1990_01_01"))
+            normalizePath(clean_path(root_list$root_input, "bad_symlink"))
+            , normalizePath(clean_path(root_list$root_input, "remove_1990_01_01"))
          )
       })
 
@@ -619,7 +619,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
       new_version <- slt$get_common_new_version_name()
       slt$make_new_version_folder(new_version)
-      dir.create(file.path(root_list$root_input, format(Sys.Date(), "%Y_%m_%d.04")))
+      dir.create(clean_path(root_list$root_input, format(Sys.Date(), "%Y_%m_%d.04")))
 
       test_that("get_common_new_version_name finds the max possible version across all roots",
                 {
