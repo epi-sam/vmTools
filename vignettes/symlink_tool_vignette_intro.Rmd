@@ -406,13 +406,13 @@ print_tree()
 Show central log.
 
 ```{r baseline_folder_display_3, echo=FALSE, eval = flag_eval_chunk}
-(log_central <- fread(path_log_central)[, ..show_vars])
+(log_central <- data.table::fread(path_log_central)[, ..show_vars])
 ```
 
 Show new run version folder log.
 
 ```{r baseline_folder_display_4, echo=FALSE, eval = flag_eval_chunk}
-(log_dv1 <- fread(path_log_dv1)[, ..show_vars])
+(log_dv1 <- data.table::fread(path_log_dv1)[, ..show_vars])
 ```
 
 
@@ -459,13 +459,13 @@ slt_prep$mark_best(version_name = date_vers1,
 Inspect both the central log and ...
 
 ```{r mark_best_dv1_display_1, echo=FALSE, eval = flag_eval_chunk}
-(log_central <- fread(path_log_central)[, ..show_vars])
+(log_central <- data.table::fread(path_log_central)[, ..show_vars])
 ```
 
 ...the run version folder log.
 
 ```{r mark_best_dv1_display_2, echo=FALSE, eval = flag_eval_chunk}
-(log_dv1 <- fread(path_log_dv1)[, ..show_vars])
+(log_dv1 <- data.table::fread(path_log_dv1)[, ..show_vars])
 ```
 
 
@@ -516,7 +516,7 @@ print_tree()
 ```
 
 ```{r two_new_runs_display_2, echo=FALSE, eval = flag_eval_chunk}
-(log_central <- fread(path_log_central)[, ..show_vars])
+(log_central <- data.table::fread(path_log_central)[, ..show_vars])
 ```
 
 
@@ -536,7 +536,7 @@ slt_prep$mark_best(version_name = date_vers3,
 Inspect the central log - The third version is now bested.
 
 ```{r mark_best_dv3_display_1, echo=FALSE, eval = flag_eval_chunk}
-(log_central <- fread(path_log_central)[, ..show_vars])
+(log_central <- data.table::fread(path_log_central)[, ..show_vars])
 ```
 
 
@@ -563,15 +563,15 @@ Let's also take a look inside each of the run version folder logs.
 Looking at all three run-version logs we see:
 
 ```{r mark_best_dv3_display_2, echo=FALSE, eval = flag_eval_chunk}
-(log_dv1 <- fread(path_log_dv1)[, ..show_vars])
+(log_dv1 <- data.table::fread(path_log_dv1)[, ..show_vars])
 ```
 
 ```{r mark_best_dv3_display_3, echo=FALSE, eval = flag_eval_chunk}
-(log_dv2 <- fread(file.path(root_dv2, fname_dv_log))[, ..show_vars])
+(log_dv2 <- data.table::fread(file.path(root_dv2, fname_dv_log))[, ..show_vars])
 ```
 
 ```{r mark_best_dv3_display_5, echo=FALSE, eval = flag_eval_chunk}
-(log_dv3 <- fread(file.path(root_dv3, fname_dv_log))[, ..show_vars])
+(log_dv3 <- data.table::fread(file.path(root_dv3, fname_dv_log))[, ..show_vars])
 ```
 
 ```{r mark_best_dv3_display_4, eval = flag_eval_chunk}
@@ -603,13 +603,13 @@ slt_prep$mark_keep(
 The first version is now marked as `keep`.
 
 ```{r mark_keep_dv1_display_1, echo=FALSE, eval = flag_eval_chunk}
-(log_central <- fread(path_log_central)[, ..show_vars])
+(log_central <- data.table::fread(path_log_central)[, ..show_vars])
 ```
 
 **Note:** Marking a folder `keep_` does not make it unique, like `best_`.  Many folders can be marked `keep_`.
 
 ```{r mark_keep_dv1_display_2, echo=FALSE, eval = flag_eval_chunk}
-(log_dv1 <- fread(path_log_dv1)[, ..show_vars])
+(log_dv1 <- data.table::fread(path_log_dv1)[, ..show_vars])
 ```
 
 ```{r mark_keep_dv1_display_3, eval = flag_eval_chunk}
@@ -642,7 +642,7 @@ Inspect the central log - The second version is now marked as `remove_`.
 - **Note:** Marking a folder `remove_` does not make it unique, like `best_`.  Many folders can be marked `remove`_`.
 
 ```{r mark_remove_dv2_display_1, echo=FALSE, eval = flag_eval_chunk}
-(log_central <- fread(path_log_central)[, ..show_vars])
+(log_central <- data.table::fread(path_log_central)[, ..show_vars])
 ```
 
 
@@ -693,7 +693,7 @@ for(dir_dv_remove in dt_to_remove$to_model$version_name){
 Check the central log - since the folder is gone, this will maintain a record of when this folder was deleted.
 
 ```{r delete_folders_display_1, echo=FALSE, eval = flag_eval_chunk}
-(log_central <- fread(path_log_central)[, ..show_vars])
+(log_central <- data.table::fread(path_log_central)[, ..show_vars])
 ```
 
 
@@ -711,7 +711,7 @@ Check the central log - since the folder is gone, this will maintain a record of
 - We should not see the second model run, since it was deleted.
 
 ```{r reports_display_2, eval = flag_eval_chunk}
-(fread(file.path(root_to_model, "report_key_versions.csv")))
+(data.table::fread(file.path(root_to_model, "report_key_versions.csv")))
 ```
 
 
@@ -736,7 +736,7 @@ The `report_all_logs.csv` file will scan _every_ run-version for a log, and show
 
 ```{r reports_display_3, eval = flag_eval_chunk}
 
-(fread(file.path(root_to_model, "report_all_logs.csv")))
+(data.table::fread(file.path(root_to_model, "report_all_logs.csv")))
 ```
 
 Two other reports sometimes diagnostically helpful are:

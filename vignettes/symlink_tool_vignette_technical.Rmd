@@ -356,17 +356,17 @@ In this trio, we see the central log, and each versioned folder's log of best pr
 
 
 ```{r mark_best_logs1, eval = flag_eval_chunk}
-fread(PATHS$log_cent)
+data.table::fread(PATHS$log_cent)
 ```
 
 
 ```{r mark_best_logs2, eval = flag_eval_chunk}
-fread(PATHS$log_2024_02_02)
+data.table::fread(PATHS$log_2024_02_02)
 ```
 
 
 ```{r mark_best_logs3, eval = flag_eval_chunk}
-fread(PATHS$log_2024_02_10)
+data.table::fread(PATHS$log_2024_02_10)
 ```
 
 
@@ -381,11 +381,11 @@ You've probably also noticed a report.  This also shows the current state of all
 - It runs separately for each root, and pulls the last log entry.
 
 ```{r reports, eval = flag_eval_chunk}
-fread(file.path(root_input, "report_key_versions.csv"))
+data.table::fread(file.path(root_input, "report_key_versions.csv"))
 ```
 
 ```{r reports2, eval = flag_eval_chunk}
-fread(file.path(root_output, "report_key_versions.csv"))
+data.table::fread(file.path(root_output, "report_key_versions.csv"))
 ```
 
 
@@ -425,7 +425,7 @@ print_tree()
 ```
 
 ```{r create_new_folders3, eval = flag_eval_chunk}
-fread(file.path(root_input, version_name_today, "log_version_history.csv"))
+data.table::fread(file.path(root_input, version_name_today, "log_version_history.csv"))
 ```
 
 This folder can be marked best just as the others, and prior best will be demoted.
@@ -434,11 +434,11 @@ This folder can be marked best just as the others, and prior best will be demote
 suppressMessages({
   slt$mark_best(version_name = version_name_today, user_entry = list(comment = "testing mark_best"))
 })
-fread(PATHS$log_cent)
+data.table::fread(PATHS$log_cent)
 ```
 
 ```{r create_new_folders5, eval = flag_eval_chunk}
-fread(PATHS$log_2024_02_10)
+data.table::fread(PATHS$log_2024_02_10)
 ```
 
 
@@ -459,15 +459,15 @@ print_tree()
 ```
 
 ```{r demote_best2, eval = flag_eval_chunk}
-fread(PATHS$log_cent)
+data.table::fread(PATHS$log_cent)
 ```
 
 ```{r demote_best3, eval = flag_eval_chunk}
-fread(file.path(root_input, version_name_today, "log_version_history.csv"))
+data.table::fread(file.path(root_input, version_name_today, "log_version_history.csv"))
 ```
 
 ```{r demote_report, eval = flag_eval_chunk}
-fread(file.path(root_input, "report_key_versions.csv"))
+data.table::fread(file.path(root_input, "report_key_versions.csv"))
 ```
 
 
@@ -520,13 +520,13 @@ And finally look at the log.
 - It should have a 'promote_remove' action in the last row.
 
 ```{r mark_remove4, eval = flag_eval_chunk}
-fread(file.path(root_input, version_name_today, "log_version_history.csv"))
+data.table::fread(file.path(root_input, version_name_today, "log_version_history.csv"))
 ```
 
 The report should also update to show the new symlink.
 
 ```{r mark_remove5, eval = flag_eval_chunk}
-fread(file.path(root_input, "report_key_versions.csv"))
+data.table::fread(file.path(root_input, "report_key_versions.csv"))
 ```
 
 
@@ -581,7 +581,7 @@ Since we no longer have a `version_name` log, we can't look at it.  But we can l
     - the 'delete_remove_folder' action
 
 ```{r delete_folder3, eval = flag_eval_chunk}
-fread(PATHS$log_cent)
+data.table::fread(PATHS$log_cent)
 ```
 
 Let's look at the report.
@@ -590,7 +590,7 @@ Let's look at the report.
 
 
 ```{r delete_folder5, eval = flag_eval_chunk}
-fread(file.path(root_input, "report_key_versions.csv"))
+data.table::fread(file.path(root_input, "report_key_versions.csv"))
 ```
 
 
@@ -665,13 +665,13 @@ print_tree()
 ```{r reports_pt2d, eval = flag_eval_chunk}
 # View an example report - logs for folders with no active symlink
 # - you can see this folder was previously marked 'best'
-fread(file.path(root_input, "report_all_logs_non_symlink.csv"))
+data.table::fread(file.path(root_input, "report_all_logs_non_symlink.csv"))
 ```
 
 
 ```{r reports_pt2e, eval = flag_eval_chunk}
 # Expect this to be absent for the vignette
-try(fread(file.path(root_input, "REPORT_DISCREPANCIES.csv")))
+try(data.table::fread(file.path(root_input, "REPORT_DISCREPANCIES.csv")))
 ```
 
 ## Roundups
