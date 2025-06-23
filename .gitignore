@@ -8,3 +8,5 @@ inst/local_installer.R
 *.html
 /doc/
 /Meta/
+CRAN-SUBMISSION
+
