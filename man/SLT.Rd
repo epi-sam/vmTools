@@ -17,11 +17,6 @@ Class for lightweight file-system level data versioning, logs
 try(SLT$new()) # call with no arguments to see instructions
 # Tool will not instantiate on Windows unless running with Admin permissions
 # - requirement for symlink creation on Windows
-if (vmTools:::is_windows_admin() | .Platform$OS.type \%in\% c("unix", "linux", "Darwin")) {
-   slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
-   # view folder contents - expect to see a new central log
-   vmTools:::dir_tree(tempdir())
-}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -51,14 +46,17 @@ if (vmTools:::is_windows_admin() | .Platform$OS.type \%in\% c("unix", "linux", "
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-new}{}}}
 \subsection{Method \code{new()}}{
 Initialize the SymlinkTool object - an R6 class
+
+The constructor function.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$new(
   user_root_list = NULL,
   user_central_log_root = NULL,
   schema_repair = TRUE,
-  verbose = FALSE,
+  verbose = TRUE,
+  verbose_startup = FALSE,
   csv_reader = "fread_quiet",
-  timezone = "America/Los_Angeles"
+  timezone = Sys.timezone()
 )}\if{html}{\out{</div>}}
 }
 
@@ -79,7 +77,10 @@ when reading and writing e.g. add new columns if the tool schema has
 columns that existing logs do not. If `FALSE`, the tool will stop and
 throw an error if it finds a schema mismatch.}
 
-\item{\code{verbose}}{[lgl] see start up warnings, if relevant?}
+\item{\code{verbose}}{[lgl: default TRUE] control message verbosity - if TRUE,
+standard message, if FALSE, warn only if something is irregular.}
+
+\item{\code{verbose_startup}}{[lgl] see start up warnings, if relevant?}
 
 \item{\code{csv_reader}}{[chr] The CSV reader to use (also assigns matching
   CSV writer). CAUTION: DO NOT USE `data.table::fread` if you have any
@@ -109,11 +110,6 @@ use for datestamps in logs. Must be a valid `OlsonNames()` string.}
 try(SLT$new()) # call with no arguments to see instructions
 # Tool will not instantiate on Windows unless running with Admin permissions
 # - requirement for symlink creation on Windows
-if (vmTools:::is_windows_admin() | .Platform$OS.type \%in\% c("unix", "linux", "Darwin")) {
-   slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
-   # view folder contents - expect to see a new central log
-   vmTools:::dir_tree(tempdir())
-}
 }
 \if{html}{\out{</div>}}
 
@@ -382,7 +378,7 @@ row.  User may select dates by (using the `date_selector` argument):
 - less than or equal to `nte`
 - equal to `e`
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_by_date(user_date, date_selector, verbose = TRUE)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_by_date(user_date, date_selector)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -393,8 +389,6 @@ with class requirements - must be formatted "2020-01-01 or 2020_01_01
 or 2020/01/01"}
 
 \item{\code{date_selector}}{[chr] See docstring explanation.}
-
-\item{\code{verbose}}{[lgl] If `TRUE`, std_err message.}
 }
 \if{html}{\out{</div>}}
 }

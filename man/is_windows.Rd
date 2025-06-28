@@ -12,6 +12,3 @@ is_windows()
 \description{
 Is the current OS windows
 }
-\examples{
-vmTools:::is_windows()
-}

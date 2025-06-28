@@ -28,9 +28,16 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 
-# Chunk options
+# for debugging
+# knitr::opts_chunk$set(
+#   echo = TRUE,
+#   message = TRUE,
+#   warning = TRUE,
+#   error = TRUE
+# )
 
-options(width = 450)
+# Chunk options
+.opt_width <- options(width = 450)
 
 # save the built-in output hook
 hook_output <- knitr::knit_hooks$get("output")
@@ -78,7 +85,7 @@ if(!flag_eval_chunk){
 
 # Defining a couple vignette utilities
 
-print_tree <- function() {vmTools:::dir_tree(root_base)}
+print_tree <- function(x) {vmTools:::dir_tree(x)}
 
 # print a symlink's target from the file system 
 print_symlink <- function(symlink_type){
@@ -265,13 +272,13 @@ suppressWarnings({ # idiosyncratic and benign cluster message
 
 ```{r reset_cores, include=FALSE}
 # multithreading can cause github actions issues
-options(mc.cores = 1)
+.opt_mccores <- options(mc.cores = 1)
 ```
 
 What do we have in our root_base folder?
 
 ```{r first_tool4, eval = flag_eval_chunk}
-print_tree()
+print_tree(root_base)
 ```
 
 
@@ -307,7 +314,7 @@ dir.create(file.path(root_output, "2024_02_02"), recursive = TRUE, showWarnings 
 dir.create(file.path(root_input, "2024_02_10"), recursive = TRUE, showWarnings = FALSE)
 dir.create(file.path(root_output, "2024_02_10"), recursive = TRUE, showWarnings = FALSE)
 
-print_tree()
+print_tree(root_base)
 ```
 
 Then we'll mark one as best.
@@ -319,7 +326,7 @@ slt$mark_best(version_name = "2024_02_02", user_entry = list(comment = "testing 
 Look at the folder structure again.
 
 ```{r mark_best_tree, eval = flag_eval_chunk}
-print_tree()
+print_tree(root_base)
 ```
 
 
@@ -339,7 +346,7 @@ suppressMessages({
 ```
 
 ```{r mark_best_tree2, eval = flag_eval_chunk}
-print_tree()
+print_tree(root_base)
 ```
 
 
@@ -424,7 +431,7 @@ Now we can see the new folders, with their logs and creation date-time stamps.
 - The tool assumes the research team determines its own folder-naming conventions.
 
 ```{r create_new_folders2, eval = flag_eval_chunk}
-print_tree()
+print_tree(root_base)
 ```
 
 ```{r create_new_folders3, eval = flag_eval_chunk}
@@ -458,7 +465,7 @@ Now let's say you review your results and _**no**_ version of outputs should be 
 suppressMessages({
   slt$unmark(version_name = version_name_today, user_entry = list(comment = "testing unmark_best"))
 })
-print_tree()
+print_tree(root_base)
 ```
 
 ```{r demote_best2, eval = flag_eval_chunk}
@@ -508,7 +515,7 @@ And let's look at the folder structure.
 - since many folders can be marked `remove_`, we combine 'remove_' with the `version_name` to make the folder name unique.
 
 ```{r mark_remove2, eval = flag_eval_chunk}
-print_tree()
+print_tree(root_base)
 ```
 
 
@@ -574,7 +581,7 @@ Let's look at the folder structure.
 - The folder and `remove_` symlink should be gone.
 
 ```{r delete_folder4, eval = flag_eval_chunk} 
-print_tree()
+print_tree(root_base)
 ```
 
 Since we no longer have a `version_name` log, we can't look at it.  But we can look at the central log.
@@ -623,7 +630,7 @@ suppressMessages(
 ```
 
 ```{r mark_keep2, eval = flag_eval_chunk}
-print_tree()
+print_tree(root_base)
 ```
 
 ```{r mark_keep3, eval = flag_eval_chunk}
@@ -661,7 +668,7 @@ slt$make_reports
 suppressMessages({
   slt$make_reports()
 })
-print_tree()
+print_tree(root_base)
 ```
 
 
@@ -700,7 +707,7 @@ slt$make_new_version_folder(dv3)
 dv4  <- get_output_dir(root_input,  "today")
 slt$make_new_version_folder(dv4)
 
-print_tree()
+print_tree(root_base)
 ```
 
 ### roundup_remove
@@ -739,7 +746,7 @@ suppressMessages({
     )
   }
 })
-print_tree()
+print_tree(root_base)
 ```
 
 
@@ -752,8 +759,7 @@ Use the log creation date (first row) to round up folders created on, before, or
 my_date <- format(Sys.Date(), "%Y_%m_%d")
 roundup_date_list <- slt$roundup_by_date(
   user_date     = my_date,
-  date_selector = "lte", # less than or equal to today's date
-  verbose       = TRUE
+  date_selector = "lte" # less than or equal to today's date
 )
 ```
 
@@ -769,7 +775,7 @@ suppressMessages({
     slt$mark_keep(dv, user_entry = list(comment = "roundup_by_date"))
   }
 })
-print_tree()
+print_tree(root_base)
 ```
 
 ## Make new log
@@ -791,7 +797,7 @@ try(slt$make_new_log(version_name = "2024_02_10_naive"))
 ```
 
 ```{r make_new_log2, eval = flag_eval_chunk}
-print_tree()
+print_tree(root_base)
 ```
 
 ## Internal State
@@ -819,6 +825,12 @@ slt$return_dynamic_fields()
 
 ```{r clean_up, eval = FALSE, eval = flag_eval_chunk}
 # Finally, clean up all our temporary folders
-unlink(root_base, recursive = TRUE, force = TRUE)
+system(paste("rm -rf", root_base))
+```
+
+
+```{r clean_up2, include = FALSE, eval = TRUE}
+options(.opt_width)
+options(.opt_mccores)
 ```
 

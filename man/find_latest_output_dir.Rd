@@ -15,11 +15,3 @@ find_latest_output_dir(root)
 \description{
 Used only for signaling/messaging
 }
-\examples{
-vmTools:::find_latest_output_dir(tempdir())
-\dontrun{
-# causes an error in R CMD check
-# this function is not exported
-vmTools:::find_latest_output_dir("tests/testthat/fixtures/versioned-dirs/nested/1999_09_09")
-}
-}

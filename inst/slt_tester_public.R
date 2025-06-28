@@ -27,7 +27,7 @@ slt$make_new_version_folder(version_name = "20240229_2")
 slt$make_new_version_folder(version_name = "20240229_3")
 
 # Get an automated new version_name compatible with all roots
-slt$get_new_version_name()
+slt$get_common_new_version_name()
 
 # Make a non-SLT folder, try to re-create it, ensure a log writes
 dir.create(clean_path(root_list$root_input, "20240229_handmade"), recursive = TRUE, showWarnings = FALSE)

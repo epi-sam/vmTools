@@ -9,13 +9,6 @@
 #'
 #' @return [int] largest version in directory tree or 0 if there are no version OR
 #' the directory tree does not exist
-#'
-#' @examples
-#' \dontrun{
-#' # this function is not exported
-#' vmTools:::get_latest_output_date_index("tests/testthat/fixtures/versioned-dirs/nested/1999_09_09"
-#'                                        , date = "1999_09_09")
-#'}
 get_latest_output_date_index <- function(dir, date) {
    currentfolders <- list.files(dir)
 
@@ -43,14 +36,6 @@ get_latest_output_date_index <- function(dir, date) {
 #' @param root [chr] path to root of output results
 #'
 #' @return [chr] path to latest output directory
-#'
-#' @examples
-#' vmTools:::find_latest_output_dir(tempdir())
-#' \dontrun{
-#' # causes an error in R CMD check
-#' # this function is not exported
-#' vmTools:::find_latest_output_dir("tests/testthat/fixtures/versioned-dirs/nested/1999_09_09")
-#' }
 find_latest_output_dir <- function(root) {
    if (!dir.exists(root)) {
       stop(sprintf("root %s does not exist", root))
@@ -58,7 +43,6 @@ find_latest_output_dir <- function(root) {
    raw <- list.dirs(root, full.names = FALSE, recursive = FALSE)
    valid.idx <- grep("^\\d{4}_\\d{2}_\\d{2}[.]\\d{2}$", raw)
    if (length(valid.idx) == 0) {
-      # message(sprintf("No YYYY_MM_DD.VV directories in %s", root))
       return(NULL)
    } else {
       return(file.path(root, max(raw[valid.idx])))

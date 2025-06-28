@@ -15,10 +15,6 @@ assert_dir_exists(x)
 \description{
 Assert a directory exists on disk
 }
-\examples{
-vmTools:::assert_dir_exists(".") # OK
-try(vmTools:::assert_dir_exists("nonexistent")) # Error
-}
 \seealso{
 Other assertions: 
 \code{\link{assert_named_list}()},
