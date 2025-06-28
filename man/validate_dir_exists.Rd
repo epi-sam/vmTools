@@ -17,10 +17,6 @@ validate_dir_exists(x, verbose = TRUE)
 \description{
 Validate whether a directory exists
 }
-\examples{
-vmTools:::validate_dir_exists(".") # TRUE
-vmTools:::validate_dir_exists("nonexistent") # FALSE
-}
 \seealso{
 Other validations: 
 \code{\link{is_an_error}()},

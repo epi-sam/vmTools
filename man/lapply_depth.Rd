@@ -22,7 +22,3 @@ lapply_depth(.x, .depth, .f, ...)
 Very simple replacement for purrr::map_depth to remove package dependency,
 but not very robust.  Internal package use only in select cases.
 }
-\examples{
-# intended use case - pull a named list element out of each list
-vmTools:::lapply_depth(list(A = list(one = 1, two = 2), B = list(one = 3, two = 4)), 1, `[[`, "one")
-}

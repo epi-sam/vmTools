@@ -25,6 +25,14 @@ test_that("get_new_version_name functionality works", {
    expect_false(dir.exists(file.path(dir_full, "1999_09_09.01")))
 })
 
+test_that("find_latest_output_dir works", {
+   expect_null(find_latest_output_dir(tempdir()))
+   expect_equal(
+      find_latest_output_dir("fixtures/versioned-dirs/nested/1999_09_09")
+      , "fixtures/versioned-dirs/nested/1999_09_09/1999_09_09.02"
+   )
+})
+
 
 # Last test
 test_that("test cleanup works - tempdir (dir_parent) exists and dir_full does not",

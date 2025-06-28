@@ -9,7 +9,8 @@
 #' @export
 #'
 #' @examples
-#' vmTools:::clean_path(tempdir(), "some/other/path/")
+#' clean_path(tempdir(), "/some/other/path/") # build a single path like file.path
+#' clean_path(c(".", tempdir(), "/some/other/path/")) # vectorized
 clean_path <- function(..., normalize = TRUE, mustWork = FALSE){
    pths <- file.path(...)
    if (normalize == TRUE){

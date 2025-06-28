@@ -23,10 +23,6 @@ Stops if:
  \item{x has any whitespace-only names}
 }
 }
-\examples{
-vmTools:::assert_named_list(list(a = 1, b = 2)) # OK
-try(vmTools:::assert_named_list(data.frame(a = 1, b = 2))) # Error
-}
 \seealso{
 Other assertions: 
 \code{\link{assert_dir_exists}()},

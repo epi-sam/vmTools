@@ -5,9 +5,6 @@
 #' @param prefix [chr] The prefix to add to each line
 #'
 #' @return NULL
-#'
-#' @examples
-#' vmTools:::dir_tree()
 dir_tree <- function(path = ".", level = Inf, prefix = "") {
 
    if(!file.exists(path)) {
@@ -67,6 +64,7 @@ dir_tree <- function(path = ".", level = Inf, prefix = "") {
          dir_tree(files[i], level - 1, new_prefix)
       }
    }
+   return(invisible(files))
 }
 
 

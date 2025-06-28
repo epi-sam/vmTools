@@ -15,10 +15,6 @@ assert_scalar(x)
 \description{
 Assert an element is atomic and length 1
 }
-\examples{
-vmTools:::assert_scalar("A") # OK
-try(vmTools:::assert_scalar(1:2)) # Error
-}
 \seealso{
 Other assertions: 
 \code{\link{assert_dir_exists}()},
