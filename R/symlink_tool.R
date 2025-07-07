@@ -756,13 +756,13 @@ SLT <- R6::R6Class(
 
          } else if (require_user_input == TRUE) {
 
-            dirnames_to_unlink <- folder_dt[version_name == version_name_, dir_name]
+            dirnames_to_delete <- folder_dt[version_name == version_name_, dir_name]
 
             private$msg_w_control("") # newline for visual clarity
 
             user_input <- utils::menu(
                title = paste0("Do you want to delete the following folders?\n  ",
-                              paste(dirnames_to_unlink, collapse = "\n  "))
+                              paste(dirnames_to_delete, collapse = "\n  "))
                , choices = c("No", "Yes")
             )
 
@@ -772,7 +772,7 @@ SLT <- R6::R6Class(
             if(user_input == 2){
                private$DYNAMIC$LOG$action <- "delete_remove_folder"
                private$append_to_central_log(version_path = version_path, user_entry = user_entry)
-               for(dir_name in dirnames_to_unlink){
+               for(dir_name in dirnames_to_delete){
                   private$msg_w_control("Deleting ", dir_name)
                   system(paste0("rm -rf ", dir_name))
                }
@@ -782,13 +782,13 @@ SLT <- R6::R6Class(
 
          } else if (require_user_input == FALSE) {
 
-            dirnames_to_unlink <- folder_dt[version_name == version_name_, dir_name]
+            dirnames_to_delete <- folder_dt[version_name == version_name_, dir_name]
 
             private$msg_w_control("") # newline for visual clarity
 
             private$DYNAMIC$LOG$action <- "delete_remove_folder"
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
-            for(dir_name in dirnames_to_unlink){
+            for(dir_name in dirnames_to_delete){
                private$msg_w_control("Deleting ", dir_name, message_anyway = TRUE)
                system(paste("rm -rf", dir_name))
             }
