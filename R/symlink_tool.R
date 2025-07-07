@@ -874,7 +874,10 @@ SLT <- R6::R6Class(
          ) TRUE else FALSE
 
          if(move_log_tf == TRUE){
-            private$msg_sometimes("     Moving log file to 'logs' subfolder: ", path_log_bare, " -> ", path_log_subdir)
+            message("     Moving log file to 'logs' subfolder:\n"
+                    , "     ", path_log_bare, " -> \n"
+                    , "     ", path_log_subdir)
+            private$msg_sometimes("     Moving log file to 'logs' subfolder:\n ", path_log_bare, "\n -> ", path_log_subdir)
             dir.create(dirname(path_log_subdir), recursive = TRUE, showWarnings = FALSE)
             rename_flag <- file.rename(path_log_bare, path_log_subdir)
 
