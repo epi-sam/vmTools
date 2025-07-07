@@ -864,6 +864,7 @@ SLT <- R6::R6Class(
          path_log_subdir <- clean_path(version_path, private$DICT$log_path)
 
          # if path_log_bare exists and path_log_subdir does not, move it
+         # - if renaming fails, make a log in the expected subfolder
          # if path_log_bare does not exist, move on doing nothing
          # if path_log_bare exists and path_log_subdir exists, move on and do nothing
          # if neither exists, move on and do nothing
