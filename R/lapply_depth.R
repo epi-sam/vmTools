@@ -9,10 +9,6 @@
 #' @param ... [any] Additional arguments to pass to .f
 #'
 #' @return [list] List with function applied at target depth
-#'
-#' @examples
-#' # intended use case - pull a named list element out of each list
-#' vmTools:::lapply_depth(list(A = list(one = 1, two = 2), B = list(one = 3, two = 4)), 1, `[[`, "one")
 lapply_depth <- function(.x, .depth, .f, ...) {
    assert_named_list(.x)
     if (.depth == 0) {

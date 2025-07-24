@@ -15,10 +15,6 @@ is_an_error(x)
 \description{
 Determine if an object is an error
 }
-\examples{
-vmTools:::is_an_error(simpleError("error")) # TRUE
-vmTools:::is_an_error(message("error")) # FALSE
-}
 \seealso{
 Other validations: 
 \code{\link{validate_dir_exists}()},

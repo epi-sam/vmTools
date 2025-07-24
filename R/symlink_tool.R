@@ -110,7 +110,7 @@ SLT <- R6::R6Class(
          # - Since these are the most visible/useful user summary, these could be set by `initialize()` in the future.
 
          report_fnames = list(
-            all_logs_tool_symlink = "report_key_versions.csv"
+            all_logs_tool_symlink   = "report_key_versions.csv"
             , all_logs              = "report_all_logs.csv"
             , all_logs_symlink      = "report_all_logs_symlink.csv"
             , all_logs_non_symlink  = "report_all_logs_non_symlink.csv"
@@ -178,6 +178,35 @@ SLT <- R6::R6Class(
 
       csv_reader = NULL,
       csv_writer = NULL,
+
+      # Message Functions ------------------------------------------------------
+
+      # Message if verbose, with option to warn even if verbosity is off
+      #
+      # If automating batch operations, large messge volumes may be undesired.
+      # If so, suppress messages, but warn in cases where something might go
+      # amiss.
+      #
+      # @param ... [...] passed to `message()`
+      # @param verbose [lgl] send message to std_err?
+      # @param always_message [lgl] send it anyway in select circumstances?
+      #
+      # @returns [std_err]
+      msg_sometimes = function(..., verbose = private$DICT$verbose, always_message = FALSE){
+         assert_scalar(verbose)
+         assert_type(verbose, "logical")
+         assert_scalar(always_message)
+         assert_type(always_message, "logical")
+
+         if(verbose == TRUE){
+            message(...)
+         } else if (verbose == FALSE & always_message == FALSE) {
+            # do nothing
+         } else if (verbose == FALSE & always_message == TRUE) {
+            message(...)
+         }
+         return(invisible(NULL))
+      },
 
       # Check Functions --------------------------------------------------------
 
@@ -352,7 +381,7 @@ SLT <- R6::R6Class(
             }
          }
 
-         if(verbose) message(my_dt_name, ": ", "Passing data schema validation.")
+         if(verbose == TRUE) message(my_dt_name, ": ", "Passing data schema validation.")
 
       },
 
@@ -549,7 +578,7 @@ SLT <- R6::R6Class(
          if(file.exists(path_resolved)) {
             return(path_resolved)
          } else {
-            message("Could not resolve symlink: ", path)
+            private$msg_sometimes("Could not resolve symlink: ", path, always_message = TRUE)
          }
       },
 
@@ -631,7 +660,7 @@ SLT <- R6::R6Class(
             private$DYNAMIC$LOG$action <- paste0("demote_", symlink_type)
             private$DYNAMIC$LOG$version_name <- version_name
 
-            message("   removing ", symlink_full)
+            private$msg_sometimes("   removing ", symlink_full)
             system(paste("unlink", symlink_full))
 
             private$append_to_log(version_path = path_real, user_entry = user_entry)
@@ -639,7 +668,7 @@ SLT <- R6::R6Class(
 
 
          } else {
-            message("     No symlink found for: ", version_name, " - ", symlink_type)
+            private$msg_sometimes("     No symlink found for: ", version_name, " - ", symlink_type, always_message = TRUE)
          }
       },
 
@@ -654,7 +683,7 @@ SLT <- R6::R6Class(
       #  @return [none] removes symlinks on disk
       remove_all_symlinks = function(root, version_name, user_entry){
          assert_scalar(version_name)
-         message("Removing symlinks for: ", version_name)
+         private$msg_sometimes("Removing symlinks for: ", version_name)
          for(symlink_type in private$DICT$symlink_types){
             private$remove_one_symlink(
                root         = root,
@@ -684,7 +713,7 @@ SLT <- R6::R6Class(
          if(!dir_exists){
             dir.create(version_path, recursive = TRUE)
          } else {
-            message("Directory already exists: ", version_path)
+            private$msg_sometimes("Directory already exists: ", version_path, always_message = TRUE)
          }
 
          # Always write a log - if user uses the tool to try to create a folder
@@ -717,35 +746,36 @@ SLT <- R6::R6Class(
          deletion_dir_name      <- folder_dt[dir_leaf == deletion_symlink_exact, dir_name]
 
          if(!deletion_symlink_exact %in% folder_dt_removes$dir_leaf){
-            message(
+            private$msg_sometimes(
                "\n",
                "No valid `remove_` symlink found:\n",
                "     for: ", version_name, "\n",
                "     in root: ", root
+               , always_message = TRUE
             )
 
             ret_val_deleted_TF <- NULL
 
          } else if (require_user_input == TRUE) {
 
-            dirnames_to_unlink <- folder_dt[version_name == version_name_, dir_name]
+            dirnames_to_delete <- folder_dt[version_name == version_name_, dir_name]
 
-            message("") # newline for visual clarity
+            private$msg_sometimes("") # newline for visual clarity
 
             user_input <- utils::menu(
                title = paste0("Do you want to delete the following folders?\n  ",
-                              paste(dirnames_to_unlink, collapse = "\n  "))
+                              paste(dirnames_to_delete, collapse = "\n  "))
                , choices = c("No", "Yes")
             )
 
-            message("") # newline for visual clarity
+            private$msg_sometimes("") # newline for visual clarity
 
             # Prompt user input to confirm deletion
             if(user_input == 2){
                private$DYNAMIC$LOG$action <- "delete_remove_folder"
                private$append_to_central_log(version_path = version_path, user_entry = user_entry)
-               for(dir_name in dirnames_to_unlink){
-                  message("Deleting ", dir_name)
+               for(dir_name in dirnames_to_delete){
+                  private$msg_sometimes("Deleting ", dir_name)
                   system(paste0("rm -rf ", dir_name))
                }
             }
@@ -754,14 +784,14 @@ SLT <- R6::R6Class(
 
          } else if (require_user_input == FALSE) {
 
-            dirnames_to_unlink <- folder_dt[version_name == version_name_, dir_name]
+            dirnames_to_delete <- folder_dt[version_name == version_name_, dir_name]
 
-            message("") # newline for visual clarity
+            private$msg_sometimes("") # newline for visual clarity
 
             private$DYNAMIC$LOG$action <- "delete_remove_folder"
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
-            for(dir_name in dirnames_to_unlink){
-               message("Deleting ", dir_name)
+            for(dir_name in dirnames_to_delete){
+               private$msg_sometimes("Deleting ", dir_name, always_message = TRUE)
                system(paste("rm -rf", dir_name))
             }
 
@@ -834,6 +864,7 @@ SLT <- R6::R6Class(
          path_log_subdir <- clean_path(version_path, private$DICT$log_path)
 
          # if path_log_bare exists and path_log_subdir does not, move it
+         # - if renaming fails, make a log in the expected subfolder
          # if path_log_bare does not exist, move on doing nothing
          # if path_log_bare exists and path_log_subdir exists, move on and do nothing
          # if neither exists, move on and do nothing
@@ -844,12 +875,14 @@ SLT <- R6::R6Class(
          ) TRUE else FALSE
 
          if(move_log_tf == TRUE){
-            message("     Moving log file to 'logs' subfolder: ", path_log_bare, " -> ", path_log_subdir)
+            private$msg_sometimes("     Moving log file to 'logs' subfolder:\n"
+                    , "     ", path_log_bare, " -> \n"
+                    , "     ", path_log_subdir)
             dir.create(dirname(path_log_subdir), recursive = TRUE, showWarnings = FALSE)
             rename_flag <- file.rename(path_log_bare, path_log_subdir)
 
             if(rename_flag == FALSE){
-               message("     Could not move existing log file, creating a new log in 'logs' subdirectory.")
+               private$msg_sometimes("     Could not move existing log file, creating a new log in 'logs' subdirectory.", always_message = TRUE)
                private$write_new_log(version_path)
             }
          }
@@ -915,7 +948,7 @@ SLT <- R6::R6Class(
       #  @return [data.table] log data.table
       correct_null_log = function(version_path, dt_log){
          if(all(dim(dt_log) == 0)){
-            message("NULL log found (all dim = 0) - rebuilding schema and writing a new 'create' row.")
+            private$msg_sometimes("NULL log found (all dim = 0) - rebuilding schema and writing a new 'create' row.", always_message = TRUE)
             dt_log <- private$make_schema_dt(private$DICT$log_schema)
             dt_log <- private$ensure_log_creation_entry(version_path, dt_log)
          }
@@ -1005,7 +1038,7 @@ SLT <- R6::R6Class(
          dt_log <- rbindlist(list(dt_log, log_entry), fill = private$DICT$FLAGS$allow_schema_repair)
          data.table::setcolorder(dt_log, names(private$DICT$log_schema))
 
-         message("  Writing log to ", fpath)
+         private$msg_sometimes("  Writing log to ", fpath)
          private$csv_writer(dt_log, fpath, row.names = FALSE)
       },
 
@@ -1048,7 +1081,7 @@ SLT <- R6::R6Class(
 
          # safely correct a null log, if found (all dim == 0)
          if(all(dim(dt_log) == 0)){
-            message("NULL central log found (all dim = 0) - rebuilding schema and writing a new 'create' row.")
+            private$msg_sometimes("NULL central log found (all dim = 0) - rebuilding schema and writing a new 'create' row.", always_message = TRUE)
             dt_log <- private$make_schema_dt(private$DICT$log_schema)
             dt_log <- private$make_central_log_creation_entry(dt_log)
          }
@@ -1139,13 +1172,14 @@ SLT <- R6::R6Class(
             dt_log <- rbindlist(list(dt_log, log_entry), fill = private$DICT$FLAGS$allow_schema_repair)
             data.table::setcolorder(dt_log, names(private$DICT$log_schema))
 
-            message("  Writing central log to ", fpath)
+            private$msg_sometimes("  Writing central log to ", fpath)
             private$csv_writer(dt_log, fpath, row.names = FALSE)
 
          } else {
 
-            message("  No action defined, not writing to central log.\n",
-                    "    This is expected if no symlinks were found or user-input did not produce an action for: ", private$DYNAMIC$LOG$version_name)
+            private$msg_sometimes("  No action defined, not writing to central log.\n",
+                    "    This is expected if no symlinks were found or user-input did not produce an action for: ", private$DYNAMIC$LOG$version_name,
+                    always_message = TRUE)
          }
 
       },
@@ -1174,7 +1208,7 @@ SLT <- R6::R6Class(
                   , colClasses = unlist(private$DICT$log_schema)
                )
             },
-            error = function(e) if(verbose) message("No log found for folder: ", version_path)
+            error = function(e) if(verbose == TRUE) private$msg_sometimes("No log found for folder: ", version_path, always_message = TRUE)
          )
 
       },
@@ -1565,7 +1599,7 @@ SLT <- R6::R6Class(
          log_list <- private$query_all_logs_tool_symlink(root, verbose = FALSE)
          last_row_dt <- private$query_logs_last_row(log_list)
          private$write_report(last_row_dt, clean_path(root, private$DICT$report_fnames$all_logs_tool_symlink))
-         private$report_discrepancies(root = root)
+         private$report_discrepancies(root = root, verbose = private$DICT$verbose)
       },
 
       #  Report last row of all non-symlinked folder logs in one root
@@ -1753,11 +1787,11 @@ SLT <- R6::R6Class(
          if(nrow(discrepancy_report_dt) == 0) {
             # If there's nothing to report, delete the discrepancy report, otherwise stay quiet
             if(file.exists(path_discrepancy_report)){
-               if(verbose) message("  No discrepancies found in ", root, ", removing ", private$DICT$report_fnames$discrepancies, " (if it exists now)")
+               if(verbose == TRUE) message("  No discrepancies found in ", root, ", removing ", private$DICT$report_fnames$discrepancies, " (if it exists now)")
                file.remove(path_discrepancy_report)
             }
          } else {
-            if(verbose) message("  DISCREPANCIES FOUND: Writing discrepancy report to ", path_discrepancy_report)
+            if(verbose == TRUE) message("  DISCREPANCIES FOUND: Writing discrepancy report to ", path_discrepancy_report)
             private$write_report(discrepancy_report_dt, path_discrepancy_report)
          }
       },
@@ -1945,7 +1979,7 @@ SLT <- R6::R6Class(
          }
 
          if(length(symlink) > 0) {
-            message("Demoting existing symlink: ", symlink)
+            private$msg_sometimes("Demoting existing symlink: ", symlink)
             symlink                    <- private$extract_symlink(symlink)
             symlink                    <- paste0(root, symlink)
             private$DYNAMIC$LOG$action <- paste0("demote_", symlink_type)
@@ -1955,7 +1989,7 @@ SLT <- R6::R6Class(
             # only unlink if logging is successful
             system(paste0("unlink ", symlink))
          } else {
-            message("No existing symlinks found - moving on")
+            private$msg_sometimes("No existing symlinks found - moving on")
          }
 
 
@@ -1985,7 +2019,7 @@ SLT <- R6::R6Class(
             # TODO SB - 2024 Feb 06 - Convert to `remove_one_symlink()` - requires arg updates
             path_best_real <- private$resolve_symlink(path_best_sym)
             version_name_to_remove <- basename(path_best_real)
-            message("Demoting from 'best': ", path_best_real)
+            private$msg_sometimes("Demoting from 'best': ", path_best_real)
 
             # set version to the folder the log will be written to, then reset it after
             private$DYNAMIC$LOG$version_name <- version_name_to_remove
@@ -1996,7 +2030,7 @@ SLT <- R6::R6Class(
             # only unlink if logging is successful
             system(paste0("unlink ", path_best_sym))
          } else {
-            message("No 'best' symlink found - moving on: ", path_best_sym)
+            private$msg_sometimes("No 'best' symlink found - moving on: ", path_best_sym)
          }
       },
 
@@ -2014,7 +2048,7 @@ SLT <- R6::R6Class(
          # Highlander - there can be only one (best)
          private$demote_previous_best(version_path = version_path, version_name = version_name, user_entry = user_entry)
          # make new symlink
-         message("Promoting to 'best': ", path_best_new)
+         private$msg_sometimes("Promoting to 'best': ", path_best_new)
          private$DYNAMIC$LOG$action <- "promote_best"
          private$append_to_log(version_path = path_best_new, user_entry = user_entry)
          private$append_to_central_log(version_path = path_best_new, user_entry = user_entry)
@@ -2033,7 +2067,7 @@ SLT <- R6::R6Class(
       promote_keep = function(version_path, user_entry){
          private$DYNAMIC$LOG$action <- "promote_keep"
          path_keep_sym <- private$make_symlink_path(version_path = version_path, symlink_type = "keep")
-         message("Promoting to 'keep': ", path_keep_sym)
+         private$msg_sometimes("Promoting to 'keep': ", path_keep_sym)
          if(!dir.exists(path_keep_sym)){
             private$append_to_log(version_path = version_path, user_entry = user_entry)
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
@@ -2041,7 +2075,7 @@ SLT <- R6::R6Class(
             # only symlink if logging is successful
             file.symlink(version_path, path_keep_sym)
          } else {
-            message("  Keep symlink already exists - moving on: ", path_keep_sym)
+            private$msg_sometimes("  Keep symlink already exists - moving on: ", path_keep_sym)
          }
       },
 
@@ -2054,7 +2088,7 @@ SLT <- R6::R6Class(
       promote_remove = function(version_path, user_entry){
          private$DYNAMIC$LOG$action <- "promote_remove"
          path_remove_sym <- private$make_symlink_path(version_path = version_path, symlink_type = "remove")
-         message("Promoting to 'remove': ", path_remove_sym)
+         private$msg_sometimes("Promoting to 'remove': ", path_remove_sym)
          if(!dir.exists(path_remove_sym)){
             private$append_to_log(version_path = version_path, user_entry = user_entry)
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
@@ -2062,7 +2096,7 @@ SLT <- R6::R6Class(
             # only symlink if logging is successful
             file.symlink(version_path, path_remove_sym)
          } else {
-            message("  Keep symlink already exists - moving on: ", path_remove_sym)
+            private$msg_sometimes("  Keep symlink already exists - moving on: ", path_remove_sym)
          }
 
       }
@@ -2092,6 +2126,8 @@ SLT <- R6::R6Class(
 
       #' @description Initialize the SymlinkTool object - an R6 class
       #'
+      #' The constructor function.
+      #'
       #' @param user_root_list [list] Named list of root directories for
       #'   pipeline outputs. This is where `version_name` folders live - these
       #'   are iterative runs of an analysis pipeline.
@@ -2103,7 +2139,9 @@ SLT <- R6::R6Class(
       #'   when reading and writing e.g. add new columns if the tool schema has
       #'   columns that existing logs do not. If `FALSE`, the tool will stop and
       #'   throw an error if it finds a schema mismatch.
-      #' @param verbose [lgl] see start up warnings, if relevant?
+      #' @param verbose [lgl: default TRUE] control message verbosity - if TRUE,
+      #'   standard message, if FALSE, warn only if something is irregular.
+      #' @param verbose_startup [lgl] see start up warnings, if relevant?
       #' @param csv_reader [chr] The CSV reader to use (also assigns matching
       #'   CSV writer). CAUTION: DO NOT USE `data.table::fread` if you have any
       #'   quotation marks (") in log comments (these lead to exploding series
@@ -2129,24 +2167,22 @@ SLT <- R6::R6Class(
       #' try(SLT$new()) # call with no arguments to see instructions
       #' # Tool will not instantiate on Windows unless running with Admin permissions
       #' # - requirement for symlink creation on Windows
-      #' if (vmTools:::is_windows_admin() | .Platform$OS.type %in% c("unix", "linux", "Darwin")) {
-      #'    slt <- SLT$new(user_root_list = list(test = tempdir()), user_central_log_root = tempdir())
-      #'    # view folder contents - expect to see a new central log
-      #'    vmTools:::dir_tree(tempdir())
-      #' }
       initialize = function(
       user_root_list          = NULL
       , user_central_log_root = NULL
       , schema_repair         = TRUE
-      , verbose               = FALSE
+      , verbose               = TRUE
+      , verbose_startup       = FALSE
       , csv_reader            = "fread_quiet"
-      , timezone              = "America/Los_Angeles"
+      , timezone              = Sys.timezone()
       ) {
 
          assert_scalar(schema_repair)
          assert_type(schema_repair, "logical")
          assert_scalar(verbose)
          assert_type(verbose, "logical")
+         assert_scalar(verbose_startup)
+         assert_type(verbose_startup, "logical")
 
          # allow lazy defaults
          # - do this here to suppress startup messages
@@ -2165,7 +2201,7 @@ SLT <- R6::R6Class(
          try(n_cores <- data.table::setDTthreads(find_n_cores()))
 
          if(tolower(.Platform$OS.type) == "windows") {
-            if(verbose == TRUE) {
+            if(verbose_startup == TRUE) {
                message("WARNING! you are running on Windows. \n",
                        "  - symlinks may not function correctly on pre-NTFS file systems \n",
                        "  - see ?file.symlink for more details.")
@@ -2241,7 +2277,7 @@ SLT <- R6::R6Class(
             , stop("csv_reader must be one of: fread, fread_quiet, read.csv, read.csv2")
          )
 
-         if(csv_reader %like% "fread" & verbose == TRUE) {
+         if(csv_reader %like% "fread" & verbose_startup == TRUE) {
             message("WARNING: Do not use double quotation marks (\") in user comments - data.table::fread causes them to multiply.")
          }
 
@@ -2275,6 +2311,10 @@ SLT <- R6::R6Class(
          ## FLAGS
          # log schema
          private$DICT$FLAGS$allow_schema_repair <- schema_repair
+
+         ## Verbosity
+         private$DICT$verbose <- verbose
+
 
          # ------------------------------------------------------------------#
 
@@ -2378,13 +2418,13 @@ SLT <- R6::R6Class(
             user_entry   = user_entry
          )
 
-         message("Marking best: ", version_name)
+         private$msg_sometimes("Marking best: ", version_name)
          # Manage symlinks and append logs
          for(version_path in private$DYNAMIC$VERS_PATHS){
 
             if(validate_dir_exists(version_path) == FALSE) next()
             if(private$already_marked(version_path, "best")) {
-               message(version_path, " - already marked best - moving on.")
+               private$msg_sometimes(version_path, " - already marked best - moving on.")
                next()
             }
 
@@ -2624,13 +2664,12 @@ SLT <- R6::R6Class(
       #'   with class requirements - must be formatted "2020-01-01 or 2020_01_01
       #'   or 2020/01/01"
       #' @param date_selector [chr] See docstring explanation.
-      #' @param verbose [lgl] If `TRUE`, std_err message.
       #'
       #' @return [list] list of data.tables - one for each `root`
       #'
       #'
       #'
-      roundup_by_date = function(user_date, date_selector, verbose = TRUE){
+      roundup_by_date = function(user_date, date_selector){
 
 
          # format inputs for assertion
@@ -2639,21 +2678,19 @@ SLT <- R6::R6Class(
          private$assert_date_selector(date_selector)
          private$assert_user_date_class_and_format(user_date)
 
-         if(verbose){
-            message(paste0("Finding all folders with log creation dates that are", " '", date_selector, "' ", user_date), ". \n  ",
+         private$msg_sometimes(paste0("Finding all folders with log creation dates that are", " '", date_selector, "' ", user_date), ". \n  ",
                     "NOTE! Log creation dates are used as the file-system does not record creation times. \n")
-         }
 
          # format user_date to USA PST to align with cluster filesystem dates
          tzone = private$DICT$TZ
-         message("Formatting date with time-zone: ", tzone, "\n")
+         private$msg_sometimes("roundup_by_date: Formatting date with time-zone: ", tzone, "\n", always_message = TRUE)
          # user_date_parsed <- lubridate::ymd(user_date, tz = tzone)
          user_date_parsed <- as.POSIXct(user_date, tz = tzone, tryFormats = c("%Y-%m-%d", "%Y_%m_%d", "%Y/%m/%d"))
 
          # for(root in private$DICT$ROOTS){
          #    return(private$query_by_date(root, user_date_parsed, date_selector))
          # }
-         message("Folders with symlinks will have duplicate rows by `version_name` (one row for each unique `dir_name`) - showing all for completeness.\n")
+         private$msg_sometimes("Folders with symlinks will have duplicate rows by `version_name` (one row for each unique `dir_name`) - showing all for completeness.\n")
          return(
             lapply(private$DICT$ROOTS,
                    private$query_by_date,
@@ -2818,14 +2855,15 @@ SLT <- R6::R6Class(
       #'
       make_reports = function(){
 
-         message("Writing last-row log reports for:\n")
+         private$msg_sometimes("Writing last-row log reports for:\n")
          for(root in private$DICT$ROOTS){
-            message("  ", root)
+            private$msg_sometimes("  ", root)
             private$report_all_logs(root = root)
             private$report_all_logs_symlink(root = root)
             private$report_all_logs_tool_symlink(root = root)
             private$report_all_logs_non_symlink(root = root)
             private$report_discrepancies(root = root, verbose = FALSE) # runs by default inside report_all_logs_tool_symlink, suppress extra messages
+            private$msg_sometimes("  ", root)
          }
       }
 

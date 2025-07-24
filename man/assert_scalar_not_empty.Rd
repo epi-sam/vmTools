@@ -15,10 +15,6 @@ assert_scalar_not_empty(x)
 \description{
 Assert x is a scalar, and not empty in some way
 }
-\examples{
-vmTools:::assert_scalar_not_empty("A") # OK
-try(vmTools:::assert_scalar_not_empty(Inf)) # Error - Inf considered non-meaningful
-}
 \seealso{
 Other assertions: 
 \code{\link{assert_dir_exists}()},

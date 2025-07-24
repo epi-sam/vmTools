@@ -15,10 +15,6 @@ validate_not_empty(x)
 \description{
 Designed to also catch missing args when called inside a function.
 }
-\examples{
-vmTools:::validate_not_empty(1) # TRUE
-vmTools:::validate_not_empty(NULL) # FALSE
-}
 \seealso{
 Other validations: 
 \code{\link{is_an_error}()},

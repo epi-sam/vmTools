@@ -29,9 +29,16 @@ knitr::opts_chunk$set(
   comment = "#>"
 )
 
-# Chunk options
+# for debugging
+# knitr::opts_chunk$set(
+#   echo = TRUE,
+#   message = TRUE,
+#   warning = TRUE,
+#   error = TRUE
+# )
 
-options(width = 450)
+# Chunk options
+.opt_width <- options(width = 450)
 
 # save the built-in output hook
 hook_output <- knitr::knit_hooks$get("output")
@@ -79,7 +86,7 @@ if(!flag_eval_chunk){
 
 ```{r utils, include = FALSE}
 # Defining a couple vignette utilities
-print_tree <- function() {vmTools:::dir_tree(root_to_model)}
+print_tree <- function(x) {vmTools:::dir_tree(x)}
 
 # Make a directory with desired defaults without cluttering the vignette
 make_directory <- function(path){
@@ -307,7 +314,7 @@ This won't be an exhaustive demonstration of all the available options, this is 
 ## Set Your Output Folder
 
 
-My team uses a `to_model` folder for all inputs we submit to ST-GPR.  
+My team uses a `output_root` folder for all inputs we submit to ST-GPR.  
 This way we can prepare the data, then submit various ST-GPR models with
 different parameters without needing to re-prep the inputs. The results of the
 ST-GPR models go into an output folder, which we'll ignore for simplicity.
@@ -317,8 +324,8 @@ ST-GPR models go into an output folder, which we'll ignore for simplicity.
 library(vmTools)
 library(data.table)
 # Make the root folder
-root_to_model <- file.path(tempdir(), "slt", "to_model")
-dir.create(root_to_model, 
+output_root <- file.path(tempdir(), "slt", "output_root")
+dir.create(output_root, 
            recursive    = TRUE, 
            showWarnings = FALSE)
 ```
@@ -354,14 +361,14 @@ When you make a new tool, this tool is **_tied to a specific output folder_**.  
 ```{r instantiate_slt_prep_display, warning=FALSE, eval = flag_eval_chunk}
 # Instantiate (create) a new Symlink Tool object
 slt_prep <- SLT$new(
-      user_root_list        = list("to_model" = root_to_model),
-      user_central_log_root = root_to_model
+      user_root_list        = list("output_root" = output_root),
+      user_central_log_root = output_root
    )
 ```
 
 ```{r reset_cores, include=FALSE}
 # multithreading can cause github actions issues
-options(mc.cores = 1)
+.opt_mccores <- options(mc.cores = 1)
 ```
 
 
@@ -370,7 +377,7 @@ options(mc.cores = 1)
 
 ```{r instantiate_slt_prep_display_1, eval = flag_eval_chunk}
 # Look at the directory tree
-print_tree()
+print_tree(output_root)
 ```
 
 
@@ -385,7 +392,7 @@ Use the Symlink Tool to create a new folder in your output root.
     - It allows the user to decide folder names.
 
 ```{r baseline_folder_display_1, eval = flag_eval_chunk}
-date_vers1 <- get_output_dir(root_to_model, "2024_02_01")
+date_vers1 <- get_output_dir(output_root, "2024_02_01")
 slt_prep$make_new_version_folder(version_name = date_vers1)
 ```
 
@@ -396,35 +403,15 @@ Capture some paths, using the Symlink Tool to help.  We'll use these in a minute
 ```{r capture_paths_dv1, eval = flag_eval_chunk}
 path_log_central <- slt_prep$return_dictionaries()[["LOG_CENTRAL"]][["path"]]
 fname_dv_log     <- slt_prep$return_dictionaries()[["log_path"]]
-root_dv1         <- slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]]
+root_dv1         <- slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["output_root"]]
 path_log_dv1     <- file.path(root_dv1, fname_dv_log)
-
-# Debug output
-# stop(
-#   "=== DEBUGGING ===\n",
-#   "is_winows: ", vmTools:::is_windows(), "\n",
-#   "is_window_admin: ", vmTools:::is_windows_admin(), "\n",
-#   "flag_eval_chunk: ", flag_eval_chunk, "\n",
-#   "tempdir():", tempdir(), "\n",
-#   "root_to_model:", root_to_model, "\n",
-#   "Directory exists:", dir.exists(root_to_model), "\n",
-#   "R6 LOG_CENTRAL path:", slt_prep$return_dictionaries()[["LOG_CENTRAL"]][["path"]], "\n",
-#   "R6 to_model path:", slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]], "\n",
-#   "Final file path:", file.path(
-#     slt_prep$return_dynamic_fields()[["VERS_PATHS"]][["to_model"]], 
-#     slt_prep$return_dictionaries()[["log_path"]]
-#   ), "\n",
-#   "dv1 exists: ", file.exists(file.path(root_to_model, date_vers1)), "\n",
-#   "log_central exists: ", file.exists(path_log_central), "\n",
-#   "log_dv exists: ", file.exists(path_log_dv1), "\n"
-# )
 ```
 
 
 Show the file tree.
 
 ```{r baseline_folder_display_2, echo=FALSE, eval = flag_eval_chunk}
-print_tree()
+print_tree(output_root)
 ```
 
 Show central log.
@@ -455,7 +442,7 @@ invisible(file.create(file.path(root_dv1, fnames_my_models)))
 
 
 ```{r dummy_results_invis_2, eval = flag_eval_chunk}
-print_tree()
+print_tree(output_root)
 ```
 
 
@@ -496,9 +483,9 @@ Inspect both the central log and ...
 We now have a 'best' symlink that points to our 'best' run version, `2024_02_01.01`
 
 ```{r mark_best_dv1_display_3, eval = flag_eval_chunk}
-print_tree()
+print_tree(output_root)
 
-resolve_symlink(file.path(root_to_model, "best"))
+resolve_symlink(file.path(output_root, "best"))
 ```
 
 
@@ -514,7 +501,7 @@ Run the pipeline two more times on the same day, inspect the models, and make a 
 
 ```{r two_new_runs, eval = flag_eval_chunk}
 # Second run
-date_vers2 <- get_output_dir(root_to_model, "2024_02_01")
+date_vers2 <- get_output_dir(output_root, "2024_02_01")
 slt_prep$make_new_version_folder(version_name = date_vers2)
 
 # note - the dynamic fields update when you make new folders, so we won't see the dv1 path anymore
@@ -522,7 +509,7 @@ root_dv2   <- slt_prep$return_dynamic_fields()$VERS_PATHS
 invisible(file.create(file.path(root_dv2, fnames_my_models)))
 
 # Third run
-date_vers3 <- get_output_dir(root_to_model, "2024_02_01")
+date_vers3 <- get_output_dir(output_root, "2024_02_01")
 slt_prep$make_new_version_folder(version_name = date_vers3)
 root_dv3   <- slt_prep$return_dynamic_fields()$VERS_PATHS
 invisible(file.create(file.path(root_dv3, fnames_my_models)))
@@ -536,7 +523,7 @@ Now let's look at our file output structure, and central log.
 - We see three total folders, and the central log hasn't changed yet, because we haven't done any more 'marking'.
 
 ```{r two_new_runs_display_1, eval = flag_eval_chunk}
-print_tree()
+print_tree(output_root)
 ```
 
 ```{r two_new_runs_display_2, echo=FALSE, eval = flag_eval_chunk}
@@ -599,9 +586,9 @@ Looking at all three run-version logs we see:
 ```
 
 ```{r mark_best_dv3_display_4, eval = flag_eval_chunk}
-print_tree()
+print_tree(output_root)
 
-resolve_symlink(file.path(root_to_model, "best"))
+resolve_symlink(file.path(output_root, "best"))
 ```
 
 
@@ -637,9 +624,9 @@ The first version is now marked as `keep`.
 ```
 
 ```{r mark_keep_dv1_display_3, eval = flag_eval_chunk}
-print_tree()
+print_tree(output_root)
 
-resolve_symlink(file.path(root_to_model, "keep_2024_02_01.01"))
+resolve_symlink(file.path(output_root, "keep_2024_02_01.01"))
 ```
 
 
@@ -671,9 +658,9 @@ Inspect the central log - The second version is now marked as `remove_`.
 
 
 ```{r mark_remove_dv2_display_3, eval = flag_eval_chunk}
-print_tree()
+print_tree(output_root)
 
-resolve_symlink(file.path(root_to_model, "remove_2024_02_01.02"))
+resolve_symlink(file.path(output_root, "remove_2024_02_01.02"))
 ```
 
 
@@ -696,7 +683,7 @@ Next, we can handle them any way we choose.  For this demonstration, we'll delet
 - You could also build your own process to remove all ST-GPR models associated with `_remove`-marked runs to free quota space, for example.
 
 ```{r delete_folders_2, eval = flag_eval_chunk}
-for(dir_dv_remove in dt_to_remove$to_model$version_name){
+for(dir_dv_remove in dt_to_remove$output_root$version_name){
    slt_prep$delete_version_folders(
       version_name       = dir_dv_remove,
       user_entry         = list(comment = "Deleting dev folder"),
@@ -707,8 +694,8 @@ for(dir_dv_remove in dt_to_remove$to_model$version_name){
 # The default setting prompts user input, but the process can be automated, as for this vignette.
 # 
 # Do you want to delete the following folders?
-#   /tmp/RtmpRmKCTu/slt/to_model/2024_02_01.02
-#   /tmp/RtmpRmKCTu/slt/to_model/remove_2024_02_01.02 
+#   /tmp/RtmpRmKCTu/slt/output_root/2024_02_01.02
+#   /tmp/RtmpRmKCTu/slt/output_root/remove_2024_02_01.02 
 # 
 # 1: No
 # 2: Yes
@@ -735,7 +722,7 @@ Check the central log - since the folder is gone, this will maintain a record of
 - We should not see the second model run, since it was deleted.
 
 ```{r reports_display_2, eval = flag_eval_chunk}
-(data.table::fread(file.path(root_to_model, "report_key_versions.csv")))
+(data.table::fread(file.path(output_root, "report_key_versions.csv")))
 ```
 
 
@@ -752,7 +739,7 @@ slt_prep$make_reports()
 
 
 ```{r reports_display_1, eval = flag_eval_chunk}
-print_tree()
+print_tree(output_root)
 ```
 
 
@@ -760,10 +747,16 @@ The `report_all_logs.csv` file will scan _every_ run-version for a log, and show
 
 ```{r reports_display_3, eval = flag_eval_chunk}
 
-(data.table::fread(file.path(root_to_model, "report_all_logs.csv")))
+(data.table::fread(file.path(output_root, "report_all_logs.csv")))
 ```
 
 Two other reports sometimes diagnostically helpful are:
 
 - The `report_all_logs_symlink.csv` file will scan run-version folders for log of any other symlink type (in case the user hand-creates symlinks). 
 - The `report_all_logs_non_symlink.csv` file will scan run-version folders that are not currently marked, and show their current status.
+
+```{r clean_up2, include = FALSE, eval = TRUE}
+system(paste("rm -rf", output_root))
+options(.opt_width)
+options(.opt_mccores)
+```
