@@ -6,11 +6,15 @@ This is a resubmission. In this version I have:
 * Removed `:::` instances (only those required for tests & vignettes remain).
 * Added verbosity control to R/symlink_tool constructor.
   * All messaging comes through std_err stream.
-  * Messages for irregularities always trigger.
-* R/dir_tree() returns as well as prints.
-* Reset all options in vignettes.
-* Removed default paths from vignette print functions.
+  * Only print exceptions if verbose=FALSE.
+* R/dir_tree() has a return value.
+* All options in vignettes now reset.
 * There are no methods references to cite in the DESCRIPTION.
+* All filesystem operations use tempdir().
+  * Functions to not save to user filespace.
+  * Removed default paths from vignette print functions.
+  * If warnings arise, I am eager to address if provided files/line numbers.
+
 
 ## R CMD check results
 
