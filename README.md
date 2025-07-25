@@ -61,5 +61,7 @@ Please note that the vmTools project is contains a [Contribution Style Guide](ht
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/epi-sam/vmTools/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/epi-sam/vmTools/actions/workflows/R-CMD-check.yaml)
+
+![CRAN downloads](https://cranlogs.r-pkg.org/badges/grand-total/vmTools)
 <!-- badges: end -->
   
