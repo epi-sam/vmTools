@@ -1,5 +1,5 @@
 
-## <img width="200" height="200" alt="vmTools" src="https://github.com/user-attachments/assets/ff16e5f2-a560-42ff-b91c-f80fa900e641" />
+## <img width="200" height="200" alt="vmTools_logo_13" src="https://github.com/user-attachments/assets/8c745424-a466-41a3-b19e-adb7384c3e48" />
 
 <!-- badges: start -->
 [![R-CMD-check](https://github.com/epi-sam/vmTools/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/epi-sam/vmTools/actions/workflows/R-CMD-check.yaml)
