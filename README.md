@@ -1,5 +1,13 @@
 
-## <img width="400" height="400" alt="vmTools" src="https://github.com/user-attachments/assets/ff16e5f2-a560-42ff-b91c-f80fa900e641" />
+## <img width="200" height="200" alt="vmTools" src="https://github.com/user-attachments/assets/ff16e5f2-a560-42ff-b91c-f80fa900e641" />
+
+-----
+
+<!-- badges: start -->
+[![R-CMD-check](https://github.com/epi-sam/vmTools/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/epi-sam/vmTools/actions/workflows/R-CMD-check.yaml)
+
+![CRAN downloads](https://cranlogs.r-pkg.org/badges/grand-total/vmTools)
+<!-- badges: end -->
 
 ## Installation
 
@@ -57,9 +65,4 @@ Please note that the vmTools project is released with a [Contributor Code of Con
 
 Please note that the vmTools project is contains a [Contribution Style Guide](https://github.com/epi-sam/vmTools/blob/main/.github/CONTRIBUTING.md). By contributing to this project, you agree to read and adhere to these styles.
 
-<!-- badges: start -->
-[![R-CMD-check](https://github.com/epi-sam/vmTools/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/epi-sam/vmTools/actions/workflows/R-CMD-check.yaml)
-
-![CRAN downloads](https://cranlogs.r-pkg.org/badges/grand-total/vmTools)
-<!-- badges: end -->
   
