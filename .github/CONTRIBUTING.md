@@ -38,18 +38,33 @@ Lean into the [Tidyverse Style Guide](https://style.tidyverse.org) when possible
 ## Load reference files --------------------------------------------------------
 ```
 
+
+
+
+## Tests
+
+- **Testability**: Fuctions should be testable, and tests should pass before PRs are submitted.
+- **Conventions**: Aim for "R-like" behavior e.g. functions return objects whenever possible.
+  - **Resources**: https://contributor.r-project.org/cran-cookbook/code_issues.html
+- **Test driven development**: Test core functionality and likely edge cases; expand tests as issues arise.
+  - **Coverage** There is no need for 100% test coverage.
+
+
+
+## Style
+
 - **Comments**: Reserve comments for code intent, not what the code does. Comments should explain why the code is written the way it is, not what the code does. If the code is not self-explanatory, rewrite the code to be more clear.
 - **Comma-separate lists/vectors on new lines with leading commas**: This makes lists easier to read and edit (SQL standard).
    - **Newline after `(` and `[`**: Except in `data.table` calls, by convention.  Avoid hanging indentation.
-   - **Align list elements**: Align lists by assignment operator, and names when possible. 
+   - **Align list elements**: Align lists by assignment operator, and names when possible. The `remedy` package creates an Rstudio plugin to assign a hotkey (I like `ctrl + alt + =` and `ctrl + alt + -` for `=` and `<-`, respectively.)
 
 ```r
 
-# Bad
+# Not good
 my_list <- list(name1 = "value1", 
                 name2 = "value2", 
                 name3 = "value3")
-# OK
+# Good
 my_list <- list(
   name1   = "value1"
   , name2 = "value2"
@@ -83,8 +98,8 @@ my_list <- list(
 ### Function Arguments
 
 - **Order**: Arguments should be ordered from most general to most specific.
-  - **First argument**: When a function primarily operates on some object `x`, the first argument is _always_ be `x`.
-  - **Second argument**: For I/O functions, if the first argument is an object, the second argument is _always_ be a `/file/path`.
+  - **First argument**: When a function primarily operates on some object `x`, the first argument is _always_ `x`.
+  - **Second argument**: For I/O functions, if the first argument is an object, the second argument is _always_ a `/file/path`.
 - **Default arguments**: Avoid default arguments when possible. If you must use them, use `NULL` as the default value, and handle `NULL` behavior explicitly in the function.
 - **Argument data types**: Avoid types in argument names - use `data` instead of `data_df` or `data_tbl`.  Types in argument names makes function maintenance more difficult.  If a type needs to change, then the function argument also needs to change, which breaks backward compatibility.  Handle type-checking explicitly within the function instead.
 
