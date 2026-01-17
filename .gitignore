@@ -9,4 +9,6 @@ inst/local_installer.R
 /doc/
 /Meta/
 CRAN-SUBMISSION
-
+CRAN*
+cran*
+.Rprofile
