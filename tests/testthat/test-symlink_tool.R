@@ -108,8 +108,24 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
       })
    )
 
+   # Empty Directories ---------------------------------------------------------
 
-   # Paths ------------------------------------------------------------------------
+   test_that("SLT roundups run cleanly on empty directories",
+             {
+                expect_no_error({
+                   slt$roundup_best()
+                   slt$roundup_keep()
+                   slt$roundup_remove()
+                   slt$roundup_unmarked()
+                   expect_message(
+                      slt$roundup_by_date(Sys.Date(), "lt")
+                      , regexp = "Formatting date with time-zone"
+                   )
+                })
+             })
+
+
+   # Paths ---------------------------------------------------------------------
 
    # file names used in tests - draw from within tool to ensure consistency
    fname_dv_log <- slt$return_dictionaries()$log_name

@@ -9,9 +9,9 @@ if (FALSE) {
 system(paste("rm -rf", test_root))
 
 root_list <- list(
-   root_input = clean_path(test_root, "to_model/gbd2021"),
-   root_ouput = clean_path(test_root, "modeled/gbd2021"),
-   root_third = clean_path(test_root, "third_root/gbd2021")
+   root_input = clean_path(test_root, "first_root"),
+   root_ouput = clean_path(test_root, "second_root"),
+   root_third = clean_path(test_root, "third_root")
 )
 lapply(root_list, dir.create, recursive = TRUE, showWarnings = FALSE)
 # SLT$new()
@@ -20,6 +20,13 @@ slt <- SLT$new(
    , user_central_log_root = test_root
    # , csv_reader = "read.csv"
 )
+
+# should run cleanly with empty directories
+slt$roundup_best()
+slt$roundup_keep()
+slt$roundup_remove()
+slt$roundup_unmarked()
+slt$roundup_by_date(Sys.Date(), "lt")
 
 # Go through all this again
 slt$make_new_version_folder(version_name = "2024_02_29.1")
