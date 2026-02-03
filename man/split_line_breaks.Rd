@@ -15,3 +15,4 @@ All elements of the character vector are split by `\\n` into new elements.
 \description{
 Split a character vector by line breaks
 }
+\keyword{internal}

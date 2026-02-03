@@ -16,15 +16,18 @@ clean_path <- function(..., normalize = TRUE, mustWork = FALSE){
    if (normalize == TRUE){
       pths <- normalizePath(pths, mustWork = mustWork)
    }
-   pths <- unlist(
-      lapply(
-         pths, function(pth) {
-            pth <- gsub("\\\\", "/", pth)
-            while (grepl("//", pth) == TRUE) pth <- gsub("//", "/", pth)
-            pth <- sub("/$", "/", pth)
-            pth
-         }
+
+   if (length(pths) > 0) { # NULL if pths is empty - keep chr return type stable
+      pths <- unlist(
+         lapply(
+            pths, function(pth) {
+               pth <- gsub("\\\\", "/", pth)
+               while (grepl("//", pth) == TRUE) pth <- gsub("//", "/", pth)
+               pth <- sub("/$", "/", pth)
+               pth
+            }
+         )
       )
-   )
+   }
    pths
 }

@@ -1,6 +1,7 @@
 #' Cross platform helper to find number of cores
 #'
 #' @returns [int]
+#' @keywords internal
 find_n_cores <- function(){
    if (.Platform$OS.type == "windows") {
       as.integer(Sys.getenv("NUMBER_OF_PROCESSORS"))

@@ -12,3 +12,4 @@ find_n_cores()
 \description{
 Cross platform helper to find number of cores
 }
+\keyword{internal}

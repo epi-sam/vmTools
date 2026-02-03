@@ -12,3 +12,4 @@ is_windows_admin()
 \description{
 If running on windows, check if the user has admin privileges
 }
+\keyword{internal}

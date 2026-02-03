@@ -9,9 +9,9 @@ if (FALSE) {
 system(paste("rm -rf", test_root))
 
 root_list <- list(
-   root_input = clean_path(test_root, "to_model/gbd2021"),
-   root_ouput = clean_path(test_root, "modeled/gbd2021"),
-   root_third = clean_path(test_root, "third_root/gbd2021")
+   first_root = clean_path(test_root, "first_root"),
+   second_root = clean_path(test_root, "second_root"),
+   third_root = clean_path(test_root, "third_root")
 )
 lapply(root_list, dir.create, recursive = TRUE, showWarnings = FALSE)
 # SLT$new()
@@ -20,6 +20,13 @@ slt <- SLT$new(
    , user_central_log_root = test_root
    # , csv_reader = "read.csv"
 )
+
+# should run cleanly with empty directories
+slt$roundup_best()
+slt$roundup_keep()
+slt$roundup_remove()
+slt$roundup_unmarked()
+slt$roundup_by_date(Sys.Date(), "lt")
 
 # Go through all this again
 slt$make_new_version_folder(version_name = "2024_02_29.1")
@@ -30,10 +37,10 @@ slt$make_new_version_folder(version_name = "2024_02_29.3")
 slt$get_common_new_version_name()
 
 # Make a non-SLT folder, try to re-create it, ensure a log writes
-dir.create(clean_path(root_list$root_input, "20240229_handmade"), recursive = TRUE, showWarnings = FALSE)
+dir.create(clean_path(root_list$first_root, "20240229_handmade"), recursive = TRUE, showWarnings = FALSE)
 slt$make_new_version_folder(version_name = "20240229_handmade")
 # now delete the non-SLT folder log, mark that folder 'keep' and also expect a log to be created
-file.remove(clean_path(root_list$root_input, "20240229_handmade", "log_version_history.csv"))
+file.remove(clean_path(root_list$first_root, "20240229_handmade", "log_version_history.csv"))
 slt$mark_keep(version_name = "20240229_handmade", user_entry = list(comment = "testing mark on new folder"))
 # Ensure validation performs correctly
 # slt$mark_best(version_name = "2024_02_29.1", user_entry = list(comment = ""))

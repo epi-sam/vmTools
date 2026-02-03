@@ -10,6 +10,7 @@
 #' @return [none] stop if assertion fails
 #'
 #' @family assertions
+#' @keywords internal
 assert_scalar <- function(x) {
    x_name <- deparse(substitute(x))
    if (!(is.atomic(x) && length(x) == 1L)) {
@@ -24,6 +25,7 @@ assert_scalar <- function(x) {
 #' @return [none] stop if assertion fails
 #'
 #' @family assertions
+#' @keywords internal
 assert_scalar_not_empty = function(x) {
    assert_scalar(x)
    if (!isTRUE(validate_not_empty(x))) {
@@ -40,6 +42,7 @@ assert_scalar_not_empty = function(x) {
 #' @return [none] stop if assertion fails
 #'
 #' @family assertions
+#' @keywords internal
 assert_type = function(x, type) {
    assert_scalar(type)
    stopifnot(is.character(type))
@@ -67,6 +70,7 @@ assert_type = function(x, type) {
 #' @return [none] stop if assertion fails
 #'
 #' @family assertions
+#' @keywords internal
 assert_named_list = function(x){
    if(!is.null(x)){
       err_msg <- "x must be a named list, not vector or data.frame (list names may not be whitespace)"
@@ -87,6 +91,7 @@ assert_named_list = function(x){
 #' @return [none] stop if assertion fails
 #'
 #' @family assertions
+#' @keywords internal
 assert_dir_exists = function(x){
    if(is.null(x)) stop("x is NULL")
    assert_scalar(x)
@@ -94,3 +99,22 @@ assert_dir_exists = function(x){
    if(!dir.exists(root)) stop("root does not exist: ", x)
 }
 
+#' Assert all elements of x are in y
+#'
+#' @param x [vector] some vector
+#' @param y [vector] some vector
+#'
+#' @return [none] stop if any elements of x are not in y
+#'
+#' @family assertions
+#' @keywords internal
+assert_x_in_y <- function(x, y){
+   stopifnot(is.vector(x))
+   stopifnot(is.vector(y))
+   absent <- setdiff(x, y)
+   if (length(absent) > 0) {
+      x_name <- deparse(substitute(x))
+      y_name <- deparse(substitute(y))
+      stop(sprintf("required in %s but absent in %s: %s", x_name, y_name, toString(absent)))
+   }
+}

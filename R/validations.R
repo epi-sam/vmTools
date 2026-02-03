@@ -11,6 +11,7 @@
 #' @return [lgl] FALSE if empty in some way, TRUE otherwise
 #'
 #' @family validations
+#' @keywords internal
 validate_not_empty = function(x) {
    # Check for missing arguments
    if (missing(x)) return(FALSE)
@@ -35,6 +36,7 @@ validate_not_empty = function(x) {
 #' @return [lgl] TRUE if directory exists, FALSE otherwise
 #'
 #' @family validations
+#' @keywords internal
 validate_dir_exists = function(x, verbose = TRUE){
    assert_scalar(x)
    root <- suppressWarnings(normalizePath(x))
@@ -53,6 +55,7 @@ validate_dir_exists = function(x, verbose = TRUE){
 #' @return [lgl] TRUE / FALSE
 #'
 #' @family validations
+#' @keywords internal
 is_an_error = function(x) {
    return(inherits(x, "simpleError") || inherits(x, "try-error"))
 }

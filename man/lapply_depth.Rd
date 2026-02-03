@@ -22,3 +22,4 @@ lapply_depth(.x, .depth, .f, ...)
 Very simple replacement for purrr::map_depth to remove package dependency,
 but not very robust.  Internal package use only in select cases.
 }
+\keyword{internal}

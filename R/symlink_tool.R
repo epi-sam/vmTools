@@ -1294,7 +1294,7 @@ SLT <- R6::R6Class(
 
          # reporting requires logs to be in a consistent location
          has_bare_log <- file.exists(clean_path(folder_dt$dir_name_resolved, basename(private$DICT$log_name)))
-         catch <- lapply(folder_dt[has_bare_log, dir_name_resolved], private$move_log_to_subdir)
+         catch        <- lapply(folder_dt[has_bare_log, dir_name_resolved], private$move_log_to_subdir)
 
          return(folder_dt)
       },
@@ -1530,6 +1530,62 @@ SLT <- R6::R6Class(
          return(folder_dt[version_name %in% dv_by_date, .(version_name, dir_name, dir_name_resolved)])
 
       },
+
+      #  Combine roundup query results from all roots into a single data.table
+      #
+      #  Apply a query function to each root in
+      #  `private$DICT$ROOTS`, adds a `root_name` column to each result, and
+      #  combines all results into a single data.table ordered by root_name and
+      #  version_name. Will fail if query results have inconsistent schemas
+      #  across roots.
+      #
+      #  @param query_function [function] A private query function to apply to
+      #    each root (e.g., `private$query_all_best_symlinks`)
+      #  @param ... Additional arguments to pass to the query_function
+      #
+      #  @return [data.table] A single data.table with results from all roots,
+      #    with `root_name` as the first column, ordered by root_name then
+      #    version_name. Returns an empty data.table with proper schema if no
+      #    results found.
+      combine_roundup_results = function(query_function, ...){
+         # Get named list of roots
+         roots      <- private$DICT$ROOTS
+         root_names <- names(roots)
+
+         # Apply query function to each root, preserving names
+         results_list <- lapply(root_names, function(root_name) {
+            root <- roots[[root_name]]
+            dt   <- query_function(root, ...)
+
+            # Add root_name column even if dt is empty
+            if (nrow(dt) == 0) {
+               dt[, root_name := character(0)]
+            } else {
+               dt[, root_name := root_name]
+            }
+
+            return(dt)
+         })
+
+         # Combine all results - will fail if schemas differ
+         combined_dt <- data.table::rbindlist(results_list)
+         assert_x_in_y(c("root_name", "version_name"), names(combined_dt))
+
+         # Reorder columns to put root_name first
+         data.table::setcolorder(
+               x          = combined_dt
+               , neworder = "root_name"
+               , before   = 1
+         )
+
+         # Order by root_name, then version_name
+         if (nrow(combined_dt) > 0) {
+            data.table::setorderv(combined_dt, c("root_name", "version_name"))
+         }
+
+         return(combined_dt)
+      },
+
 
       ## Reports ---------------------------------------------------------------
 
@@ -2611,9 +2667,9 @@ SLT <- R6::R6Class(
       #' Return both the symlink and the resolved symlink (folder the symlink
       #' points to)
       #'
-      #' @return [list] list of data.tables - one for each `root`
+      #' @return [data.table] A single data.table with results from all roots, with `root_name` as the first column
       roundup_best = function(){
-         return(lapply(private$DICT$ROOTS, private$query_all_best_symlinks))
+         return(private$combine_roundup_results(private$query_all_best_symlinks))
       },
 
       #' @description
@@ -2622,9 +2678,9 @@ SLT <- R6::R6Class(
       #' Return both the symlink and the resolved symlink (folder the symlink
       #' points to)
       #'
-      #' @return [list] list of data.tables - one for each `root`
+      #' @return [data.table] A single data.table with results from all roots, with `root_name` as the first column
       roundup_keep = function(){
-         return(lapply(private$DICT$ROOTS, private$query_all_keep_symlinks))
+         return(private$combine_roundup_results(private$query_all_keep_symlinks))
       },
 
       #' @description
@@ -2633,9 +2689,9 @@ SLT <- R6::R6Class(
       #' Return both the symlink and the resolved symlink (folder the symlink
       #' points to)
       #'
-      #' @return [list] list of data.tables - one for each `root`
+      #' @return [data.table] A single data.table with results from all roots, with `root_name` as the first column
       roundup_remove = function(){
-         return(lapply(private$DICT$ROOTS, private$query_all_remove_symlinks))
+         return(private$combine_roundup_results(private$query_all_remove_symlinks))
       },
 
       #' @description
@@ -2644,9 +2700,9 @@ SLT <- R6::R6Class(
       #' Useful if you're rapidly iterating, have only marked a couple folders,
       #' and want to remove the rest.
       #'
-      #' @return [list] list of data.tables - one for each `root`
+      #' @return [data.table] A single data.table with results from all roots, with `root_name` as the first column
       roundup_unmarked = function(){
-         return(lapply(private$DICT$ROOTS, private$query_all_unmarked))
+         return(private$combine_roundup_results(private$query_all_unmarked))
       },
 
       #' @description
@@ -2665,7 +2721,7 @@ SLT <- R6::R6Class(
       #'   or 2020/01/01"
       #' @param date_selector [chr] See docstring explanation.
       #'
-      #' @return [list] list of data.tables - one for each `root`
+      #' @return [data.table] A single data.table with results from all roots, with `root_name` as the first column
       #'
       #'
       #'
@@ -2691,12 +2747,11 @@ SLT <- R6::R6Class(
          #    return(private$query_by_date(root, user_date_parsed, date_selector))
          # }
          private$msg_sometimes("Folders with symlinks will have duplicate rows by `version_name` (one row for each unique `dir_name`) - showing all for completeness.\n")
-         return(
-            lapply(private$DICT$ROOTS,
-                   private$query_by_date,
-                   user_date_parsed = user_date_parsed,
-                   date_selector    = date_selector)
-         )
+         return(private$combine_roundup_results(
+            query_function   = private$query_by_date,
+            user_date_parsed = user_date_parsed,
+            date_selector    = date_selector
+         ))
 
       },
 

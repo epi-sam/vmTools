@@ -16,3 +16,4 @@ dir_tree(path = ".", level = Inf, prefix = "")
 \description{
 Print a directory tree to stdout
 }
+\keyword{internal}
