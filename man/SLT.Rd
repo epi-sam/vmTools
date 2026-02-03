@@ -313,7 +313,7 @@ points to)
 }
 
 \subsection{Returns}{
-[list] list of data.tables - one for each `root`
+[data.table] A single data.table with results from all roots, with `root_name` as the first column
 }
 }
 \if{html}{\out{<hr>}}
@@ -329,7 +329,7 @@ points to)
 }
 
 \subsection{Returns}{
-[list] list of data.tables - one for each `root`
+[data.table] A single data.table with results from all roots, with `root_name` as the first column
 }
 }
 \if{html}{\out{<hr>}}
@@ -345,7 +345,7 @@ points to)
 }
 
 \subsection{Returns}{
-[list] list of data.tables - one for each `root`
+[data.table] A single data.table with results from all roots, with `root_name` as the first column
 }
 }
 \if{html}{\out{<hr>}}
@@ -361,7 +361,7 @@ and want to remove the rest.
 }
 
 \subsection{Returns}{
-[list] list of data.tables - one for each `root`
+[data.table] A single data.table with results from all roots, with `root_name` as the first column
 }
 }
 \if{html}{\out{<hr>}}
@@ -393,7 +393,7 @@ or 2020/01/01"}
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[list] list of data.tables - one for each `root`
+[data.table] A single data.table with results from all roots, with `root_name` as the first column
 }
 }
 \if{html}{\out{<hr>}}

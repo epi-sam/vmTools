@@ -9,6 +9,7 @@
 #'
 #' @return [int] largest version in directory tree or 0 if there are no version OR
 #' the directory tree does not exist
+#' @keywords internal
 get_latest_output_date_index <- function(dir, date) {
    currentfolders <- list.files(dir)
 
@@ -36,6 +37,7 @@ get_latest_output_date_index <- function(dir, date) {
 #' @param root [chr] path to root of output results
 #'
 #' @return [chr] path to latest output directory
+#' @keywords internal
 find_latest_output_dir <- function(root) {
    if (!dir.exists(root)) {
       stop(sprintf("root %s does not exist", root))

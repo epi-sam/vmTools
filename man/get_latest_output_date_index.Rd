@@ -19,3 +19,4 @@ the directory tree does not exist
 directories are assumed to be named in YYYY_MM_DD.VV format with sane
 year/month/date/version values.
 }
+\keyword{internal}

@@ -9,6 +9,8 @@ test_that("dir_tree produces correct top-level repo file structure and formattin
                "         |  `-- \033[32mdata.txt\033[0m",
                "         |-- \033[1;35m1999_09_09.02\033[0m",
                "         |  `-- \033[32mdata.txt\033[0m",
+               "         |-- \033[1;35m1999_09_09.15char\033[0m",
+               "         |  `-- \033[32mdata.txt\033[0m",
                "         `-- \033[1;35m1999_09_09.NA\033[0m",
                "            `-- \033[32mQC_1999_09_09.01\033[0m"))
    )

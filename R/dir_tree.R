@@ -5,26 +5,27 @@
 #' @param prefix [chr] The prefix to add to each line
 #'
 #' @return NULL
+#' @keywords internal
 dir_tree <- function(path = ".", level = Inf, prefix = "") {
 
    if(!file.exists(path)) {
       stop("Failed to search directory ", path, ": no such file or directory")
    }
    # ANSI escape codes for colors and formatting
-   green <- "\033[32m"  # Green for files inside subdirectories
+   green        <- "\033[32m"  # Green for files inside subdirectories
    bright_white <- "\033[97m"  # Bright white for files in the base directory
-   bold_purple <- "\033[1;35m"  # Bold purple for folders
-   bold_blue <- "\033[1;34m"  # Bold blue for top-level folders
-   reset <- "\033[0m"  # Reset to default color
+   bold_purple  <- "\033[1;35m"  # Bold purple for folders
+   bold_blue    <- "\033[1;34m"  # Bold blue for top-level folders
+   reset        <- "\033[0m"  # Reset to default color
 
    is_markdown <- knitr::is_html_output() || knitr::is_latex_output()
    if (is_markdown) {
       # Remove ANSI escape codes for markdown output - they don't render correctly
-      green <- ""
+      green        <- ""
       bright_white <- ""
-      bold_purple <- ""
-      bold_blue <- ""
-      reset <- ""
+      bold_purple  <- ""
+      bold_blue    <- ""
+      reset        <- ""
    }
 
    files <- list.files(path, full.names = TRUE)

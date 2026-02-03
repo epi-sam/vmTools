@@ -20,6 +20,8 @@ Other assertions:
 \code{\link{assert_dir_exists}()},
 \code{\link{assert_named_list}()},
 \code{\link{assert_scalar}()},
-\code{\link{assert_type}()}
+\code{\link{assert_type}()},
+\code{\link{assert_x_in_y}()}
 }
 \concept{assertions}
+\keyword{internal}

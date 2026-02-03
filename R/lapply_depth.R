@@ -9,6 +9,7 @@
 #' @param ... [any] Additional arguments to pass to .f
 #'
 #' @return [list] List with function applied at target depth
+#' @keywords internal
 lapply_depth <- function(.x, .depth, .f, ...) {
    assert_named_list(.x)
     if (.depth == 0) {
