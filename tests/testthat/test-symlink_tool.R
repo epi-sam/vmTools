@@ -8,24 +8,24 @@
 make_directory <- function(path) dir.create(path, recursive = TRUE, showWarnings = FALSE)
 root_base      <- clean_path(tempdir(), "slt")
 root_list      <- list(
-   root_input  = clean_path(root_base, "dir_1")
+   root_input    = clean_path(root_base, "dir_1")
    , root_output = clean_path(root_base, "dir_2")
 )
 make_directory(root_list[["root_input"]])
 make_directory(root_list[["root_output"]])
 # dir_tree(root_base)
 dv_list <- list(
-   "1990_01_01" = "1990_01_01"
+   "1990_01_01"   = "1990_01_01"
    , "1990_01_02" = "1990_01_02"
    , "1990_01_03" = "1990_01_03"
 )
-path_list <- lapply(root_list, function(x) clean_path(x, dv_list))
-path_list <- lapply(path_list, function(x) {names(x) <- names(dv_list); x})
+path_list      <- lapply(root_list, function(x) clean_path(x, dv_list))
+path_list      <- lapply(path_list, function(x) {names(x) <- names(dv_list); x})
 path_list_logs <- lapply(path_list, function(x) clean_path(x, 'logs'))
 
 ue_list <- list(
-   best = list(comment = "Testing mark best")
-   , keep = list(comment = "Testing mark keep")
+   best     = list(comment = "Testing mark best")
+   , keep   = list(comment = "Testing mark keep")
    , remove = list(comment = "Testing mark remove")
    , unmark = list(comment = "Testing mark unmark")
 )
@@ -401,8 +401,8 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    test_that("read.csv alternate CSV reader works",
              {
                 expect_equal(
-                   slt$roundup_by_date(user_date = "2023-01-01", date_selector = "gte")$root_input
-                   , slt_readcsv$roundup_by_date(user_date = "2023-01-01", date_selector = "gte")$root_input
+                   slt$roundup_by_date(user_date = "2023-01-01", date_selector = "gte")[root_name == "root_input"]
+                   , slt_readcsv$roundup_by_date(user_date = "2023-01-01", date_selector = "gte")[root_name == "root_input"]
                 )
              })
 
@@ -542,11 +542,24 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    test_that("Roundup by date works",
              {
                 expect_equal(
-                   slt$roundup_by_date(user_date = "2023-01-01", date_selector = "gte")$root_input[1:3, ]
-                   , data.table(
-                      version_name = unlist(dv_list)
-                      , dir_name = clean_path(path_list$root_input)
-                      , dir_name_resolved = clean_path(path_list$root_input)
+                   slt$roundup_by_date(user_date = "2023-01-01", date_selector = "gte")[root_name == "root_input", ]
+                   , data.table(root_name = rep("root_input", 6)
+                                , version_name = c(rep(dv_list[[1]],3)
+                                                   , rep(dv_list[[2]],2)
+                                                   , rep(dv_list[[3]],1))
+                                , dir_name = clean_path(root_list$root_input
+                                                        , c(
+                                                           dv_list[[1]]
+                                                           , "bad_symlink"
+                                                           , sprintf("remove_%s", dv_list[[1]])
+                                                           , dv_list[[2]]
+                                                           , sprintf("keep_%s", dv_list[[2]])
+                                                           , dv_list[[3]]
+                                                        )
+                                                        , normalize = FALSE)
+                                , dir_name_resolved = c(rep(clean_path(path_list$root_input[1]),3)
+                                                        , rep(clean_path(path_list$root_input[2]),2)
+                                                        , rep(clean_path(path_list$root_input[3]),1))
                    )
                 )
              })
@@ -557,7 +570,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    test_that("Roundup best works",
              {
                 expect_equal(
-                   slt$roundup_best()$root_input$version_name
+                   slt$roundup_best()[root_name == "root_input", version_name]
                    ,"1990_01_03"
                 )
              })
@@ -565,7 +578,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    test_that("Roundup keep works",
              {
                 expect_equal(
-                   slt$roundup_keep()$root_input$version_name
+                   slt$roundup_keep()[root_name == "root_input", version_name]
                    ,"1990_01_02"
                 )
              })
@@ -573,7 +586,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    test_that("Roundup remove works",
              {
                 expect_equal(
-                   slt$roundup_remove()$root_input$version_name
+                   slt$roundup_remove()[root_name == "root_input", version_name]
                    ,"1990_01_01"
                 )
              })
@@ -582,14 +595,14 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
    test_that("Roundup unmarked works, even with a handmande-symlink pointing to a folder",
              {
-                unmarked_list <- slt$roundup_unmarked()
+                unmarked_dt <- slt$roundup_unmarked()
                 expect_equal(
-                   unmarked_list$root_input$version_name
+                   unmarked_dt[root_name == "root_input", version_name]
                    , c("1990_01_02", "1990_01_03")
                 )
 
                 expect_equal(
-                   unmarked_list$root_output$version_name
+                   unmarked_dt[root_name == "root_output", version_name]
                    , c("1990_01_01", "1990_01_02", "1990_01_03")
                 )
 
@@ -601,7 +614,11 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    test_that("Folder deletion works, and only for a folder marked _remove",
              {
                 expect_message(
-                   slt$delete_version_folders(version_name = "1990_01_02", user_entry = list(comment = "testing folder deletion without marking"), require_user_input = FALSE)
+                   slt$delete_version_folders(
+                      version_name        = "1990_01_02"
+                      , user_entry        = list(comment = "testing folder deletion without marking")
+                      , require_user_input = FALSE
+                   )
                    , regexp = "No valid `remove_` symlink found:"
                 )
                 expect_true(
@@ -609,7 +626,11 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                 )
                 slt$mark_remove(version_name = "1990_01_02", user_entry = list(comment = "testing folder deletion"))
                 expect_message(
-                   slt$delete_version_folders(version_name = "1990_01_02", user_entry = list(comment = "testing folder deletion"), require_user_input = FALSE)
+                   slt$delete_version_folders(
+                      version_name         = "1990_01_02"
+                      , user_entry         = list(comment = "testing folder deletion")
+                      , require_user_input = FALSE
+                   )
                    , regexp = paste0("Deleting ", clean_path(path_list$root_input[["1990_01_02"]]))
                 )
                 expect_false(

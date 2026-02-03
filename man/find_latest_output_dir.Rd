@@ -15,3 +15,4 @@ find_latest_output_dir(root)
 \description{
 Used only for signaling/messaging
 }
+\keyword{internal}

@@ -5,6 +5,7 @@
 #' @param prefix [chr] The prefix to add to each line
 #'
 #' @return NULL
+#' @keywords internal
 dir_tree <- function(path = ".", level = Inf, prefix = "") {
 
    if(!file.exists(path)) {

@@ -12,3 +12,4 @@ is_windows()
 \description{
 Is the current OS windows
 }
+\keyword{internal}
