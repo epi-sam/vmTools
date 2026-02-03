@@ -1,3 +1,13 @@
+# vmTools 1.1.0
+
+## Breaking:
+
+`roundup_x()` family 
+
+- now returns single table of paths, rather than list of tables by root_name
+- tables have root_name column for clarity
+- table are sorted by root_name and version_name
+
 # vmTools 1.0.1 (2025-07-24)
 
 Cran resubmission:

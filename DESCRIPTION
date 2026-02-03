@@ -1,7 +1,7 @@
 Package: vmTools
 Type: Package
 Title: Version Management Tools on the File System
-Version: 1.0.1
+Version: 1.1.0
 Authors@R: c(
     person("Sam", "Byrne", email = "ssbyrne@uw.edu"
     , role = c("aut", "cre", "cph")
