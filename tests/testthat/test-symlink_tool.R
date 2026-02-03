@@ -547,7 +547,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                                 , version_name = c(rep(dv_list[[1]],3)
                                                    , rep(dv_list[[2]],2)
                                                    , rep(dv_list[[3]],1))
-                                , dir_name = clean_path(root_list$root_input
+                                , dir_name = clean_path( clean_path(root_list$root_input) # for Mac
                                                         , c(
                                                            dv_list[[1]]
                                                            , "bad_symlink"
