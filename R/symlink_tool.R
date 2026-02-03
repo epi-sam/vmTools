@@ -1294,7 +1294,7 @@ SLT <- R6::R6Class(
 
          # reporting requires logs to be in a consistent location
          has_bare_log <- file.exists(clean_path(folder_dt$dir_name_resolved, basename(private$DICT$log_name)))
-         catch <- lapply(folder_dt[has_bare_log, dir_name_resolved], private$move_log_to_subdir)
+         catch        <- lapply(folder_dt[has_bare_log, dir_name_resolved], private$move_log_to_subdir)
 
          return(folder_dt)
       },
