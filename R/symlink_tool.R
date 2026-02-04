@@ -3,10 +3,10 @@
 # Known issue: https://github.com/rstudio/rmarkdown/issues/187
 .datatable.aware = TRUE
 
-#> WARNING: DO NOT touch '.__enclos_env__' unless you want the tool to break
-#> ROXYGEN
-#>   - Roxygen docstrings cannot be added to private methods
-#>   - https://stackoverflow.com/questions/45431845/documenting-r6-classes-and-methods-within-r-package-in-rstudio
+# WARNING: DO NOT touch '.__enclos_env__' unless you want the tool to break
+# ROXYGEN
+#   - Roxygen docstrings cannot be added to private methods
+#   - https://stackoverflow.com/questions/45431845/documenting-r6-classes-and-methods-within-r-package-in-rstudio
 
 
 #' @title SymlinkTool R6 class
@@ -23,21 +23,21 @@ SLT <- R6::R6Class(
 
       # Dictionaries -----------------------------------------------------------
 
-      #> All private$___ items are functions, except for:
-      #> - constants stored in the DICT sub-list
-      #> - dynamic values stored in the DYNAMIC sub-list
+      # All private$___ items are functions, except for:
+      # - constants stored in the DICT sub-list
+      # - dynamic values stored in the DYNAMIC sub-list
 
       DICT = list(
 
-         #> The tool expects that each 'root' has a bunch of 'version_name' folders of pipeline output
-         #> - each 'version_name' represents a fresh run of a data pipeline
-         #> - each 'version_name' must be a folder one level under each 'root'
-         #> - the tool expects that each 'version_name' exists in each 'root',
-         #>   - i.e. you could split pipeline outputs from the same `version_name` into different 'root' folders
-         #> - the tool can work with heterogeneous 'root' folders
-         #>   - i.e. you don't need exactly the same 'version_names' in each, but the tool will try to manage `version_names` across `roots` in parallel
-         #>
-         #> Every time the tool runs a 'mark' operation, it will update the report on tool-generated active symlinks
+         # The tool expects that each 'root' has a bunch of 'version_name' folders of pipeline output
+         # - each 'version_name' represents a fresh run of a data pipeline
+         # - each 'version_name' must be a folder one level under each 'root'
+         # - the tool expects that each 'version_name' exists in each 'root',
+         #   - i.e. you could split pipeline outputs from the same `version_name` into different 'root' folders
+         # - the tool can work with heterogeneous 'root' folders
+         #   - i.e. you don't need exactly the same 'version_names' in each, but the tool will try to manage `version_names` across `roots` in parallel
+         #
+         # Every time the tool runs a 'mark' operation, it will update the report on tool-generated active symlinks
 
 
          # Control-flow flags
@@ -388,11 +388,11 @@ SLT <- R6::R6Class(
       #  Assert the date_selector shorthand is valid.
       #
       #  Examples:
-      #  gt = 'greater_than'
+      #  gt  = 'greater_than'
       #  gte = 'greater_than_equal_to'
-      #  lt = 'less_than'
+      #  lt  = 'less_than'
       #  lte = 'less_than_equal_to'
-      #  e = 'equal'
+      #  e   = 'equal'
       #
       #  Used by `roundup_by_date`
       #
@@ -2247,10 +2247,6 @@ SLT <- R6::R6Class(
             if(length(user_root_list) == 1){
                user_central_log_root <- data.table::copy(user_root_list)
             }
-            # 2025 Jun 20 - not sure if I want to allow this since it's ambiguous
-            # if (length(user_root_list) > 1){
-            #    user_central_log_root <- user_root_list[1]
-            # }
          }
 
          # try to boost efficiency
@@ -2382,10 +2378,6 @@ SLT <- R6::R6Class(
                                             log_schema = private$DICT$log_schema)
       },
 
-      # TODO SB - 2025 Mar 12 - working on a custom print method - frustrating
-      # print = function() {
-         # cat("\n\nThis is an instance of SymlinkTool.\n")
-      # },
 
       ## Show Internals --------------------------------------------------------
 
