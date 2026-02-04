@@ -1,3 +1,23 @@
+# vmTools 1.2.0
+
+## Features:
+
+Symlink Composer (SLC)
+
+- New class that takes a list of Symlink Tools as its main argument.
+- Use SLC to compose sets of e.g. "best" symlinks across multiple roots/projects.
+  - Useful if you have various datasets that are all "best", produced at 
+  different times, but all still "go together" in a meaningful way.
+  - Currently supports all `roundup_x()` functions.
+
+## Breaking:
+
+Symlink Tool constructor args have changed
+
+- SLT$new() 
+  - user_root_list is now root_list
+  - user_central_log_root is now central_log_root
+
 # vmTools 1.1.0
 
 ## Breaking:
