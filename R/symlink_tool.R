@@ -47,9 +47,6 @@ SLT <- R6::R6Class(
             allow_schema_repair = NULL
          ),
 
-         # Central log control
-         use_central_log = TRUE,  # Default behavior - use central log
-
          ## Initialize: user-defined
 
          ROOTS = NULL,
@@ -2214,14 +2211,6 @@ SLT <- R6::R6Class(
       #' }
       #' @param timezone [chr] Default `America/Los_Angeles`.  The timezone to
       #'   use for datestamps in logs. Must be a valid `OlsonNames()` string.
-      #' @param .internal_mode [chr] Do not change unless you know what you're
-      #'   doing. Internal use only - controls tool behavior for programmatic
-      #'   instantiation (e.g., by SLC).
-      #'
-      #' \itemize{
-      #'  \item{NULL - normal operation (default)}
-      #'  \item{"independent" - disables central log operations}
-      #' }
       #'
       #' @return [symlink_tool] A symlink tool object.  You can instantiate
       #'   a.k.a. create multiple objects, each of which has different roots and
@@ -2238,11 +2227,10 @@ SLT <- R6::R6Class(
       user_root_list          = NULL
       , user_central_log_root = NULL
       , schema_repair         = TRUE
-      , verbose               = TRUE
+      , verbose               = FALSE
       , verbose_startup       = FALSE
       , csv_reader            = "fread_quiet"
       , timezone              = Sys.timezone()
-      , .internal_mode        = NULL
       ) {
 
          assert_scalar(schema_repair)
@@ -2251,18 +2239,6 @@ SLT <- R6::R6Class(
          assert_type(verbose, "logical")
          assert_scalar(verbose_startup)
          assert_type(verbose_startup, "logical")
-
-         # Validate internal mode if provided
-         valid_internal_modes <- c("independent")  # Expand this vector as needed
-         if(!is.null(.internal_mode)) {
-            assert_x_in_y(.internal_mode, valid_internal_modes)
-         }
-
-         # Check for independent mode (used by SLC)
-         if(identical(.internal_mode, "independent")) {
-            private$DICT$use_central_log <- FALSE
-            if(verbose_startup) message("SLT running in independent mode - central log disabled")
-         }
 
          # allow lazy defaults
          # - do this here to suppress startup messages
@@ -2313,7 +2289,7 @@ SLT <- R6::R6Class(
             )
          }
 
-         if(is.null(user_central_log_root) && isTRUE(private$DICT$use_central_log)){
+         if(is.null(user_central_log_root)){
             message("\n\nThis tool expects `user_central_log_root` to be a single directory for the central log. \n\n  ",
 
                     "e.g.
@@ -2325,11 +2301,8 @@ SLT <- R6::R6Class(
             )
          }
 
-         if(is.null(user_root_list)){
-            stop("You must provide user_root_list")
-         }
-         if(is.null(user_central_log_root) && isTRUE(private$DICT$use_central_log)){
-            stop("You must provide user_central_log_root (or use .internal_mode = 'independent' to disable central log)")
+         if(any(is.null(user_root_list) || is.null(user_central_log_root))){
+            stop("You must provide both user_root_list and user_central_log_root")
          }
 
          stopifnot(is.character(timezone))
@@ -2398,36 +2371,15 @@ SLT <- R6::R6Class(
          ## Log fields the user can set
          private$DICT$log_fields_user  <- setdiff(names(private$DICT$log_schema), private$DICT$log_fields_auto)
 
-         # ------------------------------------------------------------------#
-         # PHASE 2: Central log setup (conditional)
-         # ------------------------------------------------------------------#
-
-         if(isTRUE(private$DICT$use_central_log)) {
-            # Central log is enabled (default behavior)
-            user_central_log_root <- clean_path(user_central_log_root)
-            assert_scalar(user_central_log_root)
-            assert_dir_exists(user_central_log_root)
-            private$DICT$LOG_CENTRAL$root <- user_central_log_root
-            private$DICT$LOG_CENTRAL$path <- clean_path(private$DICT$LOG_CENTRAL$root,
-                                                        private$DICT$LOG_CENTRAL$fname)
-            private$write_expected_central_log(fpath      = private$DICT$LOG_CENTRAL$path,
-                                               log_schema = private$DICT$log_schema)
-         } else {
-            # Central log is disabled (independent mode)
-            # Override central log functions with no-ops
-            central_log_funs <- c(
-               "append_to_central_log"
-               , "write_expected_central_log"
-               , "write_new_central_log"
-               , "read_central_log"
-               , "make_central_log_creation_entry"
-            )
-            lapply(central_log_funs, function(fun_name){
-               unlockBinding(fun_name, private)
-               private[[fun_name]] <- function(...) invisible(NULL)
-               lockBinding(fun_name, private)
-            })
-         }
+         ## CENTRAL LOG
+         user_central_log_root <- clean_path(user_central_log_root)
+         assert_scalar(user_central_log_root)
+         assert_dir_exists(user_central_log_root)
+         private$DICT$LOG_CENTRAL$root <- user_central_log_root
+         private$DICT$LOG_CENTRAL$path <- clean_path(private$DICT$LOG_CENTRAL$root,
+                                                     private$DICT$LOG_CENTRAL$fname)
+         private$write_expected_central_log(fpath      = private$DICT$LOG_CENTRAL$path,
+                                            log_schema = private$DICT$log_schema)
       },
 
       # TODO SB - 2025 Mar 12 - working on a custom print method - frustrating
@@ -2764,13 +2716,12 @@ SLT <- R6::R6Class(
       #'   with class requirements - must be formatted "2020-01-01 or 2020_01_01
       #'   or 2020/01/01"
       #' @param date_selector [chr] See docstring explanation.
-      #' @param print_tz_msg [lgl] Print timezone message? (suppressed by SLC to avoid repetition)
       #'
       #' @return [data.table] A single data.table with results from all roots, with `root_name` as the first column
       #'
       #'
       #'
-      roundup_by_date = function(user_date, date_selector, print_tz_msg = TRUE){
+      roundup_by_date = function(user_date, date_selector){
 
 
          # format inputs for assertion
@@ -2784,7 +2735,7 @@ SLT <- R6::R6Class(
 
          # format user_date to USA PST to align with cluster filesystem dates
          tzone = private$DICT$TZ
-         private$msg_sometimes("roundup_by_date: Formatting date with time-zone: ", tzone, "\n", always_message = print_tz_msg)
+         private$msg_sometimes("roundup_by_date: Formatting date with time-zone: ", tzone, "\n")
          # user_date_parsed <- lubridate::ymd(user_date, tz = tzone)
          user_date_parsed <- as.POSIXct(user_date, tz = tzone, tryFormats = c("%Y-%m-%d", "%Y_%m_%d", "%Y/%m/%d"))
 

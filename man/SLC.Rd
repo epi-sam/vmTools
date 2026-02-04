@@ -4,9 +4,8 @@
 \alias{SLC}
 \title{SymlinkComposer R6 class}
 \description{
-Manages multiple SymlinkTool instances for read-only query
-  operations across multiple projects. Each SLT runs in 'independent mode'
-  without central logs.
+Manages multiple pre-instantiated SymlinkTool instances for
+  aggregated query operations across multiple projects.
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -28,35 +27,20 @@ Manages multiple SymlinkTool instances for read-only query
 \subsection{Method \code{new()}}{
 Initialize the SymlinkComposer
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLC$new(
-  root_list,
-  verbose = TRUE,
-  verbose_startup = FALSE,
-  csv_reader = "fread_quiet",
-  timezone = Sys.timezone(),
-  schema_repair = TRUE
-)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLC$new(tool_list, verbose = FALSE)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{root_list}}{[named list] Named list where each element is a list of
-root paths. Names become tool identifiers. Example:
+\item{\code{tool_list}}{[named list] Named list of pre-instantiated SLT objects.
+Names become tool identifiers for combined queries. Example:
 list(
-  project_a = list(root1 = "/path/a1", root2 = "/path/a2"),
-  project_b = list(root1 = "/path/b1")
+  project_a = my_slt_a,
+  project_b = my_slt_b
 )}
 
 \item{\code{verbose}}{[lgl] Control message verbosity}
-
-\item{\code{verbose_startup}}{[lgl] Show startup messages from each SLT}
-
-\item{\code{csv_reader}}{[chr] CSV reader for all SLT instances (default "fread_quiet")}
-
-\item{\code{timezone}}{[chr] Timezone for all SLT instances}
-
-\item{\code{schema_repair}}{[lgl] Schema repair for all SLT instances}
 }
 \if{html}{\out{</div>}}
 }

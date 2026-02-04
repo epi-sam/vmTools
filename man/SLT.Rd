@@ -53,11 +53,10 @@ The constructor function.
   user_root_list = NULL,
   user_central_log_root = NULL,
   schema_repair = TRUE,
-  verbose = TRUE,
+  verbose = FALSE,
   verbose_startup = FALSE,
   csv_reader = "fread_quiet",
-  timezone = Sys.timezone(),
-  .internal_mode = NULL
+  timezone = Sys.timezone()
 )}\if{html}{\out{</div>}}
 }
 
@@ -97,15 +96,6 @@ standard message, if FALSE, warn only if something is irregular.}
 
 \item{\code{timezone}}{[chr] Default `America/Los_Angeles`.  The timezone to
 use for datestamps in logs. Must be a valid `OlsonNames()` string.}
-
-\item{\code{.internal_mode}}{[chr] Do not change unless you know what you're
-  doing. Internal use only - controls tool behavior for programmatic
-  instantiation (e.g., by SLC).
-
-\itemize{
- \item{NULL - normal operation (default)}
- \item{"independent" - disables central log operations}
-}}
 }
 \if{html}{\out{</div>}}
 }
@@ -388,7 +378,7 @@ row.  User may select dates by (using the `date_selector` argument):
 - less than or equal to `nte`
 - equal to `e`
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_by_date(user_date, date_selector, print_tz_msg = TRUE)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_by_date(user_date, date_selector)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -399,8 +389,6 @@ with class requirements - must be formatted "2020-01-01 or 2020_01_01
 or 2020/01/01"}
 
 \item{\code{date_selector}}{[chr] See docstring explanation.}
-
-\item{\code{print_tz_msg}}{[lgl] Print timezone message? (suppressed by SLC to avoid repetition)}
 }
 \if{html}{\out{</div>}}
 }
