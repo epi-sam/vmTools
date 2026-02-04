@@ -16,8 +16,8 @@ root_list <- list(
 lapply(root_list, dir.create, recursive = TRUE, showWarnings = FALSE)
 # SLT$new()
 slt <- SLT$new(
-   user_root_list          = root_list
-   , user_central_log_root = test_root
+   root_list          = root_list
+   , central_log_root = test_root
    # , csv_reader = "read.csv"
 )
 

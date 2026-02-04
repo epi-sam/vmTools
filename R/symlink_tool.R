@@ -3,10 +3,10 @@
 # Known issue: https://github.com/rstudio/rmarkdown/issues/187
 .datatable.aware = TRUE
 
-#> WARNING: DO NOT touch '.__enclos_env__' unless you want the tool to break
-#> ROXYGEN
-#>   - Roxygen docstrings cannot be added to private methods
-#>   - https://stackoverflow.com/questions/45431845/documenting-r6-classes-and-methods-within-r-package-in-rstudio
+# WARNING: DO NOT touch '.__enclos_env__' unless you want the tool to break
+# ROXYGEN
+#   - Roxygen docstrings cannot be added to private methods
+#   - https://stackoverflow.com/questions/45431845/documenting-r6-classes-and-methods-within-r-package-in-rstudio
 
 
 #' @title SymlinkTool R6 class
@@ -23,21 +23,21 @@ SLT <- R6::R6Class(
 
       # Dictionaries -----------------------------------------------------------
 
-      #> All private$___ items are functions, except for:
-      #> - constants stored in the DICT sub-list
-      #> - dynamic values stored in the DYNAMIC sub-list
+      # All private$___ items are functions, except for:
+      # - constants stored in the DICT sub-list
+      # - dynamic values stored in the DYNAMIC sub-list
 
       DICT = list(
 
-         #> The tool expects that each 'root' has a bunch of 'version_name' folders of pipeline output
-         #> - each 'version_name' represents a fresh run of a data pipeline
-         #> - each 'version_name' must be a folder one level under each 'root'
-         #> - the tool expects that each 'version_name' exists in each 'root',
-         #>   - i.e. you could split pipeline outputs from the same `version_name` into different 'root' folders
-         #> - the tool can work with heterogeneous 'root' folders
-         #>   - i.e. you don't need exactly the same 'version_names' in each, but the tool will try to manage `version_names` across `roots` in parallel
-         #>
-         #> Every time the tool runs a 'mark' operation, it will update the report on tool-generated active symlinks
+         # The tool expects that each 'root' has a bunch of 'version_name' folders of pipeline output
+         # - each 'version_name' represents a fresh run of a data pipeline
+         # - each 'version_name' must be a folder one level under each 'root'
+         # - the tool expects that each 'version_name' exists in each 'root',
+         #   - i.e. you could split pipeline outputs from the same `version_name` into different 'root' folders
+         # - the tool can work with heterogeneous 'root' folders
+         #   - i.e. you don't need exactly the same 'version_names' in each, but the tool will try to manage `version_names` across `roots` in parallel
+         #
+         # Every time the tool runs a 'mark' operation, it will update the report on tool-generated active symlinks
 
 
          # Control-flow flags
@@ -388,11 +388,11 @@ SLT <- R6::R6Class(
       #  Assert the date_selector shorthand is valid.
       #
       #  Examples:
-      #  gt = 'greater_than'
+      #  gt  = 'greater_than'
       #  gte = 'greater_than_equal_to'
-      #  lt = 'less_than'
+      #  lt  = 'less_than'
       #  lte = 'less_than_equal_to'
-      #  e = 'equal'
+      #  e   = 'equal'
       #
       #  Used by `roundup_by_date`
       #
@@ -2184,11 +2184,11 @@ SLT <- R6::R6Class(
       #'
       #' The constructor function.
       #'
-      #' @param user_root_list [list] Named list of root directories for
+      #' @param root_list [list] Named list of root directories for
       #'   pipeline outputs. This is where `version_name` folders live - these
       #'   are iterative runs of an analysis pipeline.
-      #' @param user_central_log_root [path] Root directory for the central log.
-      #'   If you have multiple roots in the `user_root_list`, you probably want
+      #' @param central_log_root [path] Root directory for the central log.
+      #'   If you have multiple roots in the `root_list`, you probably want
       #'   the central log to live one level above those roots.
       #' @param schema_repair [logical] Default `TRUE`.  If `TRUE`, the tool
       #'   will attempt to repair any schema mismatches it finds in the logs
@@ -2224,13 +2224,13 @@ SLT <- R6::R6Class(
       #' # Tool will not instantiate on Windows unless running with Admin permissions
       #' # - requirement for symlink creation on Windows
       initialize = function(
-      user_root_list          = NULL
-      , user_central_log_root = NULL
-      , schema_repair         = TRUE
-      , verbose               = TRUE
-      , verbose_startup       = FALSE
-      , csv_reader            = "fread_quiet"
-      , timezone              = Sys.timezone()
+      root_list          = NULL
+      , central_log_root = NULL
+      , schema_repair    = TRUE
+      , verbose          = FALSE
+      , verbose_startup  = FALSE
+      , csv_reader       = "fread_quiet"
+      , timezone         = Sys.timezone()
       ) {
 
          assert_scalar(schema_repair)
@@ -2243,14 +2243,10 @@ SLT <- R6::R6Class(
          # allow lazy defaults
          # - do this here to suppress startup messages
          # - assertions are done below
-         if(!is.null(user_root_list) && is.null(user_central_log_root)){
-            if(length(user_root_list) == 1){
-               user_central_log_root <- data.table::copy(user_root_list)
+         if(!is.null(root_list) && is.null(central_log_root)){
+            if(length(root_list) == 1){
+               central_log_root <- data.table::copy(root_list)
             }
-            # 2025 Jun 20 - not sure if I want to allow this since it's ambiguous
-            # if (length(user_root_list) > 1){
-            #    user_central_log_root <- user_root_list[1]
-            # }
          }
 
          # try to boost efficiency
@@ -2269,8 +2265,8 @@ SLT <- R6::R6Class(
          }
 
          # Helpful start-up feedback
-         if(is.null(user_root_list)){
-            message("\n\nThis tool expects `user_root_list` to be a named list of root directories for pipeline outputs. \n\n  ",
+         if(is.null(root_list)){
+            message("\n\nThis tool expects `root_list` to be a named list of root directories for pipeline outputs. \n\n  ",
 
                     "e.g.
                  list(
@@ -2282,15 +2278,15 @@ SLT <- R6::R6Class(
                     "  You may track outputs in one root, or across many roots in parallel (as long as the version_name is the same). \n  ",
                     "  It's recommended to create these folders with the tool so they get a log at time of creation. \n\n  ",
 
-                    "Each output folder is defined by `clean_path(user_root_list, version_name)`. \n  ",
+                    "Each output folder is defined by `clean_path(root_list, version_name)`. \n  ",
                     "  The user can 'mark' or 'unmark' any `version_name` folder as best/keep/remove. \n  ",
                     "  This folder receives a log entry for all *demotion* and *promotion* actions (marking and unmarking). \n  ",
                     "  All the `version_name` folder logs are used for report generation. \n\n  "
             )
          }
 
-         if(is.null(user_central_log_root)){
-            message("\n\nThis tool expects `user_central_log_root` to be a single directory for the central log. \n\n  ",
+         if(is.null(central_log_root)){
+            message("\n\nThis tool expects `central_log_root` to be a single directory for the central log. \n\n  ",
 
                     "e.g.
                  '/mnt/share/my_team' \n\n  ",
@@ -2301,8 +2297,8 @@ SLT <- R6::R6Class(
             )
          }
 
-         if(any(is.null(user_root_list) || is.null(user_central_log_root))){
-            stop("You must provide both user_root_list and user_central_log_root")
+         if(any(is.null(root_list) || is.null(central_log_root))){
+            stop("You must provide both root_list and central_log_root")
          }
 
          stopifnot(is.character(timezone))
@@ -2343,23 +2339,15 @@ SLT <- R6::R6Class(
 
          ## ROOTS
          # clean roots
-         user_root_list <- lapply(user_root_list, clean_path)
-         user_central_log_root <- clean_path(user_central_log_root)
+         root_list <- lapply(root_list, clean_path)
          # validate inputs
-         assert_named_list(user_root_list)
-         lapply(user_root_list, assert_dir_exists)
+         assert_named_list(root_list)
+         lapply(root_list, assert_dir_exists)
          assert_scalar(schema_repair)
          assert_type(schema_repair, "logical")
 
          # set roots
-         private$DICT$ROOTS <- user_root_list
-
-         ## CENTRAL LOG
-         # validate inputs
-         assert_scalar(user_central_log_root)
-         assert_dir_exists(user_central_log_root)
-         # set
-         private$DICT$LOG_CENTRAL$root <- user_central_log_root
+         private$DICT$ROOTS <- root_list
 
          ## Timezone
          private$DICT$TZ <- timezone
@@ -2378,18 +2366,18 @@ SLT <- R6::R6Class(
 
          ## Log fields the user can set
          private$DICT$log_fields_user  <- setdiff(names(private$DICT$log_schema), private$DICT$log_fields_auto)
+
          ## CENTRAL LOG
+         central_log_root <- clean_path(central_log_root)
+         assert_scalar(central_log_root)
+         assert_dir_exists(central_log_root)
+         private$DICT$LOG_CENTRAL$root <- central_log_root
          private$DICT$LOG_CENTRAL$path <- clean_path(private$DICT$LOG_CENTRAL$root,
                                                      private$DICT$LOG_CENTRAL$fname)
-         # Make sure this exists any time the class is initialized
          private$write_expected_central_log(fpath      = private$DICT$LOG_CENTRAL$path,
                                             log_schema = private$DICT$log_schema)
       },
 
-      # TODO SB - 2025 Mar 12 - working on a custom print method - frustrating
-      # print = function() {
-         # cat("\n\nThis is an instance of SymlinkTool.\n")
-      # },
 
       ## Show Internals --------------------------------------------------------
 
@@ -2739,7 +2727,7 @@ SLT <- R6::R6Class(
 
          # format user_date to USA PST to align with cluster filesystem dates
          tzone = private$DICT$TZ
-         private$msg_sometimes("roundup_by_date: Formatting date with time-zone: ", tzone, "\n", always_message = TRUE)
+         private$msg_sometimes("roundup_by_date: Formatting date with time-zone: ", tzone, "\n")
          # user_date_parsed <- lubridate::ymd(user_date, tz = tzone)
          user_date_parsed <- as.POSIXct(user_date, tz = tzone, tryFormats = c("%Y-%m-%d", "%Y_%m_%d", "%Y/%m/%d"))
 

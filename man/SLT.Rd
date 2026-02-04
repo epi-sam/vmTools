@@ -50,10 +50,10 @@ Initialize the SymlinkTool object - an R6 class
 The constructor function.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$new(
-  user_root_list = NULL,
-  user_central_log_root = NULL,
+  root_list = NULL,
+  central_log_root = NULL,
   schema_repair = TRUE,
-  verbose = TRUE,
+  verbose = FALSE,
   verbose_startup = FALSE,
   csv_reader = "fread_quiet",
   timezone = Sys.timezone()
@@ -63,12 +63,12 @@ The constructor function.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{user_root_list}}{[list] Named list of root directories for
+\item{\code{root_list}}{[list] Named list of root directories for
 pipeline outputs. This is where `version_name` folders live - these
 are iterative runs of an analysis pipeline.}
 
-\item{\code{user_central_log_root}}{[path] Root directory for the central log.
-If you have multiple roots in the `user_root_list`, you probably want
+\item{\code{central_log_root}}{[path] Root directory for the central log.
+If you have multiple roots in the `root_list`, you probably want
 the central log to live one level above those roots.}
 
 \item{\code{schema_repair}}{[logical] Default `TRUE`.  If `TRUE`, the tool

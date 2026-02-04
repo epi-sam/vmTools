@@ -361,8 +361,8 @@ When you make a new tool, this tool is **_tied to a specific output folder_**.  
 ```{r instantiate_slt_prep_display, warning=FALSE, eval = flag_eval_chunk}
 # Instantiate (create) a new Symlink Tool object
 slt_prep <- SLT$new(
-      user_root_list        = list("output_root" = output_root),
-      user_central_log_root = output_root
+      root_list        = list("output_root" = output_root),
+      central_log_root = output_root
    )
 ```
 
