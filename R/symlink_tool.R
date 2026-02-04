@@ -2313,7 +2313,7 @@ SLT <- R6::R6Class(
             )
          }
 
-         if(is.null(user_central_log_root)){
+         if(is.null(user_central_log_root) && isTRUE(private$DICT$use_central_log)){
             message("\n\nThis tool expects `user_central_log_root` to be a single directory for the central log. \n\n  ",
 
                     "e.g.
@@ -2325,8 +2325,11 @@ SLT <- R6::R6Class(
             )
          }
 
-         if(any(is.null(user_root_list) || is.null(user_central_log_root))){
-            stop("You must provide both user_root_list and user_central_log_root")
+         if(is.null(user_root_list)){
+            stop("You must provide user_root_list")
+         }
+         if(is.null(user_central_log_root) && isTRUE(private$DICT$use_central_log)){
+            stop("You must provide user_central_log_root (or use .internal_mode = 'independent' to disable central log)")
          }
 
          stopifnot(is.character(timezone))
@@ -2368,7 +2371,6 @@ SLT <- R6::R6Class(
          ## ROOTS
          # clean roots
          user_root_list <- lapply(user_root_list, clean_path)
-         user_central_log_root <- clean_path(user_central_log_root)
          # validate inputs
          assert_named_list(user_root_list)
          lapply(user_root_list, assert_dir_exists)
@@ -2377,13 +2379,6 @@ SLT <- R6::R6Class(
 
          # set roots
          private$DICT$ROOTS <- user_root_list
-
-         ## CENTRAL LOG
-         # validate inputs
-         assert_scalar(user_central_log_root)
-         assert_dir_exists(user_central_log_root)
-         # set
-         private$DICT$LOG_CENTRAL$root <- user_central_log_root
 
          ## Timezone
          private$DICT$TZ <- timezone
@@ -2402,20 +2397,36 @@ SLT <- R6::R6Class(
 
          ## Log fields the user can set
          private$DICT$log_fields_user  <- setdiff(names(private$DICT$log_schema), private$DICT$log_fields_auto)
-         ## CENTRAL LOG
-         private$DICT$LOG_CENTRAL$path <- clean_path(private$DICT$LOG_CENTRAL$root,
-                                                     private$DICT$LOG_CENTRAL$fname)
-         # Make sure this exists any time the class is initialized
-         private$write_expected_central_log(fpath      = private$DICT$LOG_CENTRAL$path,
-                                            log_schema = private$DICT$log_schema)
 
-         # Override central log functions with no-ops if disabled
-         if(isFALSE(private$DICT$use_central_log)) {
-            private$append_to_central_log           <- function(...) invisible(NULL)
-            private$write_expected_central_log      <- function(...) invisible(NULL)
-            private$write_new_central_log           <- function(...) invisible(NULL)
-            private$read_central_log                <- function(...) invisible(NULL)
-            private$make_central_log_creation_entry <- function(...) invisible(NULL)
+         # ------------------------------------------------------------------#
+         # PHASE 2: Central log setup (conditional)
+         # ------------------------------------------------------------------#
+
+         if(isTRUE(private$DICT$use_central_log)) {
+            # Central log is enabled (default behavior)
+            user_central_log_root <- clean_path(user_central_log_root)
+            assert_scalar(user_central_log_root)
+            assert_dir_exists(user_central_log_root)
+            private$DICT$LOG_CENTRAL$root <- user_central_log_root
+            private$DICT$LOG_CENTRAL$path <- clean_path(private$DICT$LOG_CENTRAL$root,
+                                                        private$DICT$LOG_CENTRAL$fname)
+            private$write_expected_central_log(fpath      = private$DICT$LOG_CENTRAL$path,
+                                               log_schema = private$DICT$log_schema)
+         } else {
+            # Central log is disabled (independent mode)
+            # Override central log functions with no-ops
+            central_log_funs <- c(
+               "append_to_central_log"
+               , "write_expected_central_log"
+               , "write_new_central_log"
+               , "read_central_log"
+               , "make_central_log_creation_entry"
+            )
+            lapply(central_log_funs, function(fun_name){
+               unlockBinding(fun_name, private)
+               private[[fun_name]] <- function(...) invisible(NULL)
+               lockBinding(fun_name, private)
+            })
          }
       },
 
@@ -2753,12 +2764,13 @@ SLT <- R6::R6Class(
       #'   with class requirements - must be formatted "2020-01-01 or 2020_01_01
       #'   or 2020/01/01"
       #' @param date_selector [chr] See docstring explanation.
+      #' @param print_tz_msg [lgl] Print timezone message? (suppressed by SLC to avoid repetition)
       #'
       #' @return [data.table] A single data.table with results from all roots, with `root_name` as the first column
       #'
       #'
       #'
-      roundup_by_date = function(user_date, date_selector){
+      roundup_by_date = function(user_date, date_selector, print_tz_msg = TRUE){
 
 
          # format inputs for assertion
@@ -2772,7 +2784,7 @@ SLT <- R6::R6Class(
 
          # format user_date to USA PST to align with cluster filesystem dates
          tzone = private$DICT$TZ
-         private$msg_sometimes("roundup_by_date: Formatting date with time-zone: ", tzone, "\n", always_message = TRUE)
+         private$msg_sometimes("roundup_by_date: Formatting date with time-zone: ", tzone, "\n", always_message = print_tz_msg)
          # user_date_parsed <- lubridate::ymd(user_date, tz = tzone)
          user_date_parsed <- as.POSIXct(user_date, tz = tzone, tryFormats = c("%Y-%m-%d", "%Y_%m_%d", "%Y/%m/%d"))
 

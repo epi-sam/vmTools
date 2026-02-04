@@ -388,7 +388,7 @@ row.  User may select dates by (using the `date_selector` argument):
 - less than or equal to `nte`
 - equal to `e`
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_by_date(user_date, date_selector)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_by_date(user_date, date_selector, print_tz_msg = TRUE)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -399,6 +399,8 @@ with class requirements - must be formatted "2020-01-01 or 2020_01_01
 or 2020/01/01"}
 
 \item{\code{date_selector}}{[chr] See docstring explanation.}
+
+\item{\code{print_tz_msg}}{[lgl] Print timezone message? (suppressed by SLC to avoid repetition)}
 }
 \if{html}{\out{</div>}}
 }
