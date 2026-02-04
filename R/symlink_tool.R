@@ -47,6 +47,9 @@ SLT <- R6::R6Class(
             allow_schema_repair = NULL
          ),
 
+         # Central log control
+         use_central_log = TRUE,  # Default behavior - use central log
+
          ## Initialize: user-defined
 
          ROOTS = NULL,
@@ -2211,6 +2214,14 @@ SLT <- R6::R6Class(
       #' }
       #' @param timezone [chr] Default `America/Los_Angeles`.  The timezone to
       #'   use for datestamps in logs. Must be a valid `OlsonNames()` string.
+      #' @param .internal_mode [chr] Do not change unless you know what you're
+      #'   doing. Internal use only - controls tool behavior for programmatic
+      #'   instantiation (e.g., by SLC).
+      #'
+      #' \itemize{
+      #'  \item{NULL - normal operation (default)}
+      #'  \item{"independent" - disables central log operations}
+      #' }
       #'
       #' @return [symlink_tool] A symlink tool object.  You can instantiate
       #'   a.k.a. create multiple objects, each of which has different roots and
@@ -2231,6 +2242,7 @@ SLT <- R6::R6Class(
       , verbose_startup       = FALSE
       , csv_reader            = "fread_quiet"
       , timezone              = Sys.timezone()
+      , .internal_mode        = NULL
       ) {
 
          assert_scalar(schema_repair)
@@ -2239,6 +2251,18 @@ SLT <- R6::R6Class(
          assert_type(verbose, "logical")
          assert_scalar(verbose_startup)
          assert_type(verbose_startup, "logical")
+
+         # Validate internal mode if provided
+         valid_internal_modes <- c("independent")  # Expand this vector as needed
+         if(!is.null(.internal_mode)) {
+            assert_x_in_y(.internal_mode, valid_internal_modes)
+         }
+
+         # Check for independent mode (used by SLC)
+         if(identical(.internal_mode, "independent")) {
+            private$DICT$use_central_log <- FALSE
+            if(verbose_startup) message("SLT running in independent mode - central log disabled")
+         }
 
          # allow lazy defaults
          # - do this here to suppress startup messages
@@ -2384,6 +2408,15 @@ SLT <- R6::R6Class(
          # Make sure this exists any time the class is initialized
          private$write_expected_central_log(fpath      = private$DICT$LOG_CENTRAL$path,
                                             log_schema = private$DICT$log_schema)
+
+         # Override central log functions with no-ops if disabled
+         if(isFALSE(private$DICT$use_central_log)) {
+            private$append_to_central_log           <- function(...) invisible(NULL)
+            private$write_expected_central_log      <- function(...) invisible(NULL)
+            private$write_new_central_log           <- function(...) invisible(NULL)
+            private$read_central_log                <- function(...) invisible(NULL)
+            private$make_central_log_creation_entry <- function(...) invisible(NULL)
+         }
       },
 
       # TODO SB - 2025 Mar 12 - working on a custom print method - frustrating

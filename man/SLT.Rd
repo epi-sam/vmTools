@@ -56,7 +56,8 @@ The constructor function.
   verbose = TRUE,
   verbose_startup = FALSE,
   csv_reader = "fread_quiet",
-  timezone = Sys.timezone()
+  timezone = Sys.timezone(),
+  .internal_mode = NULL
 )}\if{html}{\out{</div>}}
 }
 
@@ -96,6 +97,15 @@ standard message, if FALSE, warn only if something is irregular.}
 
 \item{\code{timezone}}{[chr] Default `America/Los_Angeles`.  The timezone to
 use for datestamps in logs. Must be a valid `OlsonNames()` string.}
+
+\item{\code{.internal_mode}}{[chr] Do not change unless you know what you're
+  doing. Internal use only - controls tool behavior for programmatic
+  instantiation (e.g., by SLC).
+
+\itemize{
+ \item{NULL - normal operation (default)}
+ \item{"independent" - disables central log operations}
+}}
 }
 \if{html}{\out{</div>}}
 }
