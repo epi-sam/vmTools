@@ -89,22 +89,22 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    suppressMessages(
       suppressWarnings({
          slt_a <- SLT$new(
-            user_root_list          = project_a_roots
-            , user_central_log_root = central_log_a
+            root_list          = project_a_roots
+            , central_log_root = central_log_a
             , verbose               = FALSE
             , verbose_startup       = FALSE
          )
 
          slt_b <- SLT$new(
-            user_root_list          = project_b_roots
-            , user_central_log_root = central_log_b
+            root_list          = project_b_roots
+            , central_log_root = central_log_b
             , verbose               = FALSE
             , verbose_startup       = FALSE
          )
 
          # Project C uses lazy central log (single root = central log root)
          slt_c <- SLT$new(
-            user_root_list = project_c_roots
+            root_list = project_c_roots
             , verbose      = FALSE
          )
       })

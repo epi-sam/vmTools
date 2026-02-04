@@ -39,16 +39,16 @@ lapply(c(central_log_a, central_log_b, central_log_c), dir.create, recursive = T
 slc <- SLC$new(
    tool_list = list(
       project_a = SLT$new(
-         user_root_list          = project_a_roots
-         , user_central_log_root = central_log_a
+         root_list          = project_a_roots
+         , central_log_root = central_log_a
          , verbose               = TRUE # let one be verbose for messaging
       )
       , project_b = SLT$new(
-         user_root_list          = project_b_roots
-         , user_central_log_root = central_log_b
+         root_list          = project_b_roots
+         , central_log_root = central_log_b
       )
       # ensure the lazy-central log definition is preserved
-      , project_c = SLT$new(user_root_list = project_c_roots)
+      , project_c = SLT$new(root_list = project_c_roots)
       # , project_nonexistent = mtcars # expect error
    )
 )

@@ -81,9 +81,9 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
             expect_message(
                expect_error(
                      SLT$new()
-                  , regexp = "You must provide both user_root_list and user_central_log_root"
-               ) , regexp = "This tool expects `user_central_log_root` to be a single directory for the central log"
-            ) , regexp = "This tool expects \\`user_root_list\\` to be a named list of root directories for pipeline outputs"
+                  , regexp = "You must provide both root_list and central_log_root"
+               ) , regexp = "This tool expects `central_log_root` to be a single directory for the central log"
+            ) , regexp = "This tool expects \\`root_list\\` to be a named list of root directories for pipeline outputs"
          )
 
       }
@@ -95,11 +95,11 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
       suppressWarnings({ # idiosyncratic and benign cluster message
 
          slt <- SLT$new(
-            user_root_list = list(
+            root_list = list(
                root_input  = root_list[["root_input"]],
                root_output = root_list[["root_output"]]
             )
-            , user_central_log_root = root_base
+            , central_log_root = root_base
             , schema_repair = TRUE
             , verbose = FALSE
             , verbose_startup = FALSE
@@ -372,11 +372,11 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
       suppressWarnings({ # idiosyncratic and benign cluster message
 
          slt_readcsv <- SLT$new(
-            user_root_list = list(
+            root_list = list(
                root_input  = root_list[["root_input"]],
                root_output = root_list[["root_output"]]
             )
-            , user_central_log_root = root_base
+            , central_log_root = root_base
             , csv_reader = "read.csv"
             , verbose = FALSE
          )
@@ -387,11 +387,11 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
              {
                 expect_error(
                    SLT$new(
-                      user_root_list = list(
+                      root_list = list(
                          root_input  = root_list[["root_input"]],
                          root_output = root_list[["root_output"]]
                       )
-                      , user_central_log_root = root_base
+                      , central_log_root = root_base
                       , csv_reader = "readr"
                       , verbose = FALSE
                    )

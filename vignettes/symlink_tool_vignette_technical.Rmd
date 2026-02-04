@@ -242,11 +242,11 @@ Try to make the tool naively.
 
 ```{r first_tool2, eval = flag_eval_chunk}
 slt <- try(SLT$new(
-  user_root_list = list(
+  root_list = list(
     root_input  = root_input,
     root_output = root_output
   )
-  , user_central_log_root = root_base
+  , central_log_root = root_base
 ))
 ```
 
@@ -260,11 +260,11 @@ dir.create(root_output, recursive = TRUE, showWarnings = FALSE)
 suppressWarnings({ # idiosyncratic and benign cluster message
   
   slt <- SLT$new(
-    user_root_list = list(
+    root_list = list(
       root_input  = root_input,
       root_output = root_output
     )
-    , user_central_log_root = root_base
+    , central_log_root = root_base
   )
   
 })
