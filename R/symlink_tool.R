@@ -128,13 +128,39 @@ SLT <- R6::R6Class(
             , "demote_keep"
             , "promote_remove"
             , "demote_remove"
+            , "promote_latest"
+            , "demote_latest"
             , "delete_remove_folder"
          ),
 
+         # Symlink-based Finite State Machine
+         # 
+         # State Transitions:
+         # [unmarked] ←→ [latest] ←→ [best] 
+         #     ↕          ↕          ↕
+         #   [keep]     [keep]     [keep]
+         #     ↕          ↕          ↕
+         #  [remove]   [remove]   [remove]
+         # 
+         # Rules:
+         # 1. Only ONE symlink per folder at any time
+         # 2. Only ONE 'best' folder system-wide (Highlander rule)
+         # 3. Only ONE 'latest' folder system-wide (Highlander rule)
+         # 4. Multiple 'keep' folders allowed
+         # 5. Multiple 'remove' folders allowed
+         # 6. 'best' ←→ 'latest' transitions auto-demote the conflicting state
+         # 
+         # Symlink Naming Convention:
+         # - 'best':   singleton symlink named "best" (no version in name)
+         # - 'latest': singleton symlink named "latest" (no version in name)
+         # - 'keep':   multiple symlinks named "keep_<version_name>"
+         # - 'remove': multiple symlinks named "remove_<version_name>"
+         
          symlink_types = c(
             "best"
             , "keep"
             , "remove"
+            , "latest"
          ),
 
          # used in private$extract_symlink()
@@ -144,7 +170,8 @@ SLT <- R6::R6Class(
          symlink_regex_extract = list(
             best   = paste0("^best"),
             keep   = paste0("^keep_"),
-            remove = paste0("^remove_")
+            remove = paste0("^remove_"),
+            latest = paste0("^latest")
          )
 
       ),
