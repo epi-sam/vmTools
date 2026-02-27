@@ -117,6 +117,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                    slt$roundup_best()
                    slt$roundup_keep()
                    slt$roundup_remove()
+                   slt$roundup_latest()
                    slt$roundup_unmarked()
                    # expect_message(
                       slt$roundup_by_date(Sys.Date(), "lt")
@@ -228,6 +229,64 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                 report_key_versions <- report_key_versions[, .(log_id, user, version_name, version_path, action, comment)]
                 expect_equal(nrow(report_key_versions), 0)
 
+             })
+
+
+   # Integration - Latest symlink feature -----------------------------------------
+
+   test_that("Mark latest works (creates singleton 'latest' symlink)",
+             {
+                slt$mark_latest(version_name = dv_list[["1990_01_02"]], user_entry = list(comment = "Testing mark latest"))
+                expect_true(
+                   all(file.exists(clean_path(root_list, "latest")))
+                )
+             })
+
+   test_that("Latest singleton enforcement works (only one latest per root)",
+             {
+                # Mark a different version as latest
+                slt$mark_latest(version_name = dv_list[["1990_01_03"]], user_entry = list(comment = "Testing latest singleton"))
+                # Check that only one 'latest' symlink exists and points to new version
+                expect_true(
+                   all(file.exists(clean_path(root_list, "latest")))
+                )
+                # Verify it points to the new version
+                latest_resolved <- sapply(root_list, function(root) {
+                   latest_path <- clean_path(root, "latest")
+                   if(file.exists(latest_path)) basename(Sys.readlink(latest_path)) else NA
+                })
+                expect_true(
+                   all(latest_resolved == "1990_01_03")
+                )
+             })
+
+   test_that("Auto-demotion from latest when marking keep",
+             {
+                # Start with latest marked (already on 1990_01_03 from prior test)
+                expect_true(all(file.exists(clean_path(root_list, "latest"))))
+                
+                # Mark as keep - should auto-demote from latest
+                slt$mark_keep(version_name = dv_list[["1990_01_03"]], user_entry = list(comment = "Testing auto-demote from latest"))
+                expect_true(all(file.exists(clean_path(root_list, "keep_1990_01_03"))))
+                expect_true(all(!file.exists(clean_path(root_list, "latest"))))
+                
+                # Clean up
+                slt$unmark(version_name = dv_list[["1990_01_03"]], user_entry = list(comment = "Cleanup"))
+             })
+
+   test_that("Auto-demotion from best when marking latest",
+             {
+                # Mark as best first
+                slt$mark_best(version_name = dv_list[["1990_01_01"]], user_entry = list(comment = "Testing auto-demote from best"))
+                expect_true(all(file.exists(clean_path(root_list, "best"))))
+                
+                # Mark as latest - should auto-demote from best
+                slt$mark_latest(version_name = dv_list[["1990_01_01"]], user_entry = list(comment = "Testing auto-demote from best"))
+                expect_true(all(file.exists(clean_path(root_list, "latest"))))
+                expect_true(all(!file.exists(clean_path(root_list, "best"))))
+                
+                # Clean up
+                slt$unmark(version_name = dv_list[["1990_01_01"]], user_entry = list(comment = "Cleanup"))
              })
 
    test_that("Expected folders exist after marking, unmarking, and running reports",
@@ -589,6 +648,16 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                 expect_equal(
                    slt$roundup_remove()[root_name == "root_input", version_name]
                    ,"1990_01_01"
+                )
+             })
+
+   slt$mark_latest(version_name = "1990_01_02", user_entry = list(comment = "prepping for roundup latest"))
+
+   test_that("Roundup latest works",
+             {
+                expect_equal(
+                   slt$roundup_latest()[root_name == "root_input", version_name]
+                   ,"1990_01_02"
                 )
              })
 
