@@ -134,14 +134,14 @@ SLT <- R6::R6Class(
          ),
 
          # Symlink-based Finite State Machine
-         # 
+         #
          # State Transitions:
-         # [unmarked] ←→ [latest] ←→ [best] 
+         # [unmarked] ←→ [latest] ←→ [best]
          #     ↕          ↕          ↕
          #   [keep]     [keep]     [keep]
          #     ↕          ↕          ↕
          #  [remove]   [remove]   [remove]
-         # 
+         #
          # Rules:
          # 1. Only ONE symlink per folder at any time
          # 2. Only ONE 'best' folder system-wide (Highlander rule)
@@ -149,13 +149,13 @@ SLT <- R6::R6Class(
          # 4. Multiple 'keep' folders allowed
          # 5. Multiple 'remove' folders allowed
          # 6. 'best' ←→ 'latest' transitions auto-demote the conflicting state
-         # 
+         #
          # Symlink Naming Convention:
          # - 'best':   singleton symlink named "best" (no version in name)
          # - 'latest': singleton symlink named "latest" (no version in name)
          # - 'keep':   multiple symlinks named "keep_<version_name>"
          # - 'remove': multiple symlinks named "remove_<version_name>"
-         
+
          symlink_types = c(
             "best"
             , "keep"
@@ -490,9 +490,10 @@ SLT <- R6::R6Class(
          # Define all eligible symlink regex patterns by type
          arrow_regex <- " -> " # used in bash to show symlinks
          # We're ONLY monitoring symlinks of a certain pattern - users are free to make others
-         symlink_regex <- switch(
-            symlink_type,
-            best     = paste0("best", arrow_regex, ".*", version_name)
+         symlink_regex <- switch_strict(
+            symlink_type
+            , best   = paste0("best", arrow_regex, ".*", version_name)
+            , latest = paste0("latest", arrow_regex, ".*", version_name)
             , keep   = paste0("keep_", version_name, arrow_regex, ".*", version_name)
             , remove = paste0("remove_", version_name, arrow_regex, ".*", version_name)
          )
@@ -623,11 +624,12 @@ SLT <- R6::R6Class(
          root         <- dirname(clean_path(version_path))
          version_name <- basename(clean_path(version_path))
 
-         symlink_suffix <- switch(
-            symlink_type,
-            best   = "",
-            keep   = paste0("_", version_name),
-            remove = paste0("_", version_name)
+         symlink_suffix <- switch_strict(
+            symlink_type
+            , best   = ""
+            , latest = ""
+            , keep   = paste0("_", version_name)
+            , remove = paste0("_", version_name)
          )
 
          # don't normalize - we want a symlink path
@@ -1557,7 +1559,7 @@ SLT <- R6::R6Class(
          log_id_0_dt[, timestamp_parsed := as.POSIXct(timestamp_parsed, format = "%Y-%m-%d", tz = private$DICT$TZ)]
 
          # filter logs to all time-stamps less/greater than (or equal to) user date for later filtering
-         logs_by_date <- switch(
+         logs_by_date <- switch_strict(
             date_selector
             , "lt"  = log_id_0_dt[timestamp_parsed <  user_date_parsed, ]
             , "lte" = log_id_0_dt[timestamp_parsed <= user_date_parsed, ]
@@ -2406,7 +2408,7 @@ SLT <- R6::R6Class(
          # libraries
          # library(data.table)
          # only fread is currently supported due to how data types are defined when reading in logs
-         private$csv_reader <- switch(
+         private$csv_reader <- switch_strict(
             csv_reader
             , "fread"       = function(...) return(data.table::fread(...))
             , "fread_quiet" = function(...) return(suppressWarnings(data.table::fread(...)))
@@ -2415,7 +2417,7 @@ SLT <- R6::R6Class(
             , stop("csv_reader must be one of: fread, fread_quiet, read.csv, read.csv2")
          )
 
-         private$csv_writer <- switch(
+         private$csv_writer <- switch_strict(
             csv_reader
             , "fread"       = function(...) return(data.table::fwrite(...))
             , "fread_quiet" = function(...) return(data.table::fwrite(...))

@@ -25,6 +25,7 @@ slt <- SLT$new(
 slt$roundup_best()
 slt$roundup_keep()
 slt$roundup_remove()
+slt$roundup_latest()
 slt$roundup_unmarked()
 slt$roundup_by_date(Sys.Date(), "lt")
 
@@ -56,6 +57,15 @@ slt$unmark(version_name = "2024_02_29.3", user_entry = list(comment = "testing u
 slt$mark_keep(version_name = "2024_02_29.1", user_entry = list(comment = "testing mark on new folder"))
 slt$mark_keep(version_name = "2024_02_29.2", user_entry = list(comment = "testing mark on new folder"))
 slt$mark_keep(version_name = "2024_02_29.3", user_entry = list(comment = "testing mark on new folder"))
+
+# Mark latest examples - demonstrating singleton rule and auto-demotion
+slt$mark_latest(version_name = "2024_02_29.1", user_entry = list(comment = "testing mark latest on new folder"))
+slt$mark_latest(version_name = "2024_02_29.2", user_entry = list(comment = "testing highlander rule for latest"))
+# Now mark first one as best - should auto-demote from latest
+slt$mark_best(version_name = "2024_02_29.1", user_entry = list(comment = "testing auto-demote latest to best"))
+# Mark it back to latest - should auto-demote from best
+slt$mark_latest(version_name = "2024_02_29.1", user_entry = list(comment = "testing auto-demote best to latest"))
+
 # Now randomly mark and unmark different folders in various ways
 slt$mark_keep(version_name = "2024_02_29.1", user_entry = list(comment = "testing mark on new folder"))
 slt$mark_remove(version_name = "2024_02_29.2", user_entry = list(comment = "testing mark on new folder"))
@@ -77,6 +87,7 @@ slt$make_reports()
 slt$roundup_best()
 slt$roundup_remove()
 slt$roundup_keep()
+slt$roundup_latest()
 slt$unmark("2024_02_29.2", list(comment = "testing roundup_unmarked"))
 slt$roundup_unmarked()
 slt$roundup_by_date("2024-02-28", "lte")
