@@ -1457,6 +1457,20 @@ SLT <- R6::R6Class(
          return(best_dirs_dt)
       },
 
+      # Query all folders with a "latest" symlink in a single `root`
+      #
+      # @param root [chr] path to a root folder defined at instantiation (`STL$new()`)
+      #
+      # @return [data.table] a data.table with the folder path, symlink name, and resolved path
+      query_all_latest_symlinks = function(root){
+         # find all folders and their types
+         folder_dt <- private$query_root_folder_types(root)
+         # find all resolved paths attached to a "latest" symlink, and their symlink names
+         # allow the user to decide how to deal with removal
+         latest_dirs_dt <- unique(folder_dt[is_symlink == TRUE & grepl("^latest$", dir_leaf), .(version_name, dir_name, dir_name_resolved)])
+         return(latest_dirs_dt)
+      },
+
       #  Query all folders with a "keep_" symlink in a single `root`
       #
       #  @param root [chr] path to a root folder defined at instantiation (`STL$new()`)
@@ -2807,6 +2821,17 @@ SLT <- R6::R6Class(
       #' @return [data.table] A single data.table with results from all roots, with `root_name` as the first column
       roundup_best = function(){
          return(private$combine_roundup_results(private$query_all_best_symlinks))
+      },
+
+      #' @description
+      #' Find all `latest` symlinks in all `roots`
+      #'
+      #' Return both the symlink and the resolved symlink (folder the symlink
+      #' points to)
+      #'
+      #' @return [data.table] A single data.table with results from all roots, with `root_name` as the first column
+      roundup_latest = function(){
+         return(private$combine_roundup_results(private$query_all_latest_symlinks))
       },
 
       #' @description
