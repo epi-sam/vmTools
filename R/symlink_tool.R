@@ -2182,6 +2182,60 @@ SLT <- R6::R6Class(
             private$msg_sometimes("  Keep symlink already exists - moving on: ", path_remove_sym)
          }
 
+      },
+
+      #  Promote a version_name folder to 'latest' status.
+      #
+      #  @param version_path [chr] Path to a version_name folder for `latest` promotion
+      #  @param version_name [chr] version_name folder to promote to `latest`
+      #  @param user_entry [named list] User-supplied log entry
+      #
+      #  @return [none] Creates a symlink on disk
+      promote_latest = function(version_path, version_name, user_entry){
+         assert_dir_exists(version_path)
+         path_latest_sym <- private$make_symlink_path(version_path, "latest")
+         path_latest_new <- version_path
+         # Highlander - there can be only one (latest)
+         private$demote_previous_latest(version_path = version_path, version_name = version_name, user_entry = user_entry)
+         # make new symlink
+         private$msg_sometimes("Promoting to 'latest': ", path_latest_new)
+         private$DYNAMIC$LOG$action <- "promote_latest"
+         private$append_to_log(version_path = path_latest_new, user_entry = user_entry)
+         private$append_to_central_log(version_path = path_latest_new, user_entry = user_entry)
+
+         # only symlink if logging is successful
+         # force symlink to change in case the unlink is glitchy
+         file.symlink(path_latest_new, path_latest_sym)
+      },
+
+      #  Demote the previous 'latest' symlink before promoting a new one.
+      #
+      #  @param version_path [chr] Path to a version_name folder
+      #  @param version_name [chr] version_name folder that will become the new `latest`
+      #  @param user_entry [named list] User-supplied log entry
+      #
+      #  @return [none] Removes the previous 'latest' symlink on disk
+      demote_previous_latest = function(version_path, version_name, user_entry){
+         root <- dirname(version_path)
+         path_latest_sym <- private$make_symlink_path(version_path, "latest")
+         private$DYNAMIC$LOG$action <- "demote_latest"
+         # remove old symlink
+         if(dir.exists(path_latest_sym)) {
+            path_latest_real <- private$resolve_symlink(path_latest_sym)
+            version_name_to_remove <- basename(path_latest_real)
+            private$msg_sometimes("Demoting from 'latest': ", path_latest_real)
+
+            # set version to the folder the log will be written to, then reset it after
+            private$DYNAMIC$LOG$version_name <- version_name_to_remove
+            private$append_to_log(version_path = path_latest_real, user_entry = user_entry)
+            private$append_to_central_log(version_path = path_latest_real, user_entry = user_entry)
+            private$DYNAMIC$LOG$version_name <- version_name
+
+            # only unlink if logging is successful
+            system(paste0("unlink ", path_latest_sym))
+         } else {
+            private$msg_sometimes("No 'latest' symlink found - moving on: ", path_latest_sym)
+         }
       }
 
 
@@ -2506,6 +2560,74 @@ SLT <- R6::R6Class(
             )
 
             private$promote_best(
+               version_path    = version_path,
+               version_name    = version_name,
+               user_entry      = user_entry
+            )
+
+         }
+
+         private$handler_post_mark(version_name = version_name,
+                                   user_entry = user_entry)
+      },
+
+
+      #' @description
+      #' Mark an output folder with a "latest" symlink
+      #'
+      #' Creates a 'latest' symlink (singleton) in each root. Auto-demotes
+      #' current 'latest' if different. A folder cannot be both 'latest' and
+      #' 'best' - this will auto-demote from the conflicting state.
+      #'
+      #' Writes:
+      #' - appends to a log file in the output folder with a date and time stamp
+      #' - appends a line to the central log file with a date and time stamp
+      #'
+      #' @param version_name [chr] The directory name of the output folder that
+      #'   lives directly under one of the `root`s you define when you
+      #'   instantiate the tool.
+      #' @param user_entry [list] Named list of user-defined fields to append to
+      #'   the log.  After making a tool called e.g. slt, call
+      #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
+      #'   user may add.  If you want to make your own version of this class,
+      #'   you may update `log_schema` in the `private$DICT` section to allow
+      #'   for them.
+      #'
+      #' @return [std_err] Messages about actions taken.
+      #'
+      #'
+      #'
+      mark_latest = function(version_name, user_entry){
+
+         # For all version_name folders, do the following:
+         # 1. check if there is already a latest symlink
+         # 2. if there is, demote it & append to the log
+         # 3. make a new latest symlink
+         # 4. append to the version_name log
+         # 5. append to the central log
+
+         private$handler_pre_mark(
+            version_name = version_name,
+            user_entry   = user_entry
+         )
+
+         private$msg_sometimes("Marking latest: ", version_name)
+         # Manage symlinks and append logs
+         for(version_path in private$DYNAMIC$VERS_PATHS){
+
+            if(validate_dir_exists(version_path) == FALSE) next()
+            if(private$already_marked(version_path, "latest")) {
+               private$msg_sometimes(version_path, " - already marked latest - moving on.")
+               next()
+            }
+
+            private$demote_existing_symlinks(
+               version_path = version_path,
+               version_name = version_name,
+               user_entry   = user_entry
+            )
+
+            private$promote_latest(
                version_path    = version_path,
                version_name    = version_name,
                user_entry      = user_entry
