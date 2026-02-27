@@ -5,7 +5,9 @@
 \title{SymlinkTool R6 class}
 \description{
 Class for lightweight file-system level data versioning, logs
-  and reports without need for a database.
+  and reports without need for a database. Manages four symlink types: 'best'
+  (validated production), 'latest' (most recent run), 'keep' (archive-worthy),
+  and 'remove' (marked for deletion).
 }
 \examples{
 
@@ -25,10 +27,12 @@ try(SLT$new()) # call with no arguments to see instructions
 \item \href{#method-Symlink_Tool-return_dictionaries}{\code{SLT$return_dictionaries()}}
 \item \href{#method-Symlink_Tool-return_dynamic_fields}{\code{SLT$return_dynamic_fields()}}
 \item \href{#method-Symlink_Tool-mark_best}{\code{SLT$mark_best()}}
+\item \href{#method-Symlink_Tool-mark_latest}{\code{SLT$mark_latest()}}
 \item \href{#method-Symlink_Tool-mark_keep}{\code{SLT$mark_keep()}}
 \item \href{#method-Symlink_Tool-mark_remove}{\code{SLT$mark_remove()}}
 \item \href{#method-Symlink_Tool-unmark}{\code{SLT$unmark()}}
 \item \href{#method-Symlink_Tool-roundup_best}{\code{SLT$roundup_best()}}
+\item \href{#method-Symlink_Tool-roundup_latest}{\code{SLT$roundup_latest()}}
 \item \href{#method-Symlink_Tool-roundup_keep}{\code{SLT$roundup_keep()}}
 \item \href{#method-Symlink_Tool-roundup_remove}{\code{SLT$roundup_remove()}}
 \item \href{#method-Symlink_Tool-roundup_unmarked}{\code{SLT$roundup_unmarked()}}
@@ -198,6 +202,43 @@ for them.}
 }
 }
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Symlink_Tool-mark_latest"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Tool-mark_latest}{}}}
+\subsection{Method \code{mark_latest()}}{
+Mark an output folder with a "latest" symlink
+
+Creates a 'latest' symlink (singleton) in each root. Auto-demotes
+current 'latest' if different. A folder cannot be both 'latest' and
+'best' - this will auto-demote from the conflicting state.
+
+Writes:
+- appends to a log file in the output folder with a date and time stamp
+- appends a line to the central log file with a date and time stamp
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{SLT$mark_latest(version_name, user_entry)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{version_name}}{[chr] The directory name of the output folder that
+lives directly under one of the `root`s you define when you
+instantiate the tool.}
+
+\item{\code{user_entry}}{[list] Named list of user-defined fields to append to
+the log.  After making a tool called e.g. slt, call
+`slt$return_dictionaries("log_fields_user")` to find which fields a
+user may add.  If you want to make your own version of this class,
+you may update `log_schema` in the `private$DICT` section to allow
+for them.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+[std_err] Messages about actions taken.
+}
+}
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-mark_keep"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-mark_keep}{}}}
 \subsection{Method \code{mark_keep()}}{
@@ -310,6 +351,22 @@ Return both the symlink and the resolved symlink (folder the symlink
 points to)
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_best()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+[data.table] A single data.table with results from all roots, with `root_name` as the first column
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Symlink_Tool-roundup_latest"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Tool-roundup_latest}{}}}
+\subsection{Method \code{roundup_latest()}}{
+Find all `latest` symlinks in all `roots`
+
+Return both the symlink and the resolved symlink (folder the symlink
+points to)
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_latest()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{

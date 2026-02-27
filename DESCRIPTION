@@ -27,7 +27,7 @@ Suggests:
     withr (>= 2.5.0),
     qpdf
 VignetteBuilder: knitr
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 Config/testthat/edition: 3
 Acknowledgments:
 URL: https://github.com/epi-sam/vmTools
