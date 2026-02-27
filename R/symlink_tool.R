@@ -11,7 +11,9 @@
 
 #' @title SymlinkTool R6 class
 #' @description Class for lightweight file-system level data versioning, logs
-#'   and reports without need for a database.
+#'   and reports without need for a database. Manages four symlink types: 'best'
+#'   (validated production), 'latest' (most recent run), 'keep' (archive-worthy),
+#'   and 'remove' (marked for deletion).
 #' @import data.table
 #' @importFrom R6 R6Class
 #' @export

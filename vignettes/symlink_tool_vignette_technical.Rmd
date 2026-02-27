@@ -356,6 +356,50 @@ print_symlink("best")
 
 
 
+## Mark Latest
+
+The `latest` symlink tracks the most recent pipeline run chronologically, separate from the validated `best` version.
+
+- Only one folder can be `latest` at a time (singleton rule)
+- A folder cannot be both `latest` and `best` simultaneously
+- Marking a folder as `latest` auto-demotes the current `latest` folder
+- Typical workflow: new runs start as `latest` → validated → promoted to `best`
+
+Let's mark the most recent folder as `latest`:
+
+```{r mark_latest, eval = flag_eval_chunk}
+slt$mark_latest(version_name = "2024_02_10", user_entry = list(comment = "testing mark_latest"))
+```
+
+Check the folder structure:
+
+```{r mark_latest_tree, eval = flag_eval_chunk}
+print_tree(root_base)
+```
+
+Where does the `latest` symlink point?
+
+```{r mark_latest_symlink, eval = flag_eval_chunk}
+print_symlink("latest")
+```
+
+If we mark a different folder as `latest`, the previous one is auto-demoted:
+
+```{r mark_latest_demote, eval = flag_eval_chunk}
+suppressMessages({
+  slt$mark_latest(version_name = "2024_02_02", user_entry = list(comment = "demonstrating singleton latest"))
+})
+print_symlink("latest")
+```
+
+You can also see the current `latest` version across all roots:
+
+```{r roundup_latest, eval = flag_eval_chunk}
+slt$roundup_latest()
+```
+
+
+
 ## Inspect Logs
 
 In this trio, we see the central log, and each versioned folder's log of best promotion events.
