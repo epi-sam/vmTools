@@ -232,63 +232,6 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
              })
 
 
-   # Integration - Latest symlink feature -----------------------------------------
-
-   test_that("Mark latest works (creates singleton 'latest' symlink)",
-             {
-                slt$mark_latest(version_name = dv_list[["1990_01_02"]], user_entry = list(comment = "Testing mark latest"))
-                expect_true(
-                   all(file.exists(clean_path(root_list, "latest")))
-                )
-             })
-
-   test_that("Latest singleton enforcement works (only one latest per root)",
-             {
-                # Mark a different version as latest
-                slt$mark_latest(version_name = dv_list[["1990_01_03"]], user_entry = list(comment = "Testing latest singleton"))
-                # Check that only one 'latest' symlink exists and points to new version
-                expect_true(
-                   all(file.exists(clean_path(root_list, "latest")))
-                )
-                # Verify it points to the new version
-                latest_resolved <- sapply(root_list, function(root) {
-                   latest_path <- clean_path(root, "latest")
-                   if(file.exists(latest_path)) basename(Sys.readlink(latest_path)) else NA
-                })
-                expect_true(
-                   all(latest_resolved == "1990_01_03")
-                )
-             })
-
-   test_that("Auto-demotion from latest when marking keep",
-             {
-                # Start with latest marked (already on 1990_01_03 from prior test)
-                expect_true(all(file.exists(clean_path(root_list, "latest"))))
-                
-                # Mark as keep - should auto-demote from latest
-                slt$mark_keep(version_name = dv_list[["1990_01_03"]], user_entry = list(comment = "Testing auto-demote from latest"))
-                expect_true(all(file.exists(clean_path(root_list, "keep_1990_01_03"))))
-                expect_true(all(!file.exists(clean_path(root_list, "latest"))))
-                
-                # Clean up
-                slt$unmark(version_name = dv_list[["1990_01_03"]], user_entry = list(comment = "Cleanup"))
-             })
-
-   test_that("Auto-demotion from best when marking latest",
-             {
-                # Mark as best first
-                slt$mark_best(version_name = dv_list[["1990_01_01"]], user_entry = list(comment = "Testing auto-demote from best"))
-                expect_true(all(file.exists(clean_path(root_list, "best"))))
-                
-                # Mark as latest - should auto-demote from best
-                slt$mark_latest(version_name = dv_list[["1990_01_01"]], user_entry = list(comment = "Testing auto-demote from best"))
-                expect_true(all(file.exists(clean_path(root_list, "latest"))))
-                expect_true(all(!file.exists(clean_path(root_list, "best"))))
-                
-                # Clean up
-                slt$unmark(version_name = dv_list[["1990_01_01"]], user_entry = list(comment = "Cleanup"))
-             })
-
    test_that("Expected folders exist after marking, unmarking, and running reports",
              {
                 expect_equal(
@@ -469,6 +412,70 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
 
 
+   # Integration - Latest symlink feature -----------------------------------------
+
+   test_that("Mark latest works (creates singleton 'latest' symlink)",
+             {
+                slt$mark_latest(version_name = dv_list[["1990_01_02"]], user_entry = list(comment = "Testing mark latest"))
+                expect_true(
+                   all(file.exists(clean_path(root_list, "latest")))
+                )
+             })
+
+   test_that("Latest singleton enforcement works (only one latest per root)",
+             {
+                # Mark a different version as latest
+                slt$mark_latest(version_name = dv_list[["1990_01_03"]], user_entry = list(comment = "Testing latest singleton"))
+                # Check that only one 'latest' symlink exists and points to new version
+                expect_true(
+                   all(file.exists(clean_path(root_list, "latest")))
+                )
+                # Verify it points to the new version
+                latest_resolved <- sapply(root_list, function(root) {
+                   latest_path <- clean_path(root, "latest")
+                   if(file.exists(latest_path)) {
+                      target <- normalizePath(latest_path, mustWork = TRUE)
+                      basename(target)
+                   } else {
+                      NA
+                   }
+                })
+                expect_true(
+                   all(latest_resolved == "1990_01_03")
+                )
+             })
+
+   test_that("Auto-demotion from latest when marking keep",
+             {
+                # Start with latest marked (already on 1990_01_03 from prior test)
+                expect_true(all(file.exists(clean_path(root_list, "latest"))))
+                
+                # Mark as keep - should auto-demote from latest
+                slt$mark_keep(version_name = dv_list[["1990_01_03"]], user_entry = list(comment = "Testing auto-demote from latest"))
+                expect_true(all(file.exists(clean_path(root_list, "keep_1990_01_03"))))
+                expect_true(all(!file.exists(clean_path(root_list, "latest"))))
+                
+                # Clean up
+                slt$unmark(version_name = dv_list[["1990_01_03"]], user_entry = list(comment = "Cleanup"))
+             })
+
+   test_that("Auto-demotion from best when marking latest",
+             {
+                # Mark as best first
+                slt$mark_best(version_name = dv_list[["1990_01_02"]], user_entry = list(comment = "Testing auto-demote from best"))
+                expect_true(all(file.exists(clean_path(root_list, "best"))))
+                
+                # Mark as latest - should auto-demote from best
+                slt$mark_latest(version_name = dv_list[["1990_01_02"]], user_entry = list(comment = "Testing auto-demote from best"))
+                expect_true(all(file.exists(clean_path(root_list, "latest"))))
+                expect_true(all(!file.exists(clean_path(root_list, "best"))))
+                
+                # Clean up
+                slt$unmark(version_name = dv_list[["1990_01_02"]], user_entry = list(comment = "Cleanup"))
+             })
+
+
+
    # Integration - Reports --------------------------------------------------------
 
 
@@ -517,27 +524,35 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                    discrepancy_report
                    , structure(
                       list(
-                         log_id         = c(NA, 12L, 12L, 0L)
-                         , user         = c("", .user, .user, .user)
-                         , version_name = c("", "1990_01_01", "1990_01_01", "1990_01_03")
+                         log_id         = c(NA, 12L, 12L, 0L, 1L, 2L, 3L, 4L)
+                         , user         = c("", .user, .user, .user, .user, .user, .user, .user)
+                         , version_name = c("", "1990_01_01", "1990_01_01", "1990_01_03", "1990_01_03", "1990_01_03", "1990_01_03", "1990_01_03")
                          , version_path = c(
                             ""
                             , clean_path(path_list$root_input[["1990_01_01"]])
                             , clean_path(path_list$root_input[["1990_01_01"]])
                             , clean_path(path_list$root_input[["1990_01_03"]])
+                            , clean_path(path_list$root_input[["1990_01_03"]])
+                            , clean_path(path_list$root_input[["1990_01_03"]])
+                            , clean_path(path_list$root_input[["1990_01_03"]])
+                            , clean_path(path_list$root_input[["1990_01_03"]])
                          )
-                         , action       = c("", "non_slt_event", "non_slt_event", "create")
-                         , comment      = c("", "This line was added by hand", "This line was added by hand", "log created")
-                         , dir_name     = c(file.path(clean_path(root_list$root_input), "bad_symlink"), "", "", "")
-                         , bad_column   = c("", "", "", "This column was not created by the tool")
-                         , vars_missing = c(NA, NA, NA, NA)
-                         , vars_extra   = c("", "", "", "bad_column")
+                         , action       = c("", "non_slt_event", "non_slt_event", "create", "promote_latest", "demote_latest", "promote_keep", "demote_keep")
+                         , comment      = c("", "This line was added by hand", "This line was added by hand", "log created", "Testing latest singleton", "Testing auto-demote from latest", "Testing auto-demote from latest", "Cleanup")
+                         , dir_name     = c(file.path(clean_path(root_list$root_input), "bad_symlink"), "", "", "", "", "", "", "")
+                         , bad_column   = c("", "", "", "This column was not created by the tool", "This column was not created by the tool", "This column was not created by the tool", "This column was not created by the tool", "This column was not created by the tool")
+                         , vars_missing = c(NA, NA, NA, NA, NA, NA, NA, NA)
+                         , vars_extra   = c("", "", "", "bad_column", "bad_column", "bad_column", "bad_column", "bad_column")
                          , discrepancy  = c(
                             "non-tool symlinks in root folder"
                             , "non-sequential log_ids"
                             , "invalid actions"
+                            , "log schema differences - see vars_missing and vars_extra"
+                            , "log schema differences - see vars_missing and vars_extra"
+                            , "log schema differences - see vars_missing and vars_extra"
+                            , "log schema differences - see vars_missing and vars_extra"
                             , "log schema differences - see vars_missing and vars_extra")
-                      ), row.names = c(NA, -4L), class = c("data.table", "data.frame")
+                      ), row.names = c(NA, -8L), class = c("data.table", "data.frame")
                    )
                 )
              })
