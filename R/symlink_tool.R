@@ -11,7 +11,9 @@
 
 #' @title SymlinkTool R6 class
 #' @description Class for lightweight file-system level data versioning, logs
-#'   and reports without need for a database.
+#'   and reports without need for a database. Manages four symlink types: 'best'
+#'   (validated production), 'latest' (most recent run), 'keep' (archive-worthy),
+#'   and 'remove' (marked for deletion).
 #' @import data.table
 #' @importFrom R6 R6Class
 #' @export
@@ -128,13 +130,39 @@ SLT <- R6::R6Class(
             , "demote_keep"
             , "promote_remove"
             , "demote_remove"
+            , "promote_latest"
+            , "demote_latest"
             , "delete_remove_folder"
          ),
+
+         # Symlink-based Finite State Machine
+         #
+         # State Transitions:
+         # [unmarked] ←→ [latest] ←→ [best]
+         #     ↕          ↕          ↕
+         #   [keep]     [keep]     [keep]
+         #     ↕          ↕          ↕
+         #  [remove]   [remove]   [remove]
+         #
+         # Rules:
+         # 1. Only ONE symlink per folder at any time
+         # 2. Only ONE 'best' folder system-wide (Highlander rule)
+         # 3. Only ONE 'latest' folder system-wide (Highlander rule)
+         # 4. Multiple 'keep' folders allowed
+         # 5. Multiple 'remove' folders allowed
+         # 6. 'best' ←→ 'latest' transitions auto-demote the conflicting state
+         #
+         # Symlink Naming Convention:
+         # - 'best':   singleton symlink named "best" (no version in name)
+         # - 'latest': singleton symlink named "latest" (no version in name)
+         # - 'keep':   multiple symlinks named "keep_<version_name>"
+         # - 'remove': multiple symlinks named "remove_<version_name>"
 
          symlink_types = c(
             "best"
             , "keep"
             , "remove"
+            , "latest"
          ),
 
          # used in private$extract_symlink()
@@ -144,7 +172,8 @@ SLT <- R6::R6Class(
          symlink_regex_extract = list(
             best   = paste0("^best"),
             keep   = paste0("^keep_"),
-            remove = paste0("^remove_")
+            remove = paste0("^remove_"),
+            latest = paste0("^latest")
          )
 
       ),
@@ -463,9 +492,10 @@ SLT <- R6::R6Class(
          # Define all eligible symlink regex patterns by type
          arrow_regex <- " -> " # used in bash to show symlinks
          # We're ONLY monitoring symlinks of a certain pattern - users are free to make others
-         symlink_regex <- switch(
-            symlink_type,
-            best     = paste0("best", arrow_regex, ".*", version_name)
+         symlink_regex <- switch_strict(
+            symlink_type
+            , best   = paste0("best", arrow_regex, ".*", version_name)
+            , latest = paste0("latest", arrow_regex, ".*", version_name)
             , keep   = paste0("keep_", version_name, arrow_regex, ".*", version_name)
             , remove = paste0("remove_", version_name, arrow_regex, ".*", version_name)
          )
@@ -596,11 +626,12 @@ SLT <- R6::R6Class(
          root         <- dirname(clean_path(version_path))
          version_name <- basename(clean_path(version_path))
 
-         symlink_suffix <- switch(
-            symlink_type,
-            best   = "",
-            keep   = paste0("_", version_name),
-            remove = paste0("_", version_name)
+         symlink_suffix <- switch_strict(
+            symlink_type
+            , best   = ""
+            , latest = ""
+            , keep   = paste0("_", version_name)
+            , remove = paste0("_", version_name)
          )
 
          # don't normalize - we want a symlink path
@@ -1430,6 +1461,20 @@ SLT <- R6::R6Class(
          return(best_dirs_dt)
       },
 
+      # Query all folders with a "latest" symlink in a single `root`
+      #
+      # @param root [chr] path to a root folder defined at instantiation (`STL$new()`)
+      #
+      # @return [data.table] a data.table with the folder path, symlink name, and resolved path
+      query_all_latest_symlinks = function(root){
+         # find all folders and their types
+         folder_dt <- private$query_root_folder_types(root)
+         # find all resolved paths attached to a "latest" symlink, and their symlink names
+         # allow the user to decide how to deal with removal
+         latest_dirs_dt <- unique(folder_dt[is_symlink == TRUE & grepl("^latest$", dir_leaf), .(version_name, dir_name, dir_name_resolved)])
+         return(latest_dirs_dt)
+      },
+
       #  Query all folders with a "keep_" symlink in a single `root`
       #
       #  @param root [chr] path to a root folder defined at instantiation (`STL$new()`)
@@ -1516,7 +1561,7 @@ SLT <- R6::R6Class(
          log_id_0_dt[, timestamp_parsed := as.POSIXct(timestamp_parsed, format = "%Y-%m-%d", tz = private$DICT$TZ)]
 
          # filter logs to all time-stamps less/greater than (or equal to) user date for later filtering
-         logs_by_date <- switch(
+         logs_by_date <- switch_strict(
             date_selector
             , "lt"  = log_id_0_dt[timestamp_parsed <  user_date_parsed, ]
             , "lte" = log_id_0_dt[timestamp_parsed <= user_date_parsed, ]
@@ -2155,6 +2200,60 @@ SLT <- R6::R6Class(
             private$msg_sometimes("  Keep symlink already exists - moving on: ", path_remove_sym)
          }
 
+      },
+
+      #  Promote a version_name folder to 'latest' status.
+      #
+      #  @param version_path [chr] Path to a version_name folder for `latest` promotion
+      #  @param version_name [chr] version_name folder to promote to `latest`
+      #  @param user_entry [named list] User-supplied log entry
+      #
+      #  @return [none] Creates a symlink on disk
+      promote_latest = function(version_path, version_name, user_entry){
+         assert_dir_exists(version_path)
+         path_latest_sym <- private$make_symlink_path(version_path, "latest")
+         path_latest_new <- version_path
+         # Highlander - there can be only one (latest)
+         private$demote_previous_latest(version_path = version_path, version_name = version_name, user_entry = user_entry)
+         # make new symlink
+         private$msg_sometimes("Promoting to 'latest': ", path_latest_new)
+         private$DYNAMIC$LOG$action <- "promote_latest"
+         private$append_to_log(version_path = path_latest_new, user_entry = user_entry)
+         private$append_to_central_log(version_path = path_latest_new, user_entry = user_entry)
+
+         # only symlink if logging is successful
+         # force symlink to change in case the unlink is glitchy
+         file.symlink(path_latest_new, path_latest_sym)
+      },
+
+      #  Demote the previous 'latest' symlink before promoting a new one.
+      #
+      #  @param version_path [chr] Path to a version_name folder
+      #  @param version_name [chr] version_name folder that will become the new `latest`
+      #  @param user_entry [named list] User-supplied log entry
+      #
+      #  @return [none] Removes the previous 'latest' symlink on disk
+      demote_previous_latest = function(version_path, version_name, user_entry){
+         root <- dirname(version_path)
+         path_latest_sym <- private$make_symlink_path(version_path, "latest")
+         private$DYNAMIC$LOG$action <- "demote_latest"
+         # remove old symlink
+         if(dir.exists(path_latest_sym)) {
+            path_latest_real <- private$resolve_symlink(path_latest_sym)
+            version_name_to_remove <- basename(path_latest_real)
+            private$msg_sometimes("Demoting from 'latest': ", path_latest_real)
+
+            # set version to the folder the log will be written to, then reset it after
+            private$DYNAMIC$LOG$version_name <- version_name_to_remove
+            private$append_to_log(version_path = path_latest_real, user_entry = user_entry)
+            private$append_to_central_log(version_path = path_latest_real, user_entry = user_entry)
+            private$DYNAMIC$LOG$version_name <- version_name
+
+            # only unlink if logging is successful
+            system(paste0("unlink ", path_latest_sym))
+         } else {
+            private$msg_sometimes("No 'latest' symlink found - moving on: ", path_latest_sym)
+         }
       }
 
 
@@ -2311,7 +2410,7 @@ SLT <- R6::R6Class(
          # libraries
          # library(data.table)
          # only fread is currently supported due to how data types are defined when reading in logs
-         private$csv_reader <- switch(
+         private$csv_reader <- switch_strict(
             csv_reader
             , "fread"       = function(...) return(data.table::fread(...))
             , "fread_quiet" = function(...) return(suppressWarnings(data.table::fread(...)))
@@ -2320,7 +2419,7 @@ SLT <- R6::R6Class(
             , stop("csv_reader must be one of: fread, fread_quiet, read.csv, read.csv2")
          )
 
-         private$csv_writer <- switch(
+         private$csv_writer <- switch_strict(
             csv_reader
             , "fread"       = function(...) return(data.table::fwrite(...))
             , "fread_quiet" = function(...) return(data.table::fwrite(...))
@@ -2479,6 +2578,74 @@ SLT <- R6::R6Class(
             )
 
             private$promote_best(
+               version_path    = version_path,
+               version_name    = version_name,
+               user_entry      = user_entry
+            )
+
+         }
+
+         private$handler_post_mark(version_name = version_name,
+                                   user_entry = user_entry)
+      },
+
+
+      #' @description
+      #' Mark an output folder with a "latest" symlink
+      #'
+      #' Creates a 'latest' symlink (singleton) in each root. Auto-demotes
+      #' current 'latest' if different. A folder cannot be both 'latest' and
+      #' 'best' - this will auto-demote from the conflicting state.
+      #'
+      #' Writes:
+      #' - appends to a log file in the output folder with a date and time stamp
+      #' - appends a line to the central log file with a date and time stamp
+      #'
+      #' @param version_name [chr] The directory name of the output folder that
+      #'   lives directly under one of the `root`s you define when you
+      #'   instantiate the tool.
+      #' @param user_entry [list] Named list of user-defined fields to append to
+      #'   the log.  After making a tool called e.g. slt, call
+      #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
+      #'   user may add.  If you want to make your own version of this class,
+      #'   you may update `log_schema` in the `private$DICT` section to allow
+      #'   for them.
+      #'
+      #' @return [std_err] Messages about actions taken.
+      #'
+      #'
+      #'
+      mark_latest = function(version_name, user_entry){
+
+         # For all version_name folders, do the following:
+         # 1. check if there is already a latest symlink
+         # 2. if there is, demote it & append to the log
+         # 3. make a new latest symlink
+         # 4. append to the version_name log
+         # 5. append to the central log
+
+         private$handler_pre_mark(
+            version_name = version_name,
+            user_entry   = user_entry
+         )
+
+         private$msg_sometimes("Marking latest: ", version_name)
+         # Manage symlinks and append logs
+         for(version_path in private$DYNAMIC$VERS_PATHS){
+
+            if(validate_dir_exists(version_path) == FALSE) next()
+            if(private$already_marked(version_path, "latest")) {
+               private$msg_sometimes(version_path, " - already marked latest - moving on.")
+               next()
+            }
+
+            private$demote_existing_symlinks(
+               version_path = version_path,
+               version_name = version_name,
+               user_entry   = user_entry
+            )
+
+            private$promote_latest(
                version_path    = version_path,
                version_name    = version_name,
                user_entry      = user_entry
@@ -2658,6 +2825,17 @@ SLT <- R6::R6Class(
       #' @return [data.table] A single data.table with results from all roots, with `root_name` as the first column
       roundup_best = function(){
          return(private$combine_roundup_results(private$query_all_best_symlinks))
+      },
+
+      #' @description
+      #' Find all `latest` symlinks in all `roots`
+      #'
+      #' Return both the symlink and the resolved symlink (folder the symlink
+      #' points to)
+      #'
+      #' @return [data.table] A single data.table with results from all roots, with `root_name` as the first column
+      roundup_latest = function(){
+         return(private$combine_roundup_results(private$query_all_latest_symlinks))
       },
 
       #' @description
