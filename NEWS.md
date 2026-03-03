@@ -1,3 +1,14 @@
+# vmTools 1.3.0
+
+## Features:
+
+'Latest' symlink
+
+- New methods to mark and roundup a 'latest' symlink that 
+- Mechanically similar to 'best', just a different label
+  - Singleton rule - only one 'latest' version can be marked at a time
+  - A folder cannot simulataneously be 'latest' and any other symlink type
+
 # vmTools 1.2.0
 
 ## Features:
