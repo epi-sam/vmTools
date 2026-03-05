@@ -5,9 +5,9 @@
 
 #' Assert an element is atomic and length 1
 #'
-#' @param x [any] Element to check
+#' @param x (any) Element to check
 #'
-#' @return [none] stop if assertion fails
+#' @return (none) stop if assertion fails
 #'
 #' @family assertions
 #' @keywords internal
@@ -20,9 +20,9 @@ assert_scalar <- function(x) {
 
 #' Assert x is a scalar, and not empty in some way
 #'
-#' @param x [any] some object to check
+#' @param x (any) some object to check
 #'
-#' @return [none] stop if assertion fails
+#' @return (none) stop if assertion fails
 #'
 #' @family assertions
 #' @keywords internal
@@ -36,10 +36,10 @@ assert_scalar_not_empty = function(x) {
 
 #' Assert an object is a scalar of a certain type
 #'
-#' @param x [any] Object to check
-#' @param type [chr] Type to check against
+#' @param x (any) Object to check
+#' @param type (chr) Type to check against
 #'
-#' @return [none] stop if assertion fails
+#' @return (none) stop if assertion fails
 #'
 #' @family assertions
 #' @keywords internal
@@ -65,9 +65,9 @@ assert_type = function(x, type) {
 #'  \item{x has any whitespace-only names}
 #' }
 #'
-#' @param x [list] List to check
+#' @param x (list) List to check
 #'
-#' @return [none] stop if assertion fails
+#' @return (none) stop if assertion fails
 #'
 #' @family assertions
 #' @keywords internal
@@ -86,9 +86,9 @@ assert_named_list = function(x){
 
 #' Assert a directory exists on disk
 #'
-#' @param x [chr] A directory path
+#' @param x (chr) A directory path
 #'
-#' @return [none] stop if assertion fails
+#' @return (none) stop if assertion fails
 #'
 #' @family assertions
 #' @keywords internal
@@ -101,10 +101,10 @@ assert_dir_exists = function(x){
 
 #' Assert all elements of x are in y
 #'
-#' @param x [vector] some vector
-#' @param y [vector] some vector
+#' @param x (vector) some vector
+#' @param y (vector) some vector
 #'
-#' @return [none] stop if any elements of x are not in y
+#' @return (none) stop if any elements of x are not in y
 #'
 #' @family assertions
 #' @keywords internal

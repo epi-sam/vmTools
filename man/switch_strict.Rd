@@ -7,16 +7,16 @@
 switch_strict(EXPR, ..., .empty = NULL, .default = NULL)
 }
 \arguments{
-\item{EXPR}{[string] expression to evaluate}
+\item{EXPR}{(string) expression to evaluate}
 
 \item{...}{named options to match against EXPR}
 
-\item{.empty}{[any: default NULL] value to return if EXPR is an empty string ("")}
+\item{.empty}{(any: default NULL) value to return if EXPR is an empty string ("")}
 
-\item{.default}{[any: default NULL] value to return if no match is found - NULL allows no defaults (strict)}
+\item{.default}{(any: default NULL) value to return if no match is found - NULL allows no defaults (strict)}
 }
 \value{
-[any] the value of the matched option
+(any) the value of the matched option
 }
 \description{
 Options for handling empty string ("") and no match cases

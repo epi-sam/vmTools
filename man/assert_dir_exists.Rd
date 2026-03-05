@@ -7,10 +7,10 @@
 assert_dir_exists(x)
 }
 \arguments{
-\item{x}{[chr] A directory path}
+\item{x}{(chr) A directory path}
 }
 \value{
-[none] stop if assertion fails
+(none) stop if assertion fails
 }
 \description{
 Assert a directory exists on disk

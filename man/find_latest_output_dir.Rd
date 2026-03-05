@@ -7,10 +7,10 @@
 find_latest_output_dir(root)
 }
 \arguments{
-\item{root}{[chr] path to root of output results}
+\item{root}{(chr) path to root of output results}
 }
 \value{
-[chr] path to latest output directory
+(chr) path to latest output directory
 }
 \description{
 Used only for signaling/messaging

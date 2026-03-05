@@ -7,10 +7,10 @@
 assert_scalar_not_empty(x)
 }
 \arguments{
-\item{x}{[any] some object to check}
+\item{x}{(any) some object to check}
 }
 \value{
-[none] stop if assertion fails
+(none) stop if assertion fails
 }
 \description{
 Assert x is a scalar, and not empty in some way

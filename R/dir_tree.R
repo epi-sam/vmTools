@@ -1,8 +1,8 @@
 #' Print a directory tree to stdout
 #'
-#' @param path [chr] The path to the directory to print
-#' @param level [int] The maximum depth to print
-#' @param prefix [chr] The prefix to add to each line
+#' @param path (chr) The path to the directory to print
+#' @param level (int) The maximum depth to print
+#' @param prefix (chr) The prefix to add to each line
 #'
 #' @return NULL
 #' @keywords internal

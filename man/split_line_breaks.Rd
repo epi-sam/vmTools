@@ -7,7 +7,7 @@
 split_line_breaks(string)
 }
 \arguments{
-\item{string}{[chr] A character vector.}
+\item{string}{(chr) A character vector.}
 }
 \value{
 All elements of the character vector are split by `\\n` into new elements.

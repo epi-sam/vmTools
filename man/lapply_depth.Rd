@@ -7,16 +7,16 @@
 lapply_depth(.x, .depth, .f, ...)
 }
 \arguments{
-\item{.x}{[list] List to apply function to}
+\item{.x}{(list) List to apply function to}
 
-\item{.depth}{[integer] Depth to apply function at}
+\item{.depth}{(integer) Depth to apply function at}
 
-\item{.f}{[function] Function to apply}
+\item{.f}{(function) Function to apply}
 
-\item{...}{[any] Additional arguments to pass to .f}
+\item{...}{(any) Additional arguments to pass to .f}
 }
 \value{
-[list] List with function applied at target depth
+(list) List with function applied at target depth
 }
 \description{
 Very simple replacement for purrr::map_depth to remove package dependency,

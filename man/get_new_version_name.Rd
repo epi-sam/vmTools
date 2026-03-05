@@ -7,12 +7,12 @@
 get_new_version_name(root, date = "today")
 }
 \arguments{
-\item{root}{[chr] path to root of output results}
+\item{root}{(chr) path to root of output results}
 
-\item{date}{[chr] character date in form of "YYYY_MM_DD" or "today". "today" will be interpreted as today's date.}
+\item{date}{(chr) character date in form of "YYYY_MM_DD" or "today". "today" will be interpreted as today's date.}
 }
 \value{
-[chr] new output version of the form "YYYY_MM_DD.VV"
+(chr) new output version of the form "YYYY_MM_DD.VV"
 }
 \description{
 Return on the date-version, not the full path.  Does not create a folder.

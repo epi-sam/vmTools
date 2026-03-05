@@ -7,12 +7,12 @@
 assert_type(x, type)
 }
 \arguments{
-\item{x}{[any] Object to check}
+\item{x}{(any) Object to check}
 
-\item{type}{[chr] Type to check against}
+\item{type}{(chr) Type to check against}
 }
 \value{
-[none] stop if assertion fails
+(none) stop if assertion fails
 }
 \description{
 Assert an object is a scalar of a certain type

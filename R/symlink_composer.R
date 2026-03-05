@@ -19,15 +19,15 @@ SLC <- R6::R6Class(
 
     #' @description Initialize the SymlinkComposer
     #'
-    #' @param tool_list [named list] Named list of pre-instantiated SLT objects.
+    #' @param tool_list (named list) Named list of pre-instantiated SLT objects.
     #'   Names become tool identifiers for combined queries. Example:
     #'   list(
     #'     project_a = my_slt_a,
     #'     project_b = my_slt_b
     #'   )
-    #' @param verbose [lgl] Control message verbosity
+    #' @param verbose (lgl) Control message verbosity
     #'
-    #' @return [SymlinkComposer] A composer managing multiple SLT instances
+    #' @return (SymlinkComposer) A composer managing multiple SLT instances
     initialize = function(
     tool_list
     , verbose = FALSE
@@ -57,9 +57,9 @@ SLC <- R6::R6Class(
 
     #' @description Access individual SLT instances
     #'
-    #' @param tool_name [chr] Name of the tool to retrieve
+    #' @param tool_name (chr) Name of the tool to retrieve
     #'
-    #' @return [SLT] The requested SymlinkTool instance
+    #' @return (SLT) The requested SymlinkTool instance
     , get_tool = function(tool_name) {
       if(!tool_name %in% names(private$TOOLS)) {
         stop("Tool '", tool_name, "' not found. Available: ",
@@ -70,14 +70,14 @@ SLC <- R6::R6Class(
 
     #' @description List all tool names
     #'
-    #' @return [chr] Vector of tool names
+    #' @return (chr) Vector of tool names
     , list_tools = function() {
       return(names(private$TOOLS))
     }
 
     #' @description Roundup all 'best' symlinks across all tools
     #'
-    #' @return [data.table] Combined results with 'tool_name' column
+    #' @return (data.table) Combined results with 'tool_name' column
     , roundup_all_best = function() {
       results <- lapply(names(private$TOOLS), function(tn) {
         dt <- private$TOOLS[[tn]]$roundup_best()
@@ -93,7 +93,7 @@ SLC <- R6::R6Class(
 
     #' @description Roundup all 'keep' symlinks across all tools
     #'
-    #' @return [data.table] Combined results with 'tool_name' column
+    #' @return (data.table) Combined results with 'tool_name' column
     , roundup_all_keep = function() {
       results <- lapply(names(private$TOOLS), function(tn) {
         dt <- private$TOOLS[[tn]]$roundup_keep()
@@ -109,7 +109,7 @@ SLC <- R6::R6Class(
 
     #' @description Roundup all 'remove' symlinks across all tools
     #'
-    #' @return [data.table] Combined results with 'tool_name' column
+    #' @return (data.table) Combined results with 'tool_name' column
     , roundup_all_remove = function() {
       results <- lapply(names(private$TOOLS), function(tn) {
         dt <- private$TOOLS[[tn]]$roundup_remove()
@@ -125,7 +125,7 @@ SLC <- R6::R6Class(
 
     #' @description Roundup all unmarked folders across all tools
     #'
-    #' @return [data.table] Combined results with 'tool_name' column
+    #' @return (data.table) Combined results with 'tool_name' column
     , roundup_all_unmarked = function() {
       results <- lapply(names(private$TOOLS), function(tn) {
         dt <- private$TOOLS[[tn]]$roundup_unmarked()
@@ -141,10 +141,10 @@ SLC <- R6::R6Class(
 
     #' @description Roundup folders by date across all tools
     #'
-    #' @param user_date [chr/Date/POSIXct] Date to query
-    #' @param date_selector [chr] One of: 'gt', 'gte', 'lt', 'lte', 'e'
+    #' @param user_date (chr/Date/POSIXct) Date to query
+    #' @param date_selector (chr) One of: 'gt', 'gte', 'lt', 'lte', 'e'
     #'
-    #' @return [data.table] Combined results with 'tool_name' column
+    #' @return (data.table) Combined results with 'tool_name' column
     , roundup_all_by_date = function(user_date, date_selector) {
       results <- lapply(names(private$TOOLS), function(tn) {
         dt <- private$TOOLS[[tn]]$roundup_by_date(user_date, date_selector)
@@ -165,10 +165,10 @@ class(SLC) <- c("Symlink_Composer", class(SLC))
 
 #' Symlink Composer custom print method
 #'
-#' @param x [Symlink_Composer] The SLC class
-#' @param ... [any] Additional arguments to print()
+#' @param x (Symlink_Composer) The SLC class
+#' @param ... (any) Additional arguments to print()
 #'
-#' @return [stdout]
+#' @return (stdout)
 #' @exportS3Method print Symlink_Composer
 #'
 #' @examples SLC

@@ -7,10 +7,10 @@
 validate_not_empty(x)
 }
 \arguments{
-\item{x}{[any] some argument to check}
+\item{x}{(any) some argument to check}
 }
 \value{
-[lgl] FALSE if empty in some way, TRUE otherwise
+(lgl) FALSE if empty in some way, TRUE otherwise
 }
 \description{
 Designed to also catch missing args when called inside a function.

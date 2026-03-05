@@ -33,19 +33,19 @@ Initialize the SymlinkComposer
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{tool_list}}{[named list] Named list of pre-instantiated SLT objects.
+\item{\code{tool_list}}{(named list) Named list of pre-instantiated SLT objects.
 Names become tool identifiers for combined queries. Example:
 list(
   project_a = my_slt_a,
   project_b = my_slt_b
 )}
 
-\item{\code{verbose}}{[lgl] Control message verbosity}
+\item{\code{verbose}}{(lgl) Control message verbosity}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[SymlinkComposer] A composer managing multiple SLT instances
+(SymlinkComposer) A composer managing multiple SLT instances
 }
 }
 \if{html}{\out{<hr>}}
@@ -60,12 +60,12 @@ Access individual SLT instances
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{tool_name}}{[chr] Name of the tool to retrieve}
+\item{\code{tool_name}}{(chr) Name of the tool to retrieve}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[SLT] The requested SymlinkTool instance
+(SLT) The requested SymlinkTool instance
 }
 }
 \if{html}{\out{<hr>}}
@@ -78,7 +78,7 @@ List all tool names
 }
 
 \subsection{Returns}{
-[chr] Vector of tool names
+(chr) Vector of tool names
 }
 }
 \if{html}{\out{<hr>}}
@@ -91,7 +91,7 @@ Roundup all 'best' symlinks across all tools
 }
 
 \subsection{Returns}{
-[data.table] Combined results with 'tool_name' column
+(data.table) Combined results with 'tool_name' column
 }
 }
 \if{html}{\out{<hr>}}
@@ -104,7 +104,7 @@ Roundup all 'keep' symlinks across all tools
 }
 
 \subsection{Returns}{
-[data.table] Combined results with 'tool_name' column
+(data.table) Combined results with 'tool_name' column
 }
 }
 \if{html}{\out{<hr>}}
@@ -117,7 +117,7 @@ Roundup all 'remove' symlinks across all tools
 }
 
 \subsection{Returns}{
-[data.table] Combined results with 'tool_name' column
+(data.table) Combined results with 'tool_name' column
 }
 }
 \if{html}{\out{<hr>}}
@@ -130,7 +130,7 @@ Roundup all unmarked folders across all tools
 }
 
 \subsection{Returns}{
-[data.table] Combined results with 'tool_name' column
+(data.table) Combined results with 'tool_name' column
 }
 }
 \if{html}{\out{<hr>}}
@@ -145,14 +145,14 @@ Roundup folders by date across all tools
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{user_date}}{[chr/Date/POSIXct] Date to query}
+\item{\code{user_date}}{(chr/Date/POSIXct) Date to query}
 
-\item{\code{date_selector}}{[chr] One of: 'gt', 'gte', 'lt', 'lte', 'e'}
+\item{\code{date_selector}}{(chr) One of: 'gt', 'gte', 'lt', 'lte', 'e'}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[data.table] Combined results with 'tool_name' column
+(data.table) Combined results with 'tool_name' column
 }
 }
 \if{html}{\out{<hr>}}

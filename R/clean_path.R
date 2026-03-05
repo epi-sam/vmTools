@@ -1,10 +1,10 @@
 #' Wrapper utility for sanitizing file.path(...) output
 #'
-#' @param ... [chr] paths passed to file.path()
-#' @param normalize [lgl] pass path to normalizePath()?
-#' @param mustWork [lgl] passed to normalizePath()
+#' @param ... (chr) paths passed to file.path()
+#' @param normalize (lgl) pass path to normalizePath()?
+#' @param mustWork (lgl) passed to normalizePath()
 #'
-#' @return [chr] full file paths with consistent platform-specific structure
+#' @return (chr) full file paths with consistent platform-specific structure
 #'
 #' @export
 #'

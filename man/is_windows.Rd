@@ -7,7 +7,7 @@
 is_windows()
 }
 \value{
-[lgl]
+(lgl)
 }
 \description{
 Is the current OS windows

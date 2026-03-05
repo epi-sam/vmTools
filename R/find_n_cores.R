@@ -1,6 +1,6 @@
 #' Cross platform helper to find number of cores
 #'
-#' @returns [int]
+#' @returns (int)
 #' @keywords internal
 find_n_cores <- function(){
    if (.Platform$OS.type == "windows") {

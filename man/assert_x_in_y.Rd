@@ -7,12 +7,12 @@
 assert_x_in_y(x, y)
 }
 \arguments{
-\item{x}{[vector] some vector}
+\item{x}{(vector) some vector}
 
-\item{y}{[vector] some vector}
+\item{y}{(vector) some vector}
 }
 \value{
-[none] stop if any elements of x are not in y
+(none) stop if any elements of x are not in y
 }
 \description{
 Assert all elements of x are in y

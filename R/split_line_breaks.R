@@ -3,7 +3,7 @@
 
 #' Split a character vector by line breaks
 #'
-#' @param string [chr] A character vector.
+#' @param string (chr) A character vector.
 #'
 #' @return All elements of the character vector are split by `\\n` into new elements.
 #' @keywords internal

@@ -7,11 +7,11 @@
 dir_tree(path = ".", level = Inf, prefix = "")
 }
 \arguments{
-\item{path}{[chr] The path to the directory to print}
+\item{path}{(chr) The path to the directory to print}
 
-\item{level}{[int] The maximum depth to print}
+\item{level}{(int) The maximum depth to print}
 
-\item{prefix}{[chr] The prefix to add to each line}
+\item{prefix}{(chr) The prefix to add to each line}
 }
 \description{
 Print a directory tree to stdout
