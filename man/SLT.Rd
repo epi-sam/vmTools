@@ -67,26 +67,26 @@ The constructor function.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{root_list}}{[list] Named list of root directories for
+\item{\code{root_list}}{(list) Named list of root directories for
 pipeline outputs. This is where `version_name` folders live - these
 are iterative runs of an analysis pipeline.}
 
-\item{\code{central_log_root}}{[path] Root directory for the central log.
+\item{\code{central_log_root}}{(path) Root directory for the central log.
 If you have multiple roots in the `root_list`, you probably want
 the central log to live one level above those roots.}
 
-\item{\code{schema_repair}}{[logical] Default `TRUE`.  If `TRUE`, the tool
+\item{\code{schema_repair}}{(logical) Default `TRUE`.  If `TRUE`, the tool
 will attempt to repair any schema mismatches it finds in the logs
 when reading and writing e.g. add new columns if the tool schema has
 columns that existing logs do not. If `FALSE`, the tool will stop and
 throw an error if it finds a schema mismatch.}
 
-\item{\code{verbose}}{[lgl: default TRUE] control message verbosity - if TRUE,
+\item{\code{verbose}}{(lgl: default TRUE) control message verbosity - if TRUE,
 standard message, if FALSE, warn only if something is irregular.}
 
-\item{\code{verbose_startup}}{[lgl] see start up warnings, if relevant?}
+\item{\code{verbose_startup}}{(lgl) see start up warnings, if relevant?}
 
-\item{\code{csv_reader}}{[chr] The CSV reader to use (also assigns matching
+\item{\code{csv_reader}}{(chr) The CSV reader to use (also assigns matching
   CSV writer). CAUTION: DO NOT USE `data.table::fread` if you have any
   quotation marks (") in log comments (these lead to exploding series
   of quotations). https://github.com/Rdatatable/data.table/issues/4779.
@@ -98,13 +98,13 @@ standard message, if FALSE, warn only if something is irregular.}
  \item{read.csv2   - `utils::read.csv2` - safer, comma as decimal point, semicolon as field separator}
 }}
 
-\item{\code{timezone}}{[chr] Default `America/Los_Angeles`.  The timezone to
+\item{\code{timezone}}{(chr) Default `America/Los_Angeles`.  The timezone to
 use for datestamps in logs. Must be a valid `OlsonNames()` string.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[symlink_tool] A symlink tool object.  You can instantiate
+(symlink_tool) A symlink tool object.  You can instantiate
   a.k.a. create multiple objects, each of which has different roots and
   central logs.
 }
@@ -132,14 +132,14 @@ Return the contents of all private dictionaries.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{item_names}}{[chr] Default `NULL`.  If `NULL`, show all static
+\item{\code{item_names}}{(chr) Default `NULL`.  If `NULL`, show all static
 internal fields.  Otherwise, vector of static field names you want to
 see.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[list] of all static internal fields
+(list) of all static internal fields
 }
 }
 \if{html}{\out{<hr>}}
@@ -154,14 +154,14 @@ Print the contents of all dynamic fields.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{item_names}}{[chr] Default `NULL`.  If `NULL`, show all dynamic
+\item{\code{item_names}}{(chr) Default `NULL`.  If `NULL`, show all dynamic
 internal fields.  Otherwise, vector of dynamic field names you want
 to see.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[std_out] Print dynamic field values to std_out.
+(std_out) Print dynamic field values to std_out.
 }
 }
 \if{html}{\out{<hr>}}
@@ -184,11 +184,11 @@ Writes:
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{version_name}}{[chr] The directory name of the output folder that
+\item{\code{version_name}}{(chr) The directory name of the output folder that
 lives directly under one of the `root`s you define when you
 instantiate the tool.}
 
-\item{\code{user_entry}}{[list] Named list of user-defined fields to append to
+\item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call
 `slt$return_dictionaries("log_fields_user")` to find which fields a
 user may add.  If you want to make your own version of this class,
@@ -198,7 +198,7 @@ for them.}
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[ste_err] Messages about actions taken.
+(ste_err) Messages about actions taken.
 }
 }
 \if{html}{\out{<hr>}}
@@ -221,11 +221,11 @@ Writes:
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{version_name}}{[chr] The directory name of the output folder that
+\item{\code{version_name}}{(chr) The directory name of the output folder that
 lives directly under one of the `root`s you define when you
 instantiate the tool.}
 
-\item{\code{user_entry}}{[list] Named list of user-defined fields to append to
+\item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call
 `slt$return_dictionaries("log_fields_user")` to find which fields a
 user may add.  If you want to make your own version of this class,
@@ -235,7 +235,7 @@ for them.}
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[std_err] Messages about actions taken.
+(std_err) Messages about actions taken.
 }
 }
 \if{html}{\out{<hr>}}
@@ -254,11 +254,11 @@ Writes:
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{version_name}}{[chr] The directory name of the output folder that
+\item{\code{version_name}}{(chr) The directory name of the output folder that
 lives directly under one of the `root`s you define when you
 instantiate the tool.}
 
-\item{\code{user_entry}}{[list] Named list of user-defined fields to append to
+\item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call
 `slt$return_dictionaries("log_fields_user")` to find which fields a
 user may add.  If you want to make your own version of this class,
@@ -268,7 +268,7 @@ for them.}
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[std_err] Messages about actions taken.
+(std_err) Messages about actions taken.
 }
 }
 \if{html}{\out{<hr>}}
@@ -291,11 +291,11 @@ Writes:
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{version_name}}{[chr] The directory name of the output folder that
+\item{\code{version_name}}{(chr) The directory name of the output folder that
 lives directly under one of the `root`s you define when you
 instantiate the tool.}
 
-\item{\code{user_entry}}{[list] Named list of user-defined fields to append to
+\item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call
 `slt$return_dictionaries("log_fields_user")` to find which fields a
 user may add.  If you want to make your own version of this class,
@@ -305,7 +305,7 @@ for them.}
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[std_err] Messages about actions taken.
+(std_err) Messages about actions taken.
 }
 }
 \if{html}{\out{<hr>}}
@@ -324,11 +324,11 @@ Writes:
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{version_name}}{[chr] The directory name of the output folder that
+\item{\code{version_name}}{(chr) The directory name of the output folder that
 lives directly under one of the `root`s you define when you
 instantiate the tool.}
 
-\item{\code{user_entry}}{[list] Named list of user-defined fields to append to
+\item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call
 `slt$return_dictionaries("log_fields_user")` to find which fields a
 user may add.  If you want to make your own version of this class,
@@ -338,7 +338,7 @@ for them.}
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[std_err] Messages about the symlinks removed.
+(std_err) Messages about the symlinks removed.
 }
 }
 \if{html}{\out{<hr>}}
@@ -354,7 +354,7 @@ points to)
 }
 
 \subsection{Returns}{
-[data.table] A single data.table with results from all roots, with `root_name` as the first column
+(data.table) A single data.table with results from all roots, with `root_name` as the first column
 }
 }
 \if{html}{\out{<hr>}}
@@ -370,7 +370,7 @@ points to)
 }
 
 \subsection{Returns}{
-[data.table] A single data.table with results from all roots, with `root_name` as the first column
+(data.table) A single data.table with results from all roots, with `root_name` as the first column
 }
 }
 \if{html}{\out{<hr>}}
@@ -386,7 +386,7 @@ points to)
 }
 
 \subsection{Returns}{
-[data.table] A single data.table with results from all roots, with `root_name` as the first column
+(data.table) A single data.table with results from all roots, with `root_name` as the first column
 }
 }
 \if{html}{\out{<hr>}}
@@ -402,7 +402,7 @@ points to)
 }
 
 \subsection{Returns}{
-[data.table] A single data.table with results from all roots, with `root_name` as the first column
+(data.table) A single data.table with results from all roots, with `root_name` as the first column
 }
 }
 \if{html}{\out{<hr>}}
@@ -418,7 +418,7 @@ and want to remove the rest.
 }
 
 \subsection{Returns}{
-[data.table] A single data.table with results from all roots, with `root_name` as the first column
+(data.table) A single data.table with results from all roots, with `root_name` as the first column
 }
 }
 \if{html}{\out{<hr>}}
@@ -441,16 +441,16 @@ row.  User may select dates by (using the `date_selector` argument):
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{user_date}}{[c("character", "Date", POSIXct", "POSIXt")] A date
+\item{\code{user_date}}{(c("character", "Date", POSIXct", "POSIXt")) A date
 with class requirements - must be formatted "2020-01-01 or 2020_01_01
 or 2020/01/01"}
 
-\item{\code{date_selector}}{[chr] See docstring explanation.}
+\item{\code{date_selector}}{(chr) See docstring explanation.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[data.table] A single data.table with results from all roots, with `root_name` as the first column
+(data.table) A single data.table with results from all roots, with `root_name` as the first column
 }
 }
 \if{html}{\out{<hr>}}
@@ -469,15 +469,15 @@ folder would need to be 2025_01_01.04
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{date}}{[chr] Default "today".  The date to use for the new version
+\item{\code{date}}{(chr) Default "today".  The date to use for the new version
 name.  Must be formatted "2020_01_01"}
 
-\item{\code{root_list}}{[list] named list of root directories for pipeline}
+\item{\code{root_list}}{(list) named list of root directories for pipeline}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[chr] format YYYY_MM_DD.VV
+(chr) format YYYY_MM_DD.VV
 }
 }
 \if{html}{\out{<hr>}}
@@ -496,7 +496,7 @@ Create a new `version_name` folder in _ALL THE TOOL'S
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{version_name}}{[chr] The directory name of the
+\item{\code{version_name}}{(chr) The directory name of the
 output folder that lives directly under one of the `root`s you define
 when you instantiate the tool.  For convenience, user may leave NULL
 (default) and `get_common_new_version_name()` is used on that root.}
@@ -504,7 +504,7 @@ when you instantiate the tool.  For convenience, user may leave NULL
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[std_err] Messages about the folder creation.
+(std_err) Messages about the folder creation.
 }
 }
 \if{html}{\out{<hr>}}
@@ -524,14 +524,14 @@ When you start a new pipeline run, make an empty log
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{version_name}}{[chr] The directory name of the output folder that
+\item{\code{version_name}}{(chr) The directory name of the output folder that
 lives directly under one of the `root`s you define when you
 instantiate the tool.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[std_err] Messages about the log creation.
+(std_err) Messages about the log creation.
 }
 }
 \if{html}{\out{<hr>}}
@@ -553,24 +553,24 @@ Writes:
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{version_name}}{[chr] The directory name of the output folder that
+\item{\code{version_name}}{(chr) The directory name of the output folder that
 lives directly under one of the `root`s you define when you
 instantiate the tool.}
 
-\item{\code{user_entry}}{[list] Named list of user-defined fields to append to
+\item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call
 `slt$return_dictionaries("log_fields_user")` to find which fields a
 user may add.  If you want to make your own version of this class,
 you may update `log_schema` in the `private$DICT` section to allow
 for them.}
 
-\item{\code{require_user_input}}{[lgl] if `TRUE`, will prompt user to confirm
+\item{\code{require_user_input}}{(lgl) if `TRUE`, will prompt user to confirm
 deletion.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-[std_err] Messages about deletion events.
+(std_err) Messages about deletion events.
 }
 }
 \if{html}{\out{<hr>}}
@@ -586,7 +586,7 @@ tool.
 }
 
 \subsection{Returns}{
-[std_err] Messages about where reports were written.
+(std_err) Messages about where reports were written.
 }
 }
 \if{html}{\out{<hr>}}

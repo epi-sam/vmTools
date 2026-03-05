@@ -7,12 +7,12 @@
 \method{print}{Symlink_Composer}(x, ...)
 }
 \arguments{
-\item{x}{[Symlink_Composer] The SLC class}
+\item{x}{(Symlink_Composer) The SLC class}
 
-\item{...}{[any] Additional arguments to print()}
+\item{...}{(any) Additional arguments to print()}
 }
 \value{
-[stdout]
+(stdout)
 }
 \description{
 Symlink Composer custom print method

@@ -3,12 +3,12 @@
 #' Very simple replacement for purrr::map_depth to remove package dependency,
 #' but not very robust.  Internal package use only in select cases.
 #'
-#' @param .x [list] List to apply function to
-#' @param .depth [integer] Depth to apply function at
-#' @param .f [function] Function to apply
-#' @param ... [any] Additional arguments to pass to .f
+#' @param .x (list) List to apply function to
+#' @param .depth (integer) Depth to apply function at
+#' @param .f (function) Function to apply
+#' @param ... (any) Additional arguments to pass to .f
 #'
-#' @return [list] List with function applied at target depth
+#' @return (list) List with function applied at target depth
 #' @keywords internal
 lapply_depth <- function(.x, .depth, .f, ...) {
    assert_named_list(.x)

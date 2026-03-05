@@ -7,12 +7,12 @@
 \method{print}{Symlink_Tool}(x, ...)
 }
 \arguments{
-\item{x}{[Symlink_Tool] The SLT class}
+\item{x}{(Symlink_Tool) The SLT class}
 
-\item{...}{[any] Additional arguments to `print()`}
+\item{...}{(any) Additional arguments to `print()`}
 }
 \value{
-[stdout]
+(stdout)
 }
 \description{
 Symlink Tool custom print method

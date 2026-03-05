@@ -6,9 +6,9 @@
 #'
 #' Designed to also catch missing args when called inside a function.
 #'
-#' @param x [any] some argument to check
+#' @param x (any) some argument to check
 #'
-#' @return [lgl] FALSE if empty in some way, TRUE otherwise
+#' @return (lgl) FALSE if empty in some way, TRUE otherwise
 #'
 #' @family validations
 #' @keywords internal
@@ -30,10 +30,10 @@ validate_not_empty = function(x) {
 
 #' Validate whether a directory exists
 #'
-#' @param x [path] A directory path
-#' @param verbose [lgl] message to std_out?
+#' @param x (path) A directory path
+#' @param verbose (lgl) message to std_out?
 #'
-#' @return [lgl] TRUE if directory exists, FALSE otherwise
+#' @return (lgl) TRUE if directory exists, FALSE otherwise
 #'
 #' @family validations
 #' @keywords internal
@@ -50,9 +50,9 @@ validate_dir_exists = function(x, verbose = TRUE){
 
 #' Determine if an object is an error
 #'
-#' @param x [obj] some R object
+#' @param x (obj) some R object
 #'
-#' @return [lgl] TRUE / FALSE
+#' @return (lgl) TRUE / FALSE
 #'
 #' @family validations
 #' @keywords internal

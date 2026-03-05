@@ -4,10 +4,10 @@
 #' directories are assumed to be named in YYYY_MM_DD.VV format with sane
 #' year/month/date/version values.
 #'
-#' @param dir [chr] path to directory with versioned dirs
-#' @param date [chr] character in YYYY_MM_DD format
+#' @param dir (chr) path to directory with versioned dirs
+#' @param date (chr) character in YYYY_MM_DD format
 #'
-#' @return [int] largest version in directory tree or 0 if there are no version OR
+#' @return (int) largest version in directory tree or 0 if there are no version OR
 #' the directory tree does not exist
 #' @keywords internal
 get_latest_output_date_index <- function(dir, date) {
@@ -34,9 +34,9 @@ get_latest_output_date_index <- function(dir, date) {
 #'
 #' Used only for signaling/messaging
 #'
-#' @param root [chr] path to root of output results
+#' @param root (chr) path to root of output results
 #'
-#' @return [chr] path to latest output directory
+#' @return (chr) path to latest output directory
 #' @keywords internal
 find_latest_output_dir <- function(root) {
    if (!dir.exists(root)) {
@@ -56,10 +56,10 @@ find_latest_output_dir <- function(root) {
 #'
 #' Return on the date-version, not the full path.  Does not create a folder.
 #'
-#' @param root [chr] path to root of output results
-#' @param date [chr] character date in form of "YYYY_MM_DD" or "today". "today" will be interpreted as today's date.
+#' @param root (chr) path to root of output results
+#' @param date (chr) character date in form of "YYYY_MM_DD" or "today". "today" will be interpreted as today's date.
 #'
-#' @return [chr] new output version of the form "YYYY_MM_DD.VV"
+#' @return (chr) new output version of the form "YYYY_MM_DD.VV"
 #' @export
 #'
 #' @examples

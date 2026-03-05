@@ -1,6 +1,6 @@
 #' Is the current OS windows
 #'
-#' @returns [lgl]
+#' @returns (lgl)
 #' @keywords internal
 is_windows <- function(){
    .Platform$OS.type == "windows"
@@ -8,7 +8,7 @@ is_windows <- function(){
 
 #' If running on windows, check if the user has admin privileges
 #'
-#' @return [lgl] TRUE if the user in on a windows OS and has admin privileges, FALSE otherwise
+#' @return (lgl) TRUE if the user in on a windows OS and has admin privileges, FALSE otherwise
 #' @keywords internal
 is_windows_admin <- function() {
    if (!is_windows()) {

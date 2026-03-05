@@ -7,12 +7,12 @@
 validate_dir_exists(x, verbose = TRUE)
 }
 \arguments{
-\item{x}{[path] A directory path}
+\item{x}{(path) A directory path}
 
-\item{verbose}{[lgl] message to std_out?}
+\item{verbose}{(lgl) message to std_out?}
 }
 \value{
-[lgl] TRUE if directory exists, FALSE otherwise
+(lgl) TRUE if directory exists, FALSE otherwise
 }
 \description{
 Validate whether a directory exists

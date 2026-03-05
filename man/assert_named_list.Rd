@@ -7,10 +7,10 @@
 assert_named_list(x)
 }
 \arguments{
-\item{x}{[list] List to check}
+\item{x}{(list) List to check}
 }
 \value{
-[none] stop if assertion fails
+(none) stop if assertion fails
 }
 \description{
 Stops if:

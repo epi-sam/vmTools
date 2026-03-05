@@ -7,14 +7,14 @@
 clean_path(..., normalize = TRUE, mustWork = FALSE)
 }
 \arguments{
-\item{...}{[chr] paths passed to file.path()}
+\item{...}{(chr) paths passed to file.path()}
 
-\item{normalize}{[lgl] pass path to normalizePath()?}
+\item{normalize}{(lgl) pass path to normalizePath()?}
 
-\item{mustWork}{[lgl] passed to normalizePath()}
+\item{mustWork}{(lgl) passed to normalizePath()}
 }
 \value{
-[chr] full file paths with consistent platform-specific structure
+(chr) full file paths with consistent platform-specific structure
 }
 \description{
 Wrapper utility for sanitizing file.path(...) output

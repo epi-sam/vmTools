@@ -7,10 +7,10 @@
 assert_scalar(x)
 }
 \arguments{
-\item{x}{[any] Element to check}
+\item{x}{(any) Element to check}
 }
 \value{
-[none] stop if assertion fails
+(none) stop if assertion fails
 }
 \description{
 Assert an element is atomic and length 1

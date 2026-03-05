@@ -7,7 +7,7 @@
 is_windows_admin()
 }
 \value{
-[lgl] TRUE if the user in on a windows OS and has admin privileges, FALSE otherwise
+(lgl) TRUE if the user in on a windows OS and has admin privileges, FALSE otherwise
 }
 \description{
 If running on windows, check if the user has admin privileges

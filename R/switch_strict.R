@@ -6,12 +6,12 @@
 #' Options for handling empty string ("") and no match cases
 #' - no case matching is not allowed by default (hence 'strict')
 #'
-#' @param EXPR [string] expression to evaluate
+#' @param EXPR (string) expression to evaluate
 #' @param ... named options to match against EXPR
-#' @param .empty [any: default NULL] value to return if EXPR is an empty string ("")
-#' @param .default [any: default NULL] value to return if no match is found - NULL allows no defaults (strict)
+#' @param .empty (any: default NULL) value to return if EXPR is an empty string ("")
+#' @param .default (any: default NULL) value to return if no match is found - NULL allows no defaults (strict)
 #'
-#' @returns [any] the value of the matched option
+#' @returns (any) the value of the matched option
 #' @keywords internal
 #'
 switch_strict <- function(EXPR, ..., .empty = NULL, .default = NULL) {

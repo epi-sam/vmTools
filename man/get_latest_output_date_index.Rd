@@ -7,12 +7,12 @@
 get_latest_output_date_index(dir, date)
 }
 \arguments{
-\item{dir}{[chr] path to directory with versioned dirs}
+\item{dir}{(chr) path to directory with versioned dirs}
 
-\item{date}{[chr] character in YYYY_MM_DD format}
+\item{date}{(chr) character in YYYY_MM_DD format}
 }
 \value{
-[int] largest version in directory tree or 0 if there are no version OR
+(int) largest version in directory tree or 0 if there are no version OR
 the directory tree does not exist
 }
 \description{

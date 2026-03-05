@@ -7,10 +7,10 @@
 is_an_error(x)
 }
 \arguments{
-\item{x}{[obj] some R object}
+\item{x}{(obj) some R object}
 }
 \value{
-[lgl] TRUE / FALSE
+(lgl) TRUE / FALSE
 }
 \description{
 Determine if an object is an error
