@@ -40,9 +40,9 @@ SLC <- R6::R6Class(
       assert_type(verbose, "logical")
 
       # Validate each element is an SLT instance
-      lapply(names(tool_list), function(nm) {
-        if(!inherits(tool_list[[nm]], "Symlink_Tool")) {
-          stop("Element '", nm, "' is not an SLT instance. ",
+      lapply(names(tool_list), function(tool_name) {
+        if(!inherits(tool_list[[tool_name]], "Symlink_Tool")) {
+          stop("Element '", tool_name, "' is not a Symlink Tool (SLT) instance. ",
                "Please provide pre-instantiated SLT objects.")
         }
       })
@@ -51,7 +51,7 @@ SLC <- R6::R6Class(
       private$TOOLS   <- tool_list
 
       if(verbose) {
-        message("\nSymlinkComposer initialized with ", length(private$TOOLS), " tool(s):")
+        message("\nSymlink Composer initialized with ", length(private$TOOLS), " tool(s):")
         message("  ", paste(names(private$TOOLS), collapse = ", "))
       }
     }
@@ -62,10 +62,12 @@ SLC <- R6::R6Class(
     #'
     #' @return (SLT) The requested SymlinkTool instance
     , get_tool = function(tool_name) {
+
       if(!tool_name %in% names(private$TOOLS)) {
         stop("Tool '", tool_name, "' not found. Available: ",
              paste(names(private$TOOLS), collapse = ", "))
       }
+
       return(private$TOOLS[[tool_name]])
     }
 
@@ -87,7 +89,9 @@ SLC <- R6::R6Class(
     #'
     #' @return (data.table) Combined results with 'tool_name' column
     , roundup_all_symlinks = function(symlink_type) {
+
       valid_types <- self$get_common_symlink_types()
+
       if (!symlink_type %in% valid_types) {
         stop(sprintf(
           "'symlink_type' must be one of: %s\n  Got: '%s'",
@@ -95,16 +99,21 @@ SLC <- R6::R6Class(
           symlink_type
         ))
       }
+
       method_name <- sprintf("roundup_%s", symlink_type)
-      results <- lapply(names(private$TOOLS), function(tn) {
-        dt <- private$TOOLS[[tn]][[method_name]]()
-        if (nrow(dt) > 0) dt[, tool_name := tn]
+
+      results <- lapply(names(private$TOOLS), function(tool_name) {
+        dt <- private$TOOLS[[tool_name]][[method_name]]()
+        if (nrow(dt) > 0) dt[, tool_name := tool_name]
         return(dt)
       })
+
       combined <- data.table::rbindlist(results, fill = TRUE)
+
       if (nrow(combined) > 0) {
         data.table::setcolorder(combined, c("tool_name", setdiff(names(combined), "tool_name")))
       }
+
       return(combined)
     }
 
@@ -114,8 +123,8 @@ SLC <- R6::R6Class(
     #'
     #' @return (chr) Vector of common symlink type strings
     , get_common_symlink_types = function() {
-      type_lists <- lapply(names(private$TOOLS), function(tn) {
-        private$TOOLS[[tn]]$return_dictionaries("symlink_types")[["symlink_types"]]
+      type_lists <- lapply(names(private$TOOLS), function(tool_name) {
+        private$TOOLS[[tool_name]]$return_dictionaries("symlink_types")[["symlink_types"]]
       })
       return(Reduce(intersect, type_lists))
     }
@@ -124,15 +133,19 @@ SLC <- R6::R6Class(
     #'
     #' @return (data.table) Combined results with 'tool_name' column
     , roundup_all_unmarked = function() {
-      results <- lapply(names(private$TOOLS), function(tn) {
-        dt <- private$TOOLS[[tn]]$roundup_unmarked()
-        if(nrow(dt) > 0) dt[, tool_name := tn]
+
+      results <- lapply(names(private$TOOLS), function(tool_name) {
+        dt <- private$TOOLS[[tool_name]]$roundup_unmarked()
+        if(nrow(dt) > 0) dt[, tool_name := tool_name]
         return(dt)
       })
+
       combined <- data.table::rbindlist(results, fill = TRUE)
+
       if(nrow(combined) > 0) {
         data.table::setcolorder(combined, c("tool_name", setdiff(names(combined), "tool_name")))
       }
+
       return(combined)
     }
 
@@ -143,15 +156,19 @@ SLC <- R6::R6Class(
     #'
     #' @return (data.table) Combined results with 'tool_name' column
     , roundup_all_by_date = function(user_date, date_selector) {
-      results <- lapply(names(private$TOOLS), function(tn) {
-        dt <- private$TOOLS[[tn]]$roundup_by_date(user_date, date_selector)
-        if(nrow(dt) > 0) dt[, tool_name := tn]
+
+      results <- lapply(names(private$TOOLS), function(tool_name) {
+        dt <- private$TOOLS[[tool_name]]$roundup_by_date(user_date, date_selector)
+        if(nrow(dt) > 0) dt[, tool_name := tool_name]
         return(dt)
       })
+
       combined <- data.table::rbindlist(results, fill = TRUE)
+
       if(nrow(combined) > 0) {
         data.table::setcolorder(combined, c("tool_name", setdiff(names(combined), "tool_name")))
       }
+
       return(combined)
     }
   )
