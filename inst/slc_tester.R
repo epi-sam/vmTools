@@ -28,7 +28,7 @@ lapply(all_paths, dir.create, recursive = TRUE, showWarnings = FALSE)
 # Create central log directories
 central_log_a <- clean_path(test_root, "project_a/central_logs")
 central_log_b <- clean_path(test_root, "project_b/central_logs")
-# central_log_c <- clean_path(test_root, "project_c/central_logs")
+central_log_c <- clean_path(test_root, "project_c/central_logs")
 lapply(c(central_log_a, central_log_b, central_log_c), dir.create, recursive = TRUE, showWarnings = FALSE)
 
 
@@ -56,11 +56,13 @@ slc <- SLC$new(
 # Test basic info methods
 slc$list_tools()
 
+slc$get_common_symlink_types()
+
 # Should run cleanly with empty directories
-slc$roundup_all_best()
-slc$roundup_all_keep()
-slc$roundup_all_remove()
-slc$roundup_all_unmarked()
+slc$roundup_all_symlinks("best")
+slc$roundup_all_symlinks("latest")
+slc$roundup_all_symlinks("remove")
+slc$roundup_all_symlinks("keep")
 slc$roundup_all_by_date(Sys.Date(), "lt")
 
 # Access individual tools - these are full SLTs with central logs
@@ -80,12 +82,13 @@ project_a_tool$mark_best(version_name = "2024_03_01.2", user_entry = list(commen
 project_b_tool$mark_best(version_name = "2024_03_02.1", user_entry = list(comment = "testing best"))
 project_c_tool$mark_keep(version_name = "2024_03_01.1", user_entry = list(comment = "testing keep"))
 project_a_tool$mark_remove(version_name = "2024_03_01.1", user_entry = list(comment = "testing remove"))
+project_a_tool$mark_latest(version_name = "2024_03_01.2", user_entry = list(comment = "testing best"))
 
 # Test roundup methods across all tools
-slc$roundup_all_best()
-slc$roundup_all_keep()
-slc$roundup_all_remove()
-slc$roundup_all_unmarked()
+slc$roundup_all_symlinks('latest')
+slc$roundup_all_symlinks('best')
+slc$roundup_all_symlinks('remove')
+slc$roundup_all_symlinks('keep')
 
 # Test date-based roundup
 slc$roundup_all_by_date("2024-03-01", "gte")
@@ -96,7 +99,7 @@ project_a_tool$unmark("2024_03_01.2", list(comment = "testing unmarked roundup")
 slc$roundup_all_unmarked()
 
 # Test that tool names appear correctly in results
-best_dt <- slc$roundup_all_best()
+best_dt <- slc$roundup_all_symlinks('best')
 if(nrow(best_dt) > 0) {
    print("Tool names in best roundup:")
    print(unique(best_dt$tool_name))

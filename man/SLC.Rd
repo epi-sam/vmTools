@@ -13,9 +13,8 @@ Manages multiple pre-instantiated SymlinkTool instances for
 \item \href{#method-Symlink_Composer-new}{\code{SLC$new()}}
 \item \href{#method-Symlink_Composer-get_tool}{\code{SLC$get_tool()}}
 \item \href{#method-Symlink_Composer-list_tools}{\code{SLC$list_tools()}}
-\item \href{#method-Symlink_Composer-roundup_all_best}{\code{SLC$roundup_all_best()}}
-\item \href{#method-Symlink_Composer-roundup_all_keep}{\code{SLC$roundup_all_keep()}}
-\item \href{#method-Symlink_Composer-roundup_all_remove}{\code{SLC$roundup_all_remove()}}
+\item \href{#method-Symlink_Composer-roundup_all_symlinks}{\code{SLC$roundup_all_symlinks()}}
+\item \href{#method-Symlink_Composer-get_common_symlink_types}{\code{SLC$get_common_symlink_types()}}
 \item \href{#method-Symlink_Composer-roundup_all_unmarked}{\code{SLC$roundup_all_unmarked()}}
 \item \href{#method-Symlink_Composer-roundup_all_by_date}{\code{SLC$roundup_all_by_date()}}
 \item \href{#method-Symlink_Composer-clone}{\code{SLC$clone()}}
@@ -82,42 +81,43 @@ List all tool names
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Symlink_Composer-roundup_all_best"></a>}}
-\if{latex}{\out{\hypertarget{method-Symlink_Composer-roundup_all_best}{}}}
-\subsection{Method \code{roundup_all_best()}}{
-Roundup all 'best' symlinks across all tools
+\if{html}{\out{<a id="method-Symlink_Composer-roundup_all_symlinks"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Composer-roundup_all_symlinks}{}}}
+\subsection{Method \code{roundup_all_symlinks()}}{
+Roundup symlinks of a given type across all tools
+
+Valid types are determined by the intersection of `symlink_types` from
+all SLT instances held by this composer. Use `$get_common_symlink_types()`
+to inspect the valid set.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLC$roundup_all_best()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLC$roundup_all_symlinks(symlink_type)}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{symlink_type}}{(chr) One of the common symlink types across all tools,
+e.g. "best", "keep", "remove", "latest"}
+}
+\if{html}{\out{</div>}}
+}
 \subsection{Returns}{
 (data.table) Combined results with 'tool_name' column
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Symlink_Composer-roundup_all_keep"></a>}}
-\if{latex}{\out{\hypertarget{method-Symlink_Composer-roundup_all_keep}{}}}
-\subsection{Method \code{roundup_all_keep()}}{
-Roundup all 'keep' symlinks across all tools
+\if{html}{\out{<a id="method-Symlink_Composer-get_common_symlink_types"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Composer-get_common_symlink_types}{}}}
+\subsection{Method \code{get_common_symlink_types()}}{
+Return the symlink types common to all held SLT instances
+
+These are the valid values for the `symlink_type` argument of `roundup_all()`.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLC$roundup_all_keep()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLC$get_common_symlink_types()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{
-(data.table) Combined results with 'tool_name' column
-}
-}
-\if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Symlink_Composer-roundup_all_remove"></a>}}
-\if{latex}{\out{\hypertarget{method-Symlink_Composer-roundup_all_remove}{}}}
-\subsection{Method \code{roundup_all_remove()}}{
-Roundup all 'remove' symlinks across all tools
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLC$roundup_all_remove()}\if{html}{\out{</div>}}
-}
-
-\subsection{Returns}{
-(data.table) Combined results with 'tool_name' column
+(chr) Vector of common symlink type strings
 }
 }
 \if{html}{\out{<hr>}}
