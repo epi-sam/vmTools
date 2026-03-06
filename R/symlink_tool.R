@@ -1,13 +1,73 @@
+#' Function factory for SLT marking methods.
+#'
+#' Allows the user to mark a version_name with a symlink of a certain type, e.g.
+#' 'best', 'keep', 'remove', 'latest'
+#'
+#' @param symlink_type (chr) one of the symlink types in the SLT symlink
+#'   registry.
+#'
+#' @returns (function) a function that marks a version_name with the specified
+#'   symlink type when called e.g. `mark_best <- .mark_method_factory("best")`
+#' @keywords internal
+.mark_method_factory <- function(symlink_type){
 
-# required for tests/vignettes
-# Known issue: https://github.com/rstudio/rmarkdown/issues/187
-.datatable.aware = TRUE
+   force(symlink_type) # capture the value, not the promise
+
+   # make the marking
+   function(version_name, user_entry){
+
+      # For all version_name folders, do the following:
+      # 1. check if there is already a symlink
+      # 2. if there is, demote it using `system(paste0("unlink ", symlink))`
+      # 3. make a new symlink (promote) using `system(paste0("ln -s ", version_name, " ", symlink))`
+      # 4. append to the version_name log
+      # 5. append to the central log
+
+      private$handler_pre_mark(
+         version_name = version_name,
+         user_entry   = user_entry
+      )
+
+      private$msg_sometimes("Marking ", symlink_type, ": ", version_name)
+
+      # Manage symlinks and append logs
+      for(version_path in private$DYNAMIC$VERS_PATHS){
+
+         if(validate_dir_exists(version_path) == FALSE) next()
+         if(private$already_marked(version_path, symlink_type)) {
+            private$msg_sometimes(version_path, " - already marked ", symlink_type, " - moving on.")
+            next()
+         }
+
+         private$demote_existing_symlinks(
+            version_path   = version_path
+            , version_name = version_name
+            , user_entry   = user_entry
+         )
+
+         private$promote_symlink_type(
+            version_path   = version_path
+            , version_name = version_name
+            , user_entry   = user_entry
+            , symlink_type = symlink_type
+         )
+      }
+
+      private$handler_post_mark(
+         version_name = version_name
+         , user_entry = user_entry
+      )
+   }
+}
+
+
+
+
 
 # WARNING: DO NOT touch '.__enclos_env__' unless you want the tool to break
 # ROXYGEN
 #   - Roxygen docstrings cannot be added to private methods
 #   - https://stackoverflow.com/questions/45431845/documenting-r6-classes-and-methods-within-r-package-in-rstudio
-
 
 #' @title SymlinkTool R6 class
 #' @description Class for lightweight file-system level data versioning, logs
