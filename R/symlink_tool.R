@@ -107,26 +107,26 @@ SLT <- R6::R6Class(
             # TRUE if logs formats may differ over time
             # FALSE if user requires logs formats to be consistent
             allow_schema_repair = NULL
-         ),
+         )
 
          ## Initialize: user-defined
 
-         ROOTS = NULL,
+         , ROOTS = NULL
 
 
          ## Logs
 
-         LOG_CENTRAL = list(
+         , LOG_CENTRAL = list(
             root  = NULL,
             fname = "log_symlinks_central.csv",
             path  = NULL
-         ),
+         )
 
-         log_dir  = "logs",
-         log_name = "log_version_history.csv",
-         log_path = "logs/log_version_history.csv",
+         , log_dir  = "logs"
+         , log_name = "log_version_history.csv"
+         , log_path = "logs/log_version_history.csv"
 
-         log_schema = list(
+         , log_schema = list(
             log_id         = "integer"
             , timestamp    = "character"
             , user         = "character"
@@ -134,26 +134,26 @@ SLT <- R6::R6Class(
             , version_path = "character"
             , action       = "character"
             , comment      = "character"
-         ),
+         )
 
-         log_sort_varname = "timestamp",
+         , log_sort_varname = "timestamp"
 
-         valid_log_field_types = c(
+         , valid_log_field_types = c(
             "integer"
             , "character"
-         ),
+         )
 
-         log_fields_auto = c(
+         , log_fields_auto = c(
             "log_id"
             , "timestamp"
             , "user"
             , "version_name"
             , "version_path"
             , "action"
-         ),
+         )
 
          # hard-setting instead of user-settable - avoid log discrepancies
-         datestamp_format = "%Y_%m_%d_%H%M%S",
+         , datestamp_format = "%Y_%m_%d_%H%M%S"
 
 
 
@@ -162,27 +162,27 @@ SLT <- R6::R6Class(
          ## Initialize: internally-defined
          # In `initialize()`, defined as `setdiff(names(private$DICT$log_schema), private$DICT$log_fields_auto)`
          # e.g. c("comment") at time of writing
-         log_fields_user = NULL,
+         , log_fields_user = NULL
 
          # Timezone
-         TZ = NULL,
+         , TZ = NULL
 
 
          # Reports - summary of last log entries across version_nameed folders
          # - Since these are the most visible/useful user summary, these could be set by `initialize()` in the future.
 
-         report_fnames = list(
+         , report_fnames = list(
             all_logs_tool_symlink   = "report_key_versions.csv"
             , all_logs              = "report_all_logs.csv"
             , all_logs_symlink      = "report_all_logs_symlink.csv"
             , all_logs_non_symlink  = "report_all_logs_non_symlink.csv"
             , discrepancies         = "report_DISCREPANCIES.csv"
-         ),
+         )
 
 
          ## Status updates / symlinks
 
-         valid_actions = c(
+         , valid_actions = c(
             "create"
             , "promote_best"
             , "demote_best"
@@ -193,7 +193,7 @@ SLT <- R6::R6Class(
             , "promote_latest"
             , "demote_latest"
             , "delete_remove_folder"
-         ),
+         )
 
          # Symlink-based Finite State Machine
          #
@@ -218,23 +218,63 @@ SLT <- R6::R6Class(
          # - 'keep':   multiple symlinks named "keep_<version_name>"
          # - 'remove': multiple symlinks named "remove_<version_name>"
 
-         symlink_types = c(
-            "best"
-            , "keep"
-            , "remove"
-            , "latest"
-         ),
+         symlink_registry = list(
+            best = list(
+               # Is there only one of these at a time across the whole root? (Highlander rule)
+               is_singleton        = TRUE
+               # How do we build the symlink file name?
+               #   - singletons: just the type name ("best")
+               #   - non-singletons: type name + "_" + version_name ("keep_2025_03_05.01")
+               , symlink_suffix_fn = function(version_name) {""}
+               # Regex for matching `ls -l` output to find this type's symlinks
+               , ls_regex_fn       = function(version_name) {sprintf("^best -> .*%s$", version_name)}
+               # Regex for extracting the symlink name from a path string (replaces DICT$symlink_regex_extract)
+               , extract_regex     = "^best$"
+               # Regex for filtering folder_dt in query_all_*_symlinks
+               , query_regex       = "^best$"
+            )
+            , latest = list(
+               is_singleton        = TRUE
+               , symlink_suffix_fn = function(version_name) {""}
+               , ls_regex_fn       = function(version_name) {sprintf("^latest -> .*%s$", version_name)}
+               , extract_regex     = "^latest$"
+               , query_regex       = "^latest$"
+            )
+            , keep = list(
+               is_singleton        = FALSE
+               , symlink_suffix_fn = function(version_name) {sprintf("_%s", version_name)}
+               , ls_regex_fn       = function(version_name) {sprintf("^keep_.*%s$", version_name)}
+               , extract_regex     = "^keep_"
+               , query_regex       = "^keep_"
+            )
+            , remove = list(
+               is_singleton        = FALSE
+               , symlink_suffix_fn = function(version_name) {sprintf("_%s", version_name)}
+               , ls_regex_fn       = function(version_name) {sprintf("^remove_.*%s$", version_name)}
+               , extract_regex     = "^remove_"
+               , query_regex       = "^remove_"
+            )
+         )
 
+         # FIXME SB - 2026 Mar 06 - deprecate
+         # symlink_types = c(
+         #    "best"
+         #    , "keep"
+         #    , "remove"
+         #    , "latest"
+         # ),
+
+         # FIXME SB - 2026 Mar 06 - deprecate
          # used in private$extract_symlink()
          # NOTE: There is also a set in private$assert_n_symlinks() that cannot be set here
          #       If you ever update symlink types, adjust it there as well
          #       Also: make_symlink_path()
-         symlink_regex_extract = list(
-            best   = paste0("^best"),
-            keep   = paste0("^keep_"),
-            remove = paste0("^remove_"),
-            latest = paste0("^latest")
-         )
+         # , symlink_regex_extract = list(
+         #    best   = paste0("^best")
+         #    keep   = paste0("^keep_")
+         #    remove = paste0("^remove_")
+         #    latest = paste0("^latest")
+         # )
 
       ),
 
@@ -250,12 +290,12 @@ SLT <- R6::R6Class(
 
          # Field for logs - updated by tool, not user
          LOG = list(
-            version_name = NA_character_,
-            action       = NA_character_
-         ),
+            version_name = NA_character_
+            , action     = NA_character_
+         )
 
          # Paths built from roots and intermediate path structures
-         VERS_PATHS = list()
+         , VERS_PATHS = list()
       ),
 
 
