@@ -46,10 +46,10 @@
          )
 
          private$promote_symlink_type(
-            version_path   = version_path
+            symlink_type   = symlink_type
             , version_name = version_name
+            , version_path = version_path
             , user_entry   = user_entry
-            , symlink_type = symlink_type
          )
       }
 
@@ -2103,7 +2103,8 @@ SLT <- R6::R6Class(
 
       ## Promote / Demote ------------------------------------------------------
 
-      # 'promote' and 'demote' are consistent terms 'elevate this folder to xxx status' or 'lower this folder from xxx status'
+      # 'promote' and 'demote' are consistent terms 'elevate this folder to
+      # xxx status' or 'lower this folder from xxx status'
       # - xxx status is defined by `private$DICT$symlink_types`
 
       #  Demote a version_name folder from a symlink status.
@@ -2192,6 +2193,51 @@ SLT <- R6::R6Class(
             system(paste0("unlink ", path_best_sym))
          } else {
             private$msg_sometimes("No 'best' symlink found - moving on: ", path_best_sym)
+         }
+      },
+
+      # Promote a version_name folder to a symlink status.
+      #
+      # @param symlink_type (chr) Type of symlink to promote to, must be one of
+      #   `private$DICT$symlink_types`
+      # @param version_name (chr) version_name folder to promote
+      # @param version_path (chr) Path to a version_name folder for promotion
+      # @param user_entry (named list) User-supplied log entry
+      #
+      # @returns (none) Creates a symlink on disk for the specified symlink_type, after
+      promote_symlink_type = function(
+         symlink_type
+         , version_name
+         , version_path
+         , user_entry
+      ){
+         assert_dir_exists(version_path)
+
+         symlink_reg  <- private$DICT$symlink_registry[[symlink_type]]
+         path_symlink <- private$make_symlink_path(symlink_type, version_path)
+
+         # Singleton types need Highlander demotion of the previous symlink
+         if (symlink_reg$is_singleton) {
+            private$demote_previous_singleton(
+               symlink_type
+               , version_name
+               , version_path
+               , user_entry
+            )
+         }
+
+         # make new symlink
+         private$msg_sometimes("Promoting to '", symlink_type, "': ", path_symlink)
+         private$DYNAMIC$LOG$action <- sprintf("promote_%s", symlink_type)
+
+         if(!dir.exists(path_symlink)){
+            private$append_to_log(version_path = version_path, user_entry = user_entry)
+            private$append_to_central_log(version_path = version_path, user_entry = user_entry)
+
+            # only symlink if logging is successful
+            file.symlink(version_path, path_symlink)
+         } else {
+            private$msg_sometimes("  ", symlink_type, " symlink already exists - moving on: ", path_sym)
          }
       },
 
