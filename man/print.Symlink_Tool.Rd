@@ -9,7 +9,7 @@
 \arguments{
 \item{x}{(Symlink_Tool) The SLT class}
 
-\item{...}{(any) Additional arguments to `print()`}
+\item{...}{(any) Additional arguments to \code{print()}}
 }
 \value{
 (stdout)

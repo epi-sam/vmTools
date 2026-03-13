@@ -23,6 +23,7 @@ slt <- SLT$new(
 
 # should run cleanly with empty directories
 slt$roundup_best()
+slt$roundup_best("version_name")
 slt$roundup_keep()
 slt$roundup_remove()
 slt$roundup_latest()

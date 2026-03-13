@@ -2,7 +2,7 @@
 % Please edit documentation in R/switch_strict.R
 \name{switch_strict}
 \alias{switch_strict}
-\title{Wrapper for `switch` that errors helpfully if no match is found}
+\title{Wrapper for \code{switch} that errors helpfully if no match is found}
 \usage{
 switch_strict(EXPR, ..., .empty = NULL, .default = NULL)
 }
@@ -20,6 +20,8 @@ switch_strict(EXPR, ..., .empty = NULL, .default = NULL)
 }
 \description{
 Options for handling empty string ("") and no match cases
-- no case matching is not allowed by default (hence 'strict')
+\itemize{
+\item no case matching is not allowed by default (hence 'strict')
+}
 }
 \keyword{internal}
