@@ -642,6 +642,15 @@ test_that("Roundup by date works",
              )
           })
 
+test_that("Roundup by date version_name type works",
+          {
+             expect_equal(
+                slt$roundup_by_date(user_date = "2023-01-01", date_selector = "gte", type = "version_name")
+                , c("1990_01_01", "1990_01_02", "1990_01_03")
+             )
+          })
+
+
 
 slt$mark_best(version_name = "1990_01_03", user_entry = list(comment = "prepping for roundup best"))
 
@@ -649,6 +658,11 @@ test_that("Roundup best works",
           {
              expect_equal(
                 slt$roundup_best()[root_name == "root_input", version_name]
+                ,"1990_01_03"
+             )
+             # and check version_name return type - only testing once for 'best'
+             expect_equal(
+                slt$roundup_best(type = "version_name")
                 ,"1990_01_03"
              )
           })

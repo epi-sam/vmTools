@@ -1,3 +1,14 @@
+# vmTools 1.3.1
+
+## Features:
+
+'roundup_x' functions
+
+- New argument - `type = 'version_name'` returns a character vector of version names 
+  instead of a full table of paths for easier automation. Full table remains the
+  default return type.
+  
+
 # vmTools 1.3.0
 
 ## Features:

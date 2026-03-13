@@ -5,9 +5,9 @@
 \title{SymlinkTool R6 class}
 \description{
 Class for lightweight file-system level data versioning, logs
-  and reports without need for a database. Manages four symlink types: 'best'
-  (validated production), 'latest' (most recent run), 'keep' (archive-worthy),
-  and 'remove' (marked for deletion).
+and reports without need for a database. Manages four symlink types: 'best'
+(validated production), 'latest' (most recent run), 'keep' (archive-worthy),
+and 'remove' (marked for deletion).
 }
 \examples{
 
@@ -68,17 +68,17 @@ The constructor function.
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{root_list}}{(list) Named list of root directories for
-pipeline outputs. This is where `version_name` folders live - these
+pipeline outputs. This is where \code{version_name} folders live - these
 are iterative runs of an analysis pipeline.}
 
 \item{\code{central_log_root}}{(path) Root directory for the central log.
-If you have multiple roots in the `root_list`, you probably want
+If you have multiple roots in the \code{root_list}, you probably want
 the central log to live one level above those roots.}
 
-\item{\code{schema_repair}}{(logical) Default `TRUE`.  If `TRUE`, the tool
+\item{\code{schema_repair}}{(logical) Default \code{TRUE}.  If \code{TRUE}, the tool
 will attempt to repair any schema mismatches it finds in the logs
 when reading and writing e.g. add new columns if the tool schema has
-columns that existing logs do not. If `FALSE`, the tool will stop and
+columns that existing logs do not. If \code{FALSE}, the tool will stop and
 throw an error if it finds a schema mismatch.}
 
 \item{\code{verbose}}{(lgl: default TRUE) control message verbosity - if TRUE,
@@ -87,26 +87,26 @@ standard message, if FALSE, warn only if something is irregular.}
 \item{\code{verbose_startup}}{(lgl) see start up warnings, if relevant?}
 
 \item{\code{csv_reader}}{(chr) The CSV reader to use (also assigns matching
-  CSV writer). CAUTION: DO NOT USE `data.table::fread` if you have any
-  quotation marks (") in log comments (these lead to exploding series
-  of quotations). https://github.com/Rdatatable/data.table/issues/4779.
-  Otherwise use `read.csv[2]`. Options:
+CSV writer). CAUTION: DO NOT USE \code{data.table::fread} if you have any
+quotation marks (") in log comments (these lead to exploding series
+of quotations). https://github.com/Rdatatable/data.table/issues/4779.
+Otherwise use \code{read.csv[2]}. Options:
 \itemize{
- \item{fread_quiet - `data.table::fread` and suppress warnings (default)}
- \item{fread       - `data.table::fread`}
- \item{read.csv    - `utils::read.csv` - safer}
- \item{read.csv2   - `utils::read.csv2` - safer, comma as decimal point, semicolon as field separator}
+\item{fread_quiet - \code{data.table::fread} and suppress warnings (default)}
+\item{fread       - \code{data.table::fread}}
+\item{read.csv    - \code{utils::read.csv} - safer}
+\item{read.csv2   - \code{utils::read.csv2} - safer, comma as decimal point, semicolon as field separator}
 }}
 
-\item{\code{timezone}}{(chr) Default `America/Los_Angeles`.  The timezone to
-use for datestamps in logs. Must be a valid `OlsonNames()` string.}
+\item{\code{timezone}}{(chr) Default \code{America/Los_Angeles}.  The timezone to
+use for datestamps in logs. Must be a valid \code{OlsonNames()} string.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
 (symlink_tool) A symlink tool object.  You can instantiate
-  a.k.a. create multiple objects, each of which has different roots and
-  central logs.
+a.k.a. create multiple objects, each of which has different roots and
+central logs.
 }
 \subsection{Examples}{
 \if{html}{\out{<div class="r example copy">}}
@@ -132,7 +132,7 @@ Return the contents of all private dictionaries.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{item_names}}{(chr) Default `NULL`.  If `NULL`, show all static
+\item{\code{item_names}}{(chr) Default \code{NULL}.  If \code{NULL}, show all static
 internal fields.  Otherwise, vector of static field names you want to
 see.}
 }
@@ -154,7 +154,7 @@ Print the contents of all dynamic fields.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{item_names}}{(chr) Default `NULL`.  If `NULL`, show all dynamic
+\item{\code{item_names}}{(chr) Default \code{NULL}.  If \code{NULL}, show all dynamic
 internal fields.  Otherwise, vector of dynamic field names you want
 to see.}
 }
@@ -171,12 +171,18 @@ to see.}
 Mark an output folder with a "best" symlink.
 
 Enforces:
-- maximum of one best model
-  - does not go back through history to make a best model from a prior version (not capable, this is what log_tool is for)
+\itemize{
+\item maximum of one best model
+\itemize{
+\item does not go back through history to make a best model from a prior version (not capable, this is what log_tool is for)
+}
+}
 
 Writes:
-- appends to a log file in the output folder with a date and time stamp
-- appends a line to the central log file with a date and time stamp
+\itemize{
+\item appends to a log file in the output folder with a date and time stamp
+\item appends a line to the central log file with a date and time stamp
+}
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$mark_best(version_name, user_entry)}\if{html}{\out{</div>}}
 }
@@ -185,14 +191,14 @@ Writes:
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{version_name}}{(chr) The directory name of the output folder that
-lives directly under one of the `root`s you define when you
+lives directly under one of the \code{root}s you define when you
 instantiate the tool.}
 
 \item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call
-`slt$return_dictionaries("log_fields_user")` to find which fields a
+\code{slt$return_dictionaries("log_fields_user")} to find which fields a
 user may add.  If you want to make your own version of this class,
-you may update `log_schema` in the `private$DICT` section to allow
+you may update \code{log_schema} in the \code{private$DICT} section to allow
 for them.}
 }
 \if{html}{\out{</div>}}
@@ -212,8 +218,10 @@ current 'latest' if different. A folder cannot be both 'latest' and
 'best' - this will auto-demote from the conflicting state.
 
 Writes:
-- appends to a log file in the output folder with a date and time stamp
-- appends a line to the central log file with a date and time stamp
+\itemize{
+\item appends to a log file in the output folder with a date and time stamp
+\item appends a line to the central log file with a date and time stamp
+}
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$mark_latest(version_name, user_entry)}\if{html}{\out{</div>}}
 }
@@ -222,14 +230,14 @@ Writes:
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{version_name}}{(chr) The directory name of the output folder that
-lives directly under one of the `root`s you define when you
+lives directly under one of the \code{root}s you define when you
 instantiate the tool.}
 
 \item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call
-`slt$return_dictionaries("log_fields_user")` to find which fields a
+\code{slt$return_dictionaries("log_fields_user")} to find which fields a
 user may add.  If you want to make your own version of this class,
-you may update `log_schema` in the `private$DICT` section to allow
+you may update \code{log_schema} in the \code{private$DICT} section to allow
 for them.}
 }
 \if{html}{\out{</div>}}
@@ -245,8 +253,10 @@ for them.}
 Mark an output folder with a "keep_<version_name>" symlink
 
 Writes:
-- appends to a log file in the output folder with a date and time stamp
-- appends a line to the central log file with a date and time stamp
+\itemize{
+\item appends to a log file in the output folder with a date and time stamp
+\item appends a line to the central log file with a date and time stamp
+}
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$mark_keep(version_name, user_entry)}\if{html}{\out{</div>}}
 }
@@ -255,14 +265,14 @@ Writes:
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{version_name}}{(chr) The directory name of the output folder that
-lives directly under one of the `root`s you define when you
+lives directly under one of the \code{root}s you define when you
 instantiate the tool.}
 
 \item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call
-`slt$return_dictionaries("log_fields_user")` to find which fields a
+\code{slt$return_dictionaries("log_fields_user")} to find which fields a
 user may add.  If you want to make your own version of this class,
-you may update `log_schema` in the `private$DICT` section to allow
+you may update \code{log_schema} in the \code{private$DICT} section to allow
 for them.}
 }
 \if{html}{\out{</div>}}
@@ -278,12 +288,16 @@ for them.}
 Mark an output folder with a "remove_<version_name>" symlink
 
 Indication that the results can be deleted
-- In the future, this will be used to remove old versions of the
-  output, and provide a list of ST-GPR models to delete
+\itemize{
+\item In the future, this will be used to remove old versions of the
+output, and provide a list of ST-GPR models to delete
+}
 
 Writes:
-- appends to a log file in the output folder with a date and time stamp
-- appends a line to the central log file with a date and time stamp
+\itemize{
+\item appends to a log file in the output folder with a date and time stamp
+\item appends a line to the central log file with a date and time stamp
+}
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$mark_remove(version_name, user_entry)}\if{html}{\out{</div>}}
 }
@@ -292,14 +306,14 @@ Writes:
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{version_name}}{(chr) The directory name of the output folder that
-lives directly under one of the `root`s you define when you
+lives directly under one of the \code{root}s you define when you
 instantiate the tool.}
 
 \item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call
-`slt$return_dictionaries("log_fields_user")` to find which fields a
+\code{slt$return_dictionaries("log_fields_user")} to find which fields a
 user may add.  If you want to make your own version of this class,
-you may update `log_schema` in the `private$DICT` section to allow
+you may update \code{log_schema} in the \code{private$DICT} section to allow
 for them.}
 }
 \if{html}{\out{</div>}}
@@ -312,11 +326,13 @@ for them.}
 \if{html}{\out{<a id="method-Symlink_Tool-unmark"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-unmark}{}}}
 \subsection{Method \code{unmark()}}{
-Remove all symlinks for a single `version_name` in all `roots`
+Remove all symlinks for a single \code{version_name} in all \code{roots}
 
 Writes:
-- appends to a log file in the output folder with a date and time stamp
-- does _not_ append to the central log file
+\itemize{
+\item appends to a log file in the output folder with a date and time stamp
+\item does \emph{not} append to the central log file
+}
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$unmark(version_name, user_entry)}\if{html}{\out{</div>}}
 }
@@ -325,14 +341,14 @@ Writes:
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{version_name}}{(chr) The directory name of the output folder that
-lives directly under one of the `root`s you define when you
+lives directly under one of the \code{root}s you define when you
 instantiate the tool.}
 
 \item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call
-`slt$return_dictionaries("log_fields_user")` to find which fields a
+\code{slt$return_dictionaries("log_fields_user")} to find which fields a
 user may add.  If you want to make your own version of this class,
-you may update `log_schema` in the `private$DICT` section to allow
+you may update \code{log_schema} in the \code{private$DICT} section to allow
 for them.}
 }
 \if{html}{\out{</div>}}
@@ -345,97 +361,173 @@ for them.}
 \if{html}{\out{<a id="method-Symlink_Tool-roundup_best"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-roundup_best}{}}}
 \subsection{Method \code{roundup_best()}}{
-Find all `best_` symlinks in all `roots`
-
-Return both the symlink and the resolved symlink (folder the symlink
-points to)
+Find all \code{best_} symlinks in all \code{roots}
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_best()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_best(type = c("table", "version_name"))}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{type}}{(chr) Default \code{table}.  Whether to return a data.table with
+symlink and resolved paths (\code{table}) or just a vector of
+\code{version_name}s (\code{version_name}) for easier automated round-ups.}
+}
+\if{html}{\out{</div>}}
+}
 \subsection{Returns}{
-(data.table) A single data.table with results from all roots, with `root_name` as the first column
+(data.table/chr) A single data.table with results from all
+roots, with \code{root_name} as the first column, or a vector of
+\code{version_name}s if \code{type = version_name}.
+
+Table output schema
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{root_name version_name dir_name dir_name_resolved
+   <char>       <char>   <char>            <char>
+}\if{html}{\out{</div>}}
 }
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-roundup_latest"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-roundup_latest}{}}}
 \subsection{Method \code{roundup_latest()}}{
-Find all `latest` symlinks in all `roots`
-
-Return both the symlink and the resolved symlink (folder the symlink
-points to)
+Find all \code{latest} symlinks in all \code{roots}
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_latest()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_latest(type = c("table", "version_name"))}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{type}}{(chr) Default \code{table}.  Whether to return a data.table with
+symlink and resolved paths (\code{table}) or just a vector of
+\code{version_name}s (\code{version_name}) for easier automated round-ups.}
+}
+\if{html}{\out{</div>}}
+}
 \subsection{Returns}{
-(data.table) A single data.table with results from all roots, with `root_name` as the first column
+(data.table/chr) A single data.table with results from all
+roots, with \code{root_name} as the first column, or a vector of
+\code{version_name}s if \code{type = version_name}.
+
+Table output schema
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{root_name version_name dir_name dir_name_resolved
+   <char>       <char>   <char>            <char>
+}\if{html}{\out{</div>}}
 }
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-roundup_keep"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-roundup_keep}{}}}
 \subsection{Method \code{roundup_keep()}}{
-Find all `keep_` symlinks in all `roots`
-
-Return both the symlink and the resolved symlink (folder the symlink
-points to)
+Find all \code{keep_} symlinks in all \code{roots}
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_keep()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_keep(type = c("table", "version_name"))}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{type}}{(chr) Default \code{table}.  Whether to return a data.table with
+symlink and resolved paths (\code{table}) or just a vector of
+\code{version_name}s (\code{version_name}) for easier automated round-ups.}
+}
+\if{html}{\out{</div>}}
+}
 \subsection{Returns}{
-(data.table) A single data.table with results from all roots, with `root_name` as the first column
+(data.table/chr) A single data.table with results from all
+roots, with \code{root_name} as the first column, or a vector of
+\code{version_name}s if \code{type = version_name}.
+
+Table output schema
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{root_name version_name dir_name dir_name_resolved
+   <char>       <char>   <char>            <char>
+}\if{html}{\out{</div>}}
 }
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-roundup_remove"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-roundup_remove}{}}}
 \subsection{Method \code{roundup_remove()}}{
-Find all `remove_` symlinks in all `roots`
-
-Return both the symlink and the resolved symlink (folder the symlink
-points to)
+Find all \code{remove_} symlinks in all \code{roots}
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_remove()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_remove(type = c("table", "version_name"))}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{type}}{(chr) Default \code{table}.  Whether to return a data.table with
+symlink and resolved paths (\code{table}) or just a vector of
+\code{version_name}s (\code{version_name}) for easier automated round-ups.}
+}
+\if{html}{\out{</div>}}
+}
 \subsection{Returns}{
-(data.table) A single data.table with results from all roots, with `root_name` as the first column
+(data.table/chr) A single data.table with results from all
+roots, with \code{root_name} as the first column, or a vector of
+\code{version_name}s if \code{type = version_name}.
+
+Table output schema
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{root_name version_name dir_name dir_name_resolved
+   <char>       <char>   <char>            <char>
+}\if{html}{\out{</div>}}
 }
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-roundup_unmarked"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-roundup_unmarked}{}}}
 \subsection{Method \code{roundup_unmarked()}}{
-Find all folders without symlinks in all `roots`
-
-Useful if you're rapidly iterating, have only marked a couple folders,
-and want to remove the rest.
+Find all folders without symlinks in all \code{roots}
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_unmarked()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_unmarked(type = c("table", "version_name"))}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{type}}{(chr) Default \code{table}.  Whether to return a data.table with
+symlink and resolved paths (\code{table}) or just a vector of
+\code{version_name}s (\code{version_name}) for easier automated round-ups.}
+}
+\if{html}{\out{</div>}}
+}
 \subsection{Returns}{
-(data.table) A single data.table with results from all roots, with `root_name` as the first column
+(data.table/chr) A single data.table with results from all
+roots, with \code{root_name} as the first column, or a vector of
+\code{version_name}s if \code{type = version_name}.
+
+Table output schema
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{root_name version_name dir_name dir_name_resolved
+   <char>       <char>   <char>            <char>
+}\if{html}{\out{</div>}}
 }
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-roundup_by_date"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-roundup_by_date}{}}}
 \subsection{Method \code{roundup_by_date()}}{
-Find all `version_name` folders by creation date
+Find all \code{version_name} folders by creation date
 
-Only finds folders that _have a log_, and reads creation date on first
-row.  User may select dates by (using the `date_selector` argument):
-- greater than - `gt`
-- greater than or equal to - `gte`
-- less than - `nt`
-- less than or equal to `nte`
-- equal to `e`
+Only finds folders that \emph{have a log}, and reads creation date on first
+row.  User may select dates by (using the \code{date_selector} argument):
+\itemize{
+\item greater than - \code{gt}
+\item greater than or equal to - \code{gte}
+\item less than - \code{nt}
+\item less than or equal to \code{nte}
+\item equal to \code{e}
+}
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_by_date(user_date, date_selector)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_by_date(
+  user_date,
+  date_selector,
+  type = c("table", "version_name")
+)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -446,19 +538,31 @@ with class requirements - must be formatted "2020-01-01 or 2020_01_01
 or 2020/01/01"}
 
 \item{\code{date_selector}}{(chr) See docstring explanation.}
+
+\item{\code{type}}{(chr) Default \code{table}.  Whether to return a data.table with
+symlink and resolved paths (\code{table}) or just a vector of
+\code{version_name}s (\code{version_name}) for easier automated round-ups.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-(data.table) A single data.table with results from all roots, with `root_name` as the first column
+(data.table/chr) A single data.table with results from all
+roots, with \code{root_name} as the first column, or a vector of
+\code{version_name}s if \code{type = version_name}.
+
+Table output schema
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{root_name version_name dir_name dir_name_resolved
+   <char>       <char>   <char>            <char>
+}\if{html}{\out{</div>}}
 }
 }
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-get_common_new_version_name"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-get_common_new_version_name}{}}}
 \subsection{Method \code{get_common_new_version_name()}}{
-Get a new YYYY_MM_DD.VV version compatible with _ALL THE
-TOOL'S ROOTS_
+Get a new YYYY_MM_DD.VV version compatible with \emph{ALL THE
+TOOL'S ROOTS}
 
 If root1 has 2025_01_01.01 and root2 has 2025_01_01.03, then a new
 folder would need to be 2025_01_01.04
@@ -484,11 +588,11 @@ name.  Must be formatted "2020_01_01"}
 \if{html}{\out{<a id="method-Symlink_Tool-make_new_version_folder"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-make_new_version_folder}{}}}
 \subsection{Method \code{make_new_version_folder()}}{
-Create a new `version_name` folder in _ALL THE TOOL'S
-  ROOTS_
+Create a new \code{version_name} folder in \emph{ALL THE TOOL'S
+ROOTS}
 
-  Create a new log in each folder.  No symlinks are created.  No
-  `user_entry` is used.
+Create a new log in each folder.  No symlinks are created.  No
+\code{user_entry} is used.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$make_new_version_folder(version_name = self$get_common_new_version_name())}\if{html}{\out{</div>}}
 }
@@ -497,9 +601,9 @@ Create a new `version_name` folder in _ALL THE TOOL'S
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{version_name}}{(chr) The directory name of the
-output folder that lives directly under one of the `root`s you define
+output folder that lives directly under one of the \code{root}s you define
 when you instantiate the tool.  For convenience, user may leave NULL
-(default) and `get_common_new_version_name()` is used on that root.}
+(default) and \code{get_common_new_version_name()} is used on that root.}
 }
 \if{html}{\out{</div>}}
 }
@@ -514,9 +618,11 @@ when you instantiate the tool.  For convenience, user may leave NULL
 Safely write an empty log file for first pipeline runs
 
 When you start a new pipeline run, make an empty log
-- helpful if you let this tool manage all your versions
-- you can roundup version_names by creation date using the log's first entry
-- the file system doesn't track directory creation dates (at time of writing)
+\itemize{
+\item helpful if you let this tool manage all your versions
+\item you can roundup version_names by creation date using the log's first entry
+\item the file system doesn't track directory creation dates (at time of writing)
+}
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$make_new_log(version_name)}\if{html}{\out{</div>}}
 }
@@ -525,7 +631,7 @@ When you start a new pipeline run, make an empty log
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{version_name}}{(chr) The directory name of the output folder that
-lives directly under one of the `root`s you define when you
+lives directly under one of the \code{root}s you define when you
 instantiate the tool.}
 }
 \if{html}{\out{</div>}}
@@ -538,14 +644,16 @@ instantiate the tool.}
 \if{html}{\out{<a id="method-Symlink_Tool-delete_version_folders"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-delete_version_folders}{}}}
 \subsection{Method \code{delete_version_folders()}}{
-Delete a `version_name` folder marked with a `remove_` symlink from
-_ALL ITS ROOTS_
+Delete a \code{version_name} folder marked with a \code{remove_} symlink from
+\emph{ALL ITS ROOTS}
 
 Removes the symlink(s) and the underlying folder(s), and updates
 central log if folders were removed.
 
 Writes:
-- appends a line to the central log file with a date and time stamp
+\itemize{
+\item appends a line to the central log file with a date and time stamp
+}
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$delete_version_folders(version_name, user_entry, require_user_input = TRUE)}\if{html}{\out{</div>}}
 }
@@ -554,17 +662,17 @@ Writes:
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{version_name}}{(chr) The directory name of the output folder that
-lives directly under one of the `root`s you define when you
+lives directly under one of the \code{root}s you define when you
 instantiate the tool.}
 
 \item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call
-`slt$return_dictionaries("log_fields_user")` to find which fields a
+\code{slt$return_dictionaries("log_fields_user")} to find which fields a
 user may add.  If you want to make your own version of this class,
-you may update `log_schema` in the `private$DICT` section to allow
+you may update \code{log_schema} in the \code{private$DICT} section to allow
 for them.}
 
-\item{\code{require_user_input}}{(lgl) if `TRUE`, will prompt user to confirm
+\item{\code{require_user_input}}{(lgl) if \code{TRUE}, will prompt user to confirm
 deletion.}
 }
 \if{html}{\out{</div>}}
@@ -579,7 +687,7 @@ deletion.}
 \subsection{Method \code{make_reports()}}{
 Make all reports
 
-Writes all reports to a summary .csv for every `root` defined in the
+Writes all reports to a summary .csv for every \code{root} defined in the
 tool.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$make_reports()}\if{html}{\out{</div>}}

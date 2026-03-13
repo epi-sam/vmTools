@@ -2962,59 +2962,143 @@ SLT <- R6::R6Class(
 
       ## Path Roundups ---------------------------------------------------------
 
-      #' @description
-      #' Find all `best_` symlinks in all `roots`
+      #' @description Find all `best_` symlinks in all `roots`
       #'
-      #' Return both the symlink and the resolved symlink (folder the symlink
-      #' points to)
+      #' @param type (chr) Default `table`.  Whether to return a data.table with
+      #'   symlink and resolved paths (`table`) or just a vector of
+      #'   `version_name`s (`version_name`) for easier automated round-ups.
       #'
-      #' @return (data.table) A single data.table with results from all roots, with `root_name` as the first column
-      roundup_best = function(){
-         return(private$combine_roundup_results(private$query_all_best_symlinks))
+      #' @return (data.table/chr) A single data.table with results from all
+      #'   roots, with `root_name` as the first column, or a vector of
+      #'   `version_name`s if `type = version_name`.
+      #'
+      #' Table output schema
+      #'
+      #' ```r
+      #' root_name version_name dir_name dir_name_resolved
+      #'    <char>       <char>   <char>            <char>
+      #' ```
+      #'
+      roundup_best = function(type = c("table", "version_name")){
+         type <- match.arg(type)
+         if(type == "table"){
+            ret <- private$combine_roundup_results(private$query_all_best_symlinks)
+         } else if (type == "version_name"){
+            ret <- unique(private$combine_roundup_results(private$query_all_best_symlinks)$version_name)
+         }
+         return(ret)
       },
 
       #' @description
       #' Find all `latest` symlinks in all `roots`
       #'
-      #' Return both the symlink and the resolved symlink (folder the symlink
-      #' points to)
+      #' @param type (chr) Default `table`.  Whether to return a data.table with
+      #'   symlink and resolved paths (`table`) or just a vector of
+      #'   `version_name`s (`version_name`) for easier automated round-ups.
       #'
-      #' @return (data.table) A single data.table with results from all roots, with `root_name` as the first column
-      roundup_latest = function(){
-         return(private$combine_roundup_results(private$query_all_latest_symlinks))
+      #' @return (data.table/chr) A single data.table with results from all
+      #'   roots, with `root_name` as the first column, or a vector of
+      #'   `version_name`s if `type = version_name`.
+      #'
+      #' Table output schema
+      #'
+      #' ```r
+      #' root_name version_name dir_name dir_name_resolved
+      #'    <char>       <char>   <char>            <char>
+      #' ```
+      #'
+      roundup_latest = function(type = c("table", "version_name")){
+         type <- match.arg(type)
+         if(type == "table"){
+            ret <- private$combine_roundup_results(private$query_all_latest_symlinks)
+         } else if (type == "version_name"){
+            ret <- unique(private$combine_roundup_results(private$query_all_latest_symlinks)$version_name)
+         }
+         return(ret)
       },
 
       #' @description
       #' Find all `keep_` symlinks in all `roots`
       #'
-      #' Return both the symlink and the resolved symlink (folder the symlink
-      #' points to)
+      #' @param type (chr) Default `table`.  Whether to return a data.table with
+      #'   symlink and resolved paths (`table`) or just a vector of
+      #'   `version_name`s (`version_name`) for easier automated round-ups.
       #'
-      #' @return (data.table) A single data.table with results from all roots, with `root_name` as the first column
-      roundup_keep = function(){
-         return(private$combine_roundup_results(private$query_all_keep_symlinks))
+      #' @return (data.table/chr) A single data.table with results from all
+      #'   roots, with `root_name` as the first column, or a vector of
+      #'   `version_name`s if `type = version_name`.
+      #'
+      #' Table output schema
+      #'
+      #' ```r
+      #' root_name version_name dir_name dir_name_resolved
+      #'    <char>       <char>   <char>            <char>
+      #' ```
+      #'
+      roundup_keep = function(type = c("table", "version_name")){
+         type <- match.arg(type)
+         if(type == "table"){
+            ret <- private$combine_roundup_results(private$query_all_keep_symlinks)
+         } else if (type == "version_name"){
+            ret <- unique(private$combine_roundup_results(private$query_all_keep_symlinks)$version_name)
+         }
+         return(ret)
       },
 
       #' @description
       #' Find all `remove_` symlinks in all `roots`
       #'
-      #' Return both the symlink and the resolved symlink (folder the symlink
-      #' points to)
+      #' @param type (chr) Default `table`.  Whether to return a data.table with
+      #'   symlink and resolved paths (`table`) or just a vector of
+      #'   `version_name`s (`version_name`) for easier automated round-ups.
       #'
-      #' @return (data.table) A single data.table with results from all roots, with `root_name` as the first column
-      roundup_remove = function(){
-         return(private$combine_roundup_results(private$query_all_remove_symlinks))
+      #' @return (data.table/chr) A single data.table with results from all
+      #'   roots, with `root_name` as the first column, or a vector of
+      #'   `version_name`s if `type = version_name`.
+      #'
+      #' Table output schema
+      #'
+      #' ```r
+      #' root_name version_name dir_name dir_name_resolved
+      #'    <char>       <char>   <char>            <char>
+      #' ```
+      #'
+      roundup_remove = function(type = c("table", "version_name")){
+         type <- match.arg(type)
+         if(type == "table"){
+            ret <- private$combine_roundup_results(private$query_all_remove_symlinks)
+         } else if (type == "version_name"){
+            ret <- unique(private$combine_roundup_results(private$query_all_remove_symlinks)$version_name)
+         }
+         return(ret)
       },
 
       #' @description
       #' Find all folders without symlinks in all `roots`
       #'
-      #' Useful if you're rapidly iterating, have only marked a couple folders,
-      #' and want to remove the rest.
+      #' @param type (chr) Default `table`.  Whether to return a data.table with
+      #'   symlink and resolved paths (`table`) or just a vector of
+      #'   `version_name`s (`version_name`) for easier automated round-ups.
       #'
-      #' @return (data.table) A single data.table with results from all roots, with `root_name` as the first column
-      roundup_unmarked = function(){
-         return(private$combine_roundup_results(private$query_all_unmarked))
+      #' @return (data.table/chr) A single data.table with results from all
+      #'   roots, with `root_name` as the first column, or a vector of
+      #'   `version_name`s if `type = version_name`.
+      #'
+      #' Table output schema
+      #'
+      #' ```r
+      #' root_name version_name dir_name dir_name_resolved
+      #'    <char>       <char>   <char>            <char>
+      #' ```
+      #'
+      roundup_unmarked = function(type = c("table", "version_name")){
+         type <- match.arg(type)
+         if(type == "table"){
+            ret <- private$combine_roundup_results(private$query_all_unmarked)
+         } else if (type == "version_name"){
+            ret <- unique(private$combine_roundup_results(private$query_all_unmarked)$version_name)
+         }
+         return(ret)
       },
 
       #' @description
@@ -3033,12 +3117,25 @@ SLT <- R6::R6Class(
       #'   or 2020/01/01"
       #' @param date_selector (chr) See docstring explanation.
       #'
-      #' @return (data.table) A single data.table with results from all roots, with `root_name` as the first column
+      #' @param type (chr) Default `table`.  Whether to return a data.table with
+      #' symlink and resolved paths (`table`) or just a vector of
+      #' `version_name`s (`version_name`) for easier automated round-ups.
       #'
       #'
+      #' @return (data.table/chr) A single data.table with results from all
+      #'   roots, with `root_name` as the first column, or a vector of
+      #'   `version_name`s if `type = version_name`.
       #'
-      roundup_by_date = function(user_date, date_selector){
+      #' Table output schema
+      #'
+      #' ```r
+      #' root_name version_name dir_name dir_name_resolved
+      #'    <char>       <char>   <char>            <char>
+      #' ```
+      #'
+      roundup_by_date = function(user_date, date_selector, type = c("table", "version_name")){
 
+         type <- match.arg(type)
 
          # format inputs for assertion
          date_selector <- tolower(date_selector)
@@ -3059,11 +3156,20 @@ SLT <- R6::R6Class(
          #    return(private$query_by_date(root, user_date_parsed, date_selector))
          # }
          private$msg_sometimes("Folders with symlinks will have duplicate rows by `version_name` (one row for each unique `dir_name`) - showing all for completeness.\n")
-         return(private$combine_roundup_results(
-            query_function   = private$query_by_date,
-            user_date_parsed = user_date_parsed,
-            date_selector    = date_selector
-         ))
+         if(type == "table"){
+            ret <- private$combine_roundup_results(
+               query_function   = private$query_by_date,
+               user_date_parsed = user_date_parsed,
+               date_selector    = date_selector
+            )
+         } else if (type == "version_name"){
+            ret <- unique(private$combine_roundup_results(
+               query_function   = private$query_by_date,
+               user_date_parsed = user_date_parsed,
+               date_selector    = date_selector
+            )$version_name)
+         }
+         return(ret)
 
       },
 
