@@ -5,7 +5,7 @@
 \title{SymlinkComposer R6 class}
 \description{
 Manages multiple pre-instantiated SymlinkTool instances for
-  aggregated query operations across multiple projects.
+aggregated query operations across multiple projects.
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -36,8 +36,8 @@ Initialize the SymlinkComposer
 \item{\code{tool_list}}{(named list) Named list of pre-instantiated SLT objects.
 Names become tool identifiers for combined queries. Example:
 list(
-  project_a = my_slt_a,
-  project_b = my_slt_b
+project_a = my_slt_a,
+project_b = my_slt_b
 )}
 
 \item{\code{verbose}}{(lgl) Control message verbosity}

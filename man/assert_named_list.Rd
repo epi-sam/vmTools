@@ -15,12 +15,12 @@ assert_named_list(x)
 \description{
 Stops if:
 \itemize{
- \item{x is not a list}
- \item{x is a data.frame}
- \item{x has no names}
- \item{x has any NA names}
- \item{x has any zero-length names}
- \item{x has any whitespace-only names}
+\item{x is not a list}
+\item{x is a data.frame}
+\item{x has no names}
+\item{x has any NA names}
+\item{x has any zero-length names}
+\item{x has any whitespace-only names}
 }
 }
 \seealso{

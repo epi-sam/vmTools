@@ -10,7 +10,7 @@ split_line_breaks(string)
 \item{string}{(chr) A character vector.}
 }
 \value{
-All elements of the character vector are split by `\\n` into new elements.
+All elements of the character vector are split by \verb{\\\\n} into new elements.
 }
 \description{
 Split a character vector by line breaks
