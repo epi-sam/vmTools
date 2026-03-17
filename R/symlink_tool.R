@@ -218,7 +218,7 @@ SLT <- R6::R6Class(
          # - 'keep':   multiple symlinks named "keep_<version_name>"
          # - 'remove': multiple symlinks named "remove_<version_name>"
 
-         symlink_registry = list(
+         , symlink_registry = list(
             best = list(
                # Is there only one of these at a time across the whole root? (Highlander rule)
                is_singleton        = TRUE

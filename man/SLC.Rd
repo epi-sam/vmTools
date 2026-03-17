@@ -86,8 +86,8 @@ List all tool names
 \subsection{Method \code{roundup_all_symlinks()}}{
 Roundup symlinks of a given type across all tools
 
-Valid types are determined by the intersection of `symlink_types` from
-all SLT instances held by this composer. Use `$get_common_symlink_types()`
+Valid types are determined by the intersection of \code{symlink_types} from
+all SLT instances held by this composer. Use \verb{$get_common_symlink_types()}
 to inspect the valid set.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLC$roundup_all_symlinks(symlink_type)}\if{html}{\out{</div>}}
@@ -111,7 +111,7 @@ e.g. "best", "keep", "remove", "latest"}
 \subsection{Method \code{get_common_symlink_types()}}{
 Return the symlink types common to all held SLT instances
 
-These are the valid values for the `symlink_type` argument of `roundup_all()`.
+These are the valid values for the \code{symlink_type} argument of \code{roundup_all()}.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLC$get_common_symlink_types()}\if{html}{\out{</div>}}
 }
