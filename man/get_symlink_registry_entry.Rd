@@ -17,6 +17,4 @@ get_symlink_registry() for expected entry structure.
 \description{
 Get one entry from the symlink registry by name
 }
-\examples{
-get_symlink_registry_entry("best")
-}
+\keyword{internal}

@@ -7,11 +7,15 @@
 new_symlink_type(symlink_type, is_singleton, verbose = TRUE)
 }
 \arguments{
-\item{symlink_type}{(chr) name of the new symlink type to register. Must be
-unique (not already in registry).}
+\item{symlink_type}{(chr) name of the new symlink type to register. Must not
+be a canonical built-in symlink type \code{c("best", "keep", "remove", "latest")} Built-in symlink types are case-insensitive (i.e. the user may
+not register a "BEST" symlink type). User-defined symlink types may be
+overwritten.}
 
-\item{is_singleton}{(lgl) whether this symlink type is a singleton (only one
-per root) or can be applied to multiple versions within the same root}
+\item{is_singleton}{(lgl) Can there be only one of this symlink type per root
+directory? If \code{TRUE}, the symlink name will be exactly \code{symlink_type} (e.g.
+"best"). If \code{FALSE}, the symlink name will be \code{symlink_type} + "_" +
+version_name (e.g. "keep_2025_01_01.01").}
 
 \item{verbose}{(lgl: default \code{TRUE}) control message verbosity when
 registering the new symlink type}
