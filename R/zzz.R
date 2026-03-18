@@ -111,38 +111,79 @@ get_symlink_registry_entry <- function(symlink_type) {
     return(get_symlink_registry()[[symlink_type]])
 }
 
+#' Get the valid actions for marking folders
+#'
+#' Used mainly for the discrepancy report
+#'
+#' @returns (chr) vector of valid actions for marking folders, including
+#'   "create", "delete_remove_folder", and the promote/demote actions for each
+#'   registered symlink type (e.g. "promote_best", "demote_best",
+#'   "promote_keep", "demote_keep", etc.)
+#' @keywords internal
+get_valid_actions <- function(){
+    symlink_types <- names(get_symlink_registry())
+    c(
+        c("create", "delete_remove_folder")
+        , sprintf("promote_%s", symlink_types)
+        , sprintf("demote_%s", symlink_types)
+    )
+}
+
 # ---- Package-level symlink registry environment ----------------------------
 # Created when the package loads, persists for the session.
 # CRAN-compliant: no global assignment, scoped to package namespace.
 # Built-in bindings are locked so they cannot be overwritten by users.
 .onLoad <- function(libname, pkgname){
 
+    # Symlink-based Finite State Machine
+    #
+    # State Transitions:
+    # [unmarked] ←→ [latest] ←→ [best]
+    #     ↕          ↕          ↕
+    #   [keep]     [keep]     [keep]
+    #     ↕          ↕          ↕
+    #  [remove]   [remove]   [remove]
+    #
+    # Rules:
+    # 1. Only ONE symlink per folder at any time
+    # 2. Only ONE 'best' folder per project root (Highlander rule)
+    # 3. Only ONE 'latest' folder per project root (Highlander rule)
+    # 4. Multiple 'keep' folders allowed
+    # 5. Multiple 'remove' folders allowed
+    # 6. 'best' ←→ 'latest' transitions auto-demote the conflicting state
+    #
+    # Symlink Naming Convention:
+    # - 'best':   singleton symlink named "best" (no version in name)
+    # - 'latest': singleton symlink named "latest" (no version in name)
+    # - 'keep':   multiple symlinks named "keep_<version_name>"
+    # - 'remove': multiple symlinks named "remove_<version_name>"
+
     symlink_registry_builtins <- list(
         # Singleton-version marks
         # - These marks follow the Higlander rule: there can be only one per root directory
-        best     = list(symlink_name = "best",   is_singleton = TRUE)
-        , latest = list(symlink_name = "latest", is_singleton = TRUE)
+        best     = list(is_singleton = TRUE)
+        , latest = list(is_singleton = TRUE)
 
         # Multiple-version marks
         # - These marks can be applied to multiple versions within the same root directory
-        , keep   = list(symlink_name = "keep",   is_singleton = FALSE)
-        , remove = list(symlink_name = "remove", is_singleton = FALSE)
+        , keep   = list(is_singleton = FALSE)
+        , remove = list(is_singleton = FALSE)
     )
 
     for(idx in seq_along(symlink_registry_builtins)) {
 
         entry <- symlink_registry_builtins[[idx]]
-        nm    <- names(symlink_registry_builtins)[idx]
+        key   <- names(symlink_registry_builtins)[idx]
 
         entry$symlink_suffix_fn <- make_symlink_suffix_fn(entry$is_singleton)
-        entry$ls_regex_fn       <- make_ls_regex_fn(entry$is_singleton, nm)
-        entry$extract_regex     <- make_query_regex(entry$is_singleton, nm)
+        entry$ls_regex_fn       <- make_ls_regex_fn(entry$is_singleton, key)
+        entry$extract_regex     <- make_query_regex(entry$is_singleton, key)
 
         symlink_registry_builtins[[idx]] <- entry
     }
 
-    for(nm in names(symlink_registry_builtins)){
-        assign(nm, symlink_registry_builtins[[nm]], envir = .symlink_registry)
+    for(key in names(symlink_registry_builtins)){
+        assign(key, symlink_registry_builtins[[key]], envir = .symlink_registry)
     }
 
     # Prevent user from overwriting built-in entries
@@ -178,26 +219,25 @@ get_symlink_registry_entry <- function(symlink_type) {
 #' @examples
 #' new_symlink_type("stalled", is_singleton = FALSE)
 new_symlink_type <- function(
-    symlink_type
-    , is_singleton
-    , verbose = TRUE
+        symlink_type
+        , is_singleton
+        , verbose = TRUE
 ) {
     checkmate::assert_flag(is_singleton)
     checkmate::assert_string(symlink_type)
-   if (tolower(symlink_type) %in% c("best", "latest", "keep", "remove")){
+    if (tolower(symlink_type) %in% c("best", "latest", "keep", "remove")){
         stop("Cannot overwrite built-in symlink type (case-insensitive): '", tolower(symlink_type), "'")
     }
     # TODO - 2026 Mar 17 - probably want to allow user to re-write their own entries
     # if (exists(symlink_type, envir = .symlink_registry, inherits = FALSE)){
-    #     stop("'", symlink_type, "' is already registered. Cannot overwrite.")
+    #   stop("'", symlink_type, "' is already registered. Cannot overwrite.")
     # }
 
     new_entry <- list(
-        is_singleton        = is_singleton
-        , symlink_name      = symlink_type
+        is_singleton      = is_singleton
         , symlink_suffix_fn = make_symlink_suffix_fn(is_singleton)
-        , ls_regex_fn       = make_ls_regex_fn(is_singleton, symlink_type)
-        , extract_regex     = make_query_regex(is_singleton, symlink_type)
+        , ls_regex_fn     = make_ls_regex_fn(is_singleton, symlink_type)
+        , extract_regex   = make_query_regex(is_singleton, symlink_type)
     )
 
     assign(symlink_type, new_entry, envir = .symlink_registry)

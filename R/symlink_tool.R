@@ -83,7 +83,7 @@ SLT <- R6::R6Class(
 
    private = list(
 
-      # Dictionaries -----------------------------------------------------------
+      # DICT -------------------------------------------------------------------
 
       # All private$___ items are functions, except for:
       # - constants stored in the DICT sub-list
@@ -156,9 +156,6 @@ SLT <- R6::R6Class(
          , datestamp_format = "%Y_%m_%d_%H%M%S"
 
 
-
-
-
          ## Initialize: internally-defined
          # In `initialize()`, defined as `setdiff(names(private$DICT$log_schema), private$DICT$log_fields_auto)`
          # e.g. c("comment") at time of writing
@@ -166,6 +163,11 @@ SLT <- R6::R6Class(
 
          # Timezone
          , TZ = NULL
+
+         ## Symlink registry
+         # - this is the source of truth for symlink types and their properties
+         , symlink_types = NULL
+         , symlink_regex_extract = NULL
 
 
          # Reports - summary of last log entries across version_nameed folders
@@ -179,106 +181,10 @@ SLT <- R6::R6Class(
             , discrepancies         = "report_DISCREPANCIES.csv"
          )
 
-
-         ## Status updates / symlinks
-
-         , valid_actions = c(
-            "create"
-            , "promote_best"
-            , "demote_best"
-            , "promote_keep"
-            , "demote_keep"
-            , "promote_remove"
-            , "demote_remove"
-            , "promote_latest"
-            , "demote_latest"
-            , "delete_remove_folder"
-         )
-
-         # Symlink-based Finite State Machine
-         #
-         # State Transitions:
-         # [unmarked] ←→ [latest] ←→ [best]
-         #     ↕          ↕          ↕
-         #   [keep]     [keep]     [keep]
-         #     ↕          ↕          ↕
-         #  [remove]   [remove]   [remove]
-         #
-         # Rules:
-         # 1. Only ONE symlink per folder at any time
-         # 2. Only ONE 'best' folder system-wide (Highlander rule)
-         # 3. Only ONE 'latest' folder system-wide (Highlander rule)
-         # 4. Multiple 'keep' folders allowed
-         # 5. Multiple 'remove' folders allowed
-         # 6. 'best' ←→ 'latest' transitions auto-demote the conflicting state
-         #
-         # Symlink Naming Convention:
-         # - 'best':   singleton symlink named "best" (no version in name)
-         # - 'latest': singleton symlink named "latest" (no version in name)
-         # - 'keep':   multiple symlinks named "keep_<version_name>"
-         # - 'remove': multiple symlinks named "remove_<version_name>"
-
-         , symlink_registry = list(
-            best = list(
-               # Is there only one of these at a time across the whole root? (Highlander rule)
-               is_singleton        = TRUE
-               # How do we build the symlink file name?
-               #   - singletons: just the type name ("best")
-               #   - non-singletons: type name + "_" + version_name ("keep_2025_03_05.01")
-               , symlink_suffix_fn = function(version_name) {""}
-               # Regex for matching `ls -l` output to find this type's symlinks
-               , ls_regex_fn       = function(version_name) {sprintf("^best -> .*%s$", version_name)}
-               # Regex for extracting the symlink name from a path string (replaces DICT$symlink_regex_extract)
-               , extract_regex     = "^best$"
-               # Regex for filtering folder_dt in query_all_*_symlinks
-               , query_regex       = "^best$"
-            )
-            , latest = list(
-               is_singleton        = TRUE
-               , symlink_suffix_fn = function(version_name) {""}
-               , ls_regex_fn       = function(version_name) {sprintf("^latest -> .*%s$", version_name)}
-               , extract_regex     = "^latest$"
-               , query_regex       = "^latest$"
-            )
-            , keep = list(
-               is_singleton        = FALSE
-               , symlink_suffix_fn = function(version_name) {sprintf("_%s", version_name)}
-               , ls_regex_fn       = function(version_name) {sprintf("^keep_.*%s$", version_name)}
-               , extract_regex     = "^keep_"
-               , query_regex       = "^keep_"
-            )
-            , remove = list(
-               is_singleton        = FALSE
-               , symlink_suffix_fn = function(version_name) {sprintf("_%s", version_name)}
-               , ls_regex_fn       = function(version_name) {sprintf("^remove_.*%s$", version_name)}
-               , extract_regex     = "^remove_"
-               , query_regex       = "^remove_"
-            )
-         )
-
-         # FIXME SB - 2026 Mar 06 - deprecate
-         # symlink_types = c(
-         #    "best"
-         #    , "keep"
-         #    , "remove"
-         #    , "latest"
-         # ),
-
-         # FIXME SB - 2026 Mar 06 - deprecate
-         # used in private$extract_symlink()
-         # NOTE: There is also a set in private$assert_n_symlinks() that cannot be set here
-         #       If you ever update symlink types, adjust it there as well
-         #       Also: make_symlink_path()
-         # , symlink_regex_extract = list(
-         #    best   = paste0("^best")
-         #    keep   = paste0("^keep_")
-         #    remove = paste0("^remove_")
-         #    latest = paste0("^latest")
-         # )
-
       ),
 
-      # Dynamic fields ----------------------------------------------------
+
+      # DYNAMIC ----------------------------------------------------------------
 
       # These are not true R6 active fields, but are dynamic within the tool.
       # I'm not exposing these to the user but they need to by dynamic
@@ -1959,7 +1865,7 @@ SLT <- R6::R6Class(
          discrepant_dt_log_id_non_seq <- private$add_discrepancy_to_dt(discrepant_dt_log_id_non_seq, "non-sequential log_ids")
 
          # Invalid log actions
-         log_list_invalid_actions      <- lapply(log_list_all, function(x) x[!(action %in% private$DICT$valid_actions)])
+         log_list_invalid_actions      <- lapply(log_list_all, function(x) x[!(action %in% get_valid_actions)])
          discrepant_dt_invalid_actions <- data.table::rbindlist(log_list_invalid_actions, fill = TRUE)
          discrepant_dt_invalid_actions <- private$add_discrepancy_to_dt(discrepant_dt_invalid_actions, "invalid actions")
 
@@ -2577,6 +2483,13 @@ SLT <- R6::R6Class(
          if(csv_reader %like% "fread" & verbose_startup == TRUE) {
             message("WARNING: Do not use double quotation marks (\") in user comments - data.table::fread causes them to multiply.")
          }
+
+         # SYMLINK REGISTRY -------------------------------------------------------
+
+         # Derive registry-dependent vectors from the live package registry
+         reg <- get_symlink_registry()
+         private$DICT$symlink_types         <- names(reg)
+         private$DICT$symlink_regex_extract <- lapply(reg, `[[`, "extract_regex")
 
          # ------------------------------------------------------------------#
 
