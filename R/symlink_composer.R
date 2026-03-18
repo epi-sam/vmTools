@@ -123,10 +123,11 @@ SLC <- R6::R6Class(
     #'
     #' @return (chr) Vector of common symlink type strings
     , get_common_symlink_types = function() {
-      type_lists <- lapply(names(private$TOOLS), function(tool_name) {
-        private$TOOLS[[tool_name]]$return_dictionaries("symlink_types")[["symlink_types"]]
-      })
-      return(Reduce(intersect, type_lists))
+      # type_lists <- lapply(names(private$TOOLS), function(tool_name) {
+      #   private$TOOLS[[tool_name]]$return_dictionaries("symlink_types")[["symlink_types"]]
+      # })
+      # return(Reduce(intersect, type_lists))
+       get_symlink_types()
     }
 
     #' @description Roundup all unmarked folders across all tools

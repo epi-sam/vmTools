@@ -72,7 +72,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                bad_tool = mtcars
             )
          )
-         , regexp = "is not an SLT instance"
+         , regexp = "is not a Symlink Tool \\(SLT\\) instance"
       )
    })
 

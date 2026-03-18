@@ -1869,7 +1869,7 @@ SLT <- R6::R6Class(
          discrepant_dt_log_id_non_seq <- private$add_discrepancy_to_dt(discrepant_dt_log_id_non_seq, "non-sequential log_ids")
 
          # Invalid log actions
-         log_list_invalid_actions      <- lapply(log_list_all, function(x) x[!(action %in% get_valid_actions)])
+         log_list_invalid_actions      <- lapply(log_list_all, function(x) x[!(action %in% get_valid_actions())])
          discrepant_dt_invalid_actions <- data.table::rbindlist(log_list_invalid_actions, fill = TRUE)
          discrepant_dt_invalid_actions <- private$add_discrepancy_to_dt(discrepant_dt_invalid_actions, "invalid actions")
 
