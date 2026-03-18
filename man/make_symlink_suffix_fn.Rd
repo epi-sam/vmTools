@@ -10,6 +10,11 @@ make_symlink_suffix_fn(is_singleton)
 \item{is_singleton}{(logical) whether this symlink type is a singleton (only
 one per root)}
 }
+\value{
+(function) a function that takes a version_name argument and returns
+the appropriate symlink name based on the version name and whether the
+symlink type is a singleton or not
+}
 \description{
 The symlink name depends on whether the symlink type is a singleton or not.
 For example, for a singleton "best" symlink type, the symlink name would be

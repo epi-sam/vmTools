@@ -507,8 +507,8 @@ SLT <- R6::R6Class(
          )
 
          # validate
-         if(!all(names(symlink_regex) %in% private$DICT$symlink_types)){
-            stop("Some of your symlink_regex are not valid options - update 'private$DICT$symlink_types': \n  ",
+         if(!all(names(symlink_regex) %in% get_symlink_types())){
+            stop("Some of your symlink_regex are not valid options - do you need to run new_symlink_type()?: \n  ",
                  paste0(names(symlink_regex), collapse = "\n  ")
             )
          }
@@ -535,7 +535,7 @@ SLT <- R6::R6Class(
       # Check if a version_name is already marked with a symlink of a certain type
       #
       # @param version_path (chr) full path to a version folder, e.g. /mnt/share/gbdxxxx/2023_01_01
-      # @param symlink_type (chr) one of: private$DICT$symlink_types
+      # @param symlink_type (chr) one of: get_symlink_types()
       #
       # @return (lgl) TRUE if symlink exists, FALSE if not
       already_marked = function(version_path, symlink_type){
@@ -554,7 +554,7 @@ SLT <- R6::R6Class(
       #
       #  @param root (path) full path to gbdxxxx data folder
       #  @param version_name (chr) a run date for the model
-      #  @param symlink_type (chr) one of: c(private$DICT$symlink_types, "all")
+      #  @param symlink_type (chr) one of: c(get_symlink_types(), "all")
       #  @param n_sym (int) number of symlinks to assert
       #  @param allow_fewer (lgl) if TRUE, allow fewer symlinks than n_sym symlinks (i.e. 0 is OK)
       #
@@ -568,13 +568,13 @@ SLT <- R6::R6Class(
          if(!is.integer(n_sym)) stop("n_sym must be an integer")
          if(n_sym < 0L) stop("n_sym must be non-negative")
 
-         valid_symlink_types <- c(private$DICT$symlink_types, "all")
+         valid_symlink_types <- c(get_symlink_types(), "all")
          if(!symlink_type %in% valid_symlink_types) {
             stop("symlink_type must be one of: \n  ",
                  valid_symlink_types, collapse = "\n  ")
          }
 
-         if(symlink_type == "all") symlink_type <- private$DICT$symlink_types
+         if(symlink_type == "all") symlink_type <- get_symlink_types()
          names(symlink_type) <- symlink_type # names for lapply
 
          symlink_list <- lapply(symlink_type, function(x){
@@ -628,7 +628,7 @@ SLT <- R6::R6Class(
       make_symlink_path = function(version_path, symlink_type){
          assert_scalar(version_path)
          assert_scalar(symlink_type)
-         if(!symlink_type %in% private$DICT$symlink_types) stop("Invalid symlink_type: ", symlink_type)
+         if(!symlink_type %in% get_symlink_types()) stop("Invalid symlink_type: ", symlink_type)
          root         <- dirname(clean_path(version_path))
          version_name <- basename(clean_path(version_path))
 
@@ -660,7 +660,7 @@ SLT <- R6::R6Class(
          # grab the last string of non-whitespace characters
          str_symlink <- tail(strsplit(str_pre_arrow, " ")[[1]], 1)
          # validate against allowed patterns
-         symlink_regex <- private$DICT$symlink_regex_extract
+         symlink_regex <- get_symlink_regex_extract()
          symlink_regex <- paste(unlist(symlink_regex), collapse = "|")
          if(!grepl(symlink_regex, str_symlink)) {
             stop("Invalid symlink found - inspect extract_symlink logic: ", str_symlink)
@@ -680,7 +680,11 @@ SLT <- R6::R6Class(
          assert_dir_exists(root)
          assert_scalar(version_name)
          assert_scalar(symlink_type)
-         if(!symlink_type %in% private$DICT$symlink_types) stop("Invalid symlink_type; got - ", symlink_type, " - expected - ", toString(private$DICT$symlink_types))
+         if(!symlink_type %in% get_symlink_types())
+         stop(
+            "Invalid symlink_type; got - ", symlink_type
+            , " - expected - ", toString(get_symlink_types())
+         )
 
          symlink_list <- private$find_count_symlinks(
             root         = root,
@@ -721,7 +725,7 @@ SLT <- R6::R6Class(
       remove_all_symlinks = function(root, version_name, user_entry){
          assert_scalar(version_name)
          private$msg_sometimes("Removing symlinks for: ", version_name)
-         for(symlink_type in private$DICT$symlink_types){
+         for(symlink_type in get_symlink_types()){
             private$remove_one_symlink(
                root         = root,
                version_name = version_name,
@@ -778,7 +782,7 @@ SLT <- R6::R6Class(
          # Remove symlinks and base folders
          # ensure the folder is marked `remove_`
          # - the tool will not delete unmarked folders, that's the entire point of the tool
-         folder_dt_removes      <- folder_dt[is_tool_symlink == TRUE & grepl(private$DICT$symlink_regex_extract$remove, dir_leaf), ]
+         folder_dt_removes      <- folder_dt[is_tool_symlink == TRUE & grepl(get_symlink_regex_extract()[["remove"]], dir_leaf), ]
          deletion_symlink_exact <- paste0("remove_", version_name)
          deletion_dir_name      <- folder_dt[dir_leaf == deletion_symlink_exact, dir_name]
 
@@ -1324,7 +1328,7 @@ SLT <- R6::R6Class(
          # - keep name distinct to avoid data.table conflicts with function args
          folder_dt[, version_name := basename(dir_name_resolved)]
          # define symlinks that could and couldn't have been created by this tool for later use
-         tool_symlink_regex  <- private$DICT$symlink_regex_extract
+         tool_symlink_regex  <- get_symlink_regex_extract()
          tool_symlink_regex  <- paste(tool_symlink_regex, collapse = "|")
          folder_dt[, is_symlink := dir_name != dir_name_resolved]
          folder_dt[, is_tool_symlink := grepl(tool_symlink_regex, dir_leaf)]
@@ -1393,7 +1397,7 @@ SLT <- R6::R6Class(
       #  Query all logs for active symlinks made by the tool in a single `root`
       #
       #  This finds symlinks _made_ by the Symlink Tool (useful for diagnostics).
-      #  E.g. finds symlink patterns defined by `private$DICT$symlink_types`, this will find it.
+      #  E.g. finds symlink patterns defined by `get_symlink_types()`, this will find it.
       #
       #  @param root (chr) path to a root folder defined at instantiation (`STL$new()`)
       #  @param verbose (lgl) std_err message if no log found
@@ -2051,7 +2055,7 @@ SLT <- R6::R6Class(
 
       # 'promote' and 'demote' are consistent terms 'elevate this folder to
       # xxx status' or 'lower this folder from xxx status'
-      # - xxx status is defined by `private$DICT$symlink_types`
+      # - xxx status is defined by `get_symlink_types()`
 
       #  Demote a version_name folder from a symlink status.
       #
@@ -2060,10 +2064,15 @@ SLT <- R6::R6Class(
       #  @param version_path (chr) Path to a version_name folder
       #  @param version_name (chr) version_name folder to demote
       #  @param user_entry (named list) User-supplied log entry
-      #  @param symlink_types (chr) `private$DICT$symlink_types`
+      #  @param symlink_types (chr) `get_symlink_types()`
       #
       #  @return (none) Unlinks the symlink on disk
-      demote_existing_symlinks = function(version_path, version_name, user_entry, symlink_types = private$DICT$symlink_types){
+      demote_existing_symlinks = function(
+         version_path
+         , version_name
+         , user_entry
+         , symlink_types = get_symlink_types()
+      ){
          assert_scalar(version_path)
          assert_scalar(version_name)
          assert_named_list(user_entry)
@@ -2145,7 +2154,7 @@ SLT <- R6::R6Class(
       # Promote a version_name folder to a symlink status.
       #
       # @param symlink_type (chr) Type of symlink to promote to, must be one of
-      #   `private$DICT$symlink_types`
+      #   `get_symlink_types()`
       # @param version_name (chr) version_name folder to promote
       # @param version_path (chr) Path to a version_name folder for promotion
       # @param user_entry (named list) User-supplied log entry
@@ -2159,7 +2168,7 @@ SLT <- R6::R6Class(
       ){
          assert_dir_exists(version_path)
 
-         symlink_reg  <- private$DICT$symlink_registry[[symlink_type]]
+         symlink_reg  <- get_symlink_registry_entry(symlink_type)
          path_symlink <- private$make_symlink_path(symlink_type, version_path)
 
          # Singleton types need Highlander demotion of the previous symlink
@@ -2484,13 +2493,6 @@ SLT <- R6::R6Class(
             message("WARNING: Do not use double quotation marks (\") in user comments - data.table::fread causes them to multiply.")
          }
 
-         # SYMLINK REGISTRY -------------------------------------------------------
-
-         # Derive registry-dependent vectors from the live package registry
-         reg <- get_symlink_registry()
-         private$DICT$symlink_types         <- names(reg)
-         private$DICT$symlink_regex_extract <- lapply(reg, `[[`, "extract_regex")
-
          # ------------------------------------------------------------------#
 
          # Users must provide these fields
@@ -2530,10 +2532,15 @@ SLT <- R6::R6Class(
          assert_scalar(central_log_root)
          assert_dir_exists(central_log_root)
          private$DICT$LOG_CENTRAL$root <- central_log_root
-         private$DICT$LOG_CENTRAL$path <- clean_path(private$DICT$LOG_CENTRAL$root,
-                                                     private$DICT$LOG_CENTRAL$fname)
-         private$write_expected_central_log(fpath      = private$DICT$LOG_CENTRAL$path,
-                                            log_schema = private$DICT$log_schema)
+
+         private$DICT$LOG_CENTRAL$path <- clean_path(
+            private$DICT$LOG_CENTRAL$root
+            , private$DICT$LOG_CENTRAL$fname
+         )
+         private$write_expected_central_log(
+            fpath        = private$DICT$LOG_CENTRAL$path
+            , log_schema = private$DICT$log_schema
+         )
       },
 
 

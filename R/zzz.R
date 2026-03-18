@@ -7,12 +7,18 @@
 # Create a package-level environment
 .symlink_registry <- new.env(parent = emptyenv())
 
-# ---- private accessors -------------------------------------------------------
+# ---- Utils -------------------------------------------------------
+
+# 2026 Mar 17 - These replace legacy hard-coded DICT entries within the symlink
+# tool
+
+#' used by `ls -l` to show symlinks
+#'
 #' @keywords internal
-arrow_regex <- function() "->" # used by `ls -l` to show symlinks
+arrow_regex <- function() "->"
 
 
-# function factories to create the various functions needed for each symlink type
+# ---- Function Factories -----------------------------------------------------------------
 
 #' Make a function to create the symlink name based on the version name
 #'
@@ -23,6 +29,11 @@ arrow_regex <- function() "->" # used by `ls -l` to show symlinks
 #'
 #' @param is_singleton (logical) whether this symlink type is a singleton (only
 #'   one per root)
+#'
+#' @return (function) a function that takes a version_name argument and returns
+#'   the appropriate symlink name based on the version name and whether the
+#'   symlink type is a singleton or not
+#'
 #'
 #' @keywords internal
 make_symlink_suffix_fn <- function(is_singleton) {
@@ -47,6 +58,11 @@ make_symlink_suffix_fn <- function(is_singleton) {
 #' @param symlink_type (chr) the name of the symlink type, e.g. "best", "keep",
 #'   "remove", "latest". Used to build the regex pattern for `ls` system calls.
 #'
+#' @return (function) a function that takes a version_name argument (for
+#'   non-singleton types) and returns the appropriate regex pattern to find the
+#'   symlink type when running `ls`
+#'
+#'
 #' @keywords internal
 make_ls_regex_fn <- function(is_singleton, symlink_type) {
     checkmate::assert_flag(is_singleton)
@@ -69,6 +85,8 @@ make_ls_regex_fn <- function(is_singleton, symlink_type) {
 #' @param symlink_type (chr) the name of the symlink type, e.g. "best", "keep",
 #'   "remove", "latest".
 #'
+#' @return (chr) the regex pattern to find the symlink type when running `ls`
+#'
 #' @keywords internal
 make_query_regex <- function(is_singleton, symlink_type) {
     checkmate::assert_flag(is_singleton)
@@ -79,6 +97,9 @@ make_query_regex <- function(is_singleton, symlink_type) {
         return(sprintf("^%s_", symlink_type))
     }
 }
+
+
+# ---- Private Accessors -------------------------------------------------------
 
 #' Get the full symlink registry
 #'
@@ -110,6 +131,30 @@ get_symlink_registry_entry <- function(symlink_type) {
     }
     return(get_symlink_registry()[[symlink_type]])
 }
+
+
+#' Get the names of all registered symlink types
+#'
+#' @returns (chr) vector of names of all registered symlink types, e.g.
+#'   c("best", "keep", "remove", "latest", etc.)
+#' @keywords internal
+get_symlink_types <- function() {
+    return(names(get_symlink_registry()))
+}
+
+
+#' Get the regex patterns for extracting symlink types from `ls` system calls
+#'
+#' @returns (list) named list of regex patterns for extracting symlink types
+#'   from `ls` system calls, keyed by symlink type.
+#' @keywords internal
+get_symlink_regex_extract <- function() {
+    registry <- get_symlink_registry()
+    return(lapply(registry, `[[`, "extract_regex"))
+}
+
+
+# TODO - 2026 Mar 17 - Remove? - not very useful and now prone to unpredictable behavior
 
 #' Get the valid actions for marking folders
 #'
@@ -234,10 +279,10 @@ new_symlink_type <- function(
     # }
 
     new_entry <- list(
-        is_singleton      = is_singleton
+        is_singleton        = is_singleton
         , symlink_suffix_fn = make_symlink_suffix_fn(is_singleton)
-        , ls_regex_fn     = make_ls_regex_fn(is_singleton, symlink_type)
-        , extract_regex   = make_query_regex(is_singleton, symlink_type)
+        , ls_regex_fn       = make_ls_regex_fn(is_singleton, symlink_type)
+        , extract_regex     = make_query_regex(is_singleton, symlink_type)
     )
 
     assign(symlink_type, new_entry, envir = .symlink_registry)

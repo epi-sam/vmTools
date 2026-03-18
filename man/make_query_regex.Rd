@@ -13,6 +13,9 @@ one per root)}
 \item{symlink_type}{(chr) the name of the symlink type, e.g. "best", "keep",
 "remove", "latest".}
 }
+\value{
+(chr) the regex pattern to find the symlink type when running \code{ls}
+}
 \description{
 The pattern depends on whether the symlink type is a singleton or not. For
 example, for a singleton "best" symlink type, the pattern would be "^best$".
