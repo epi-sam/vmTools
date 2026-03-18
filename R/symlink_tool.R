@@ -491,7 +491,6 @@ SLT <- R6::R6Class(
          assert_scalar(symlink_type)
 
          # Define all eligible symlink regex patterns by type
-         # arrow_regex <- " -> " # used in bash to show symlinks
          # We're ONLY monitoring symlinks of a certain pattern - users are free to make others
          ls_regex_fn   <- get_symlink_registry_entry(symlink_type)[["ls_regex_fn"]]
          symlink_regex <- ls_regex_fn(version_name)
@@ -617,7 +616,7 @@ SLT <- R6::R6Class(
          return(clean_path(root, paste0(symlink_type, symlink_suffix), normalize = FALSE))
       },
 
-      #  Pull a symlink from a linux path string
+      #  Pull a symlink from a linux-style path string
       #
       #  e.g. pull "best" from:
       #  "lrwxrwxrwx 1 USER Domain Users  63 Feb  6 17:04 best -> /mnt/share/some/path"
@@ -626,9 +625,8 @@ SLT <- R6::R6Class(
       #
       #  @return (chr) the symlink string
       extract_symlink = function(symlink_string){
-         arrow_regex <- " -> " # used by linux to show symlinks
-         if(!grepl(arrow_regex, symlink_string)) stop("No arrow found in symlink_string: ", symlink_string)
-         match_idx <- regexpr(arrow_regex, symlink_string)
+         if(!grepl(arrow_regex(), symlink_string)) stop("No arrow found in symlink_string: ", symlink_string)
+         match_idx <- regexpr(arrow_regex(), symlink_string)
          str_pre_arrow <- substr(symlink_string, 1, match_idx - 1)
          # grab the last string of non-whitespace characters
          str_symlink <- tail(strsplit(str_pre_arrow, " ")[[1]], 1)
