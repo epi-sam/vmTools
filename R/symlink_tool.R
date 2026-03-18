@@ -164,11 +164,6 @@ SLT <- R6::R6Class(
          # Timezone
          , TZ = NULL
 
-         ## Symlink registry
-         # - this is the source of truth for symlink types and their properties
-         , symlink_types = NULL
-         , symlink_regex_extract = NULL
-
 
          # Reports - summary of last log entries across version_nameed folders
          # - Since these are the most visible/useful user summary, these could be set by `initialize()` in the future.
@@ -487,7 +482,7 @@ SLT <- R6::R6Class(
       #  @param symlink_type (chr) e.g. "best"
       #
       #  @return (list) two elements symlinks - symlink path names (unresolved)
-      #    and symlink_count of symlinks matching private$DICT$`symlink_types`
+      #    and symlink_count of symlinks matching get_symlink_types()
       find_count_symlinks = function(root, version_name, symlink_type){
 
          # validate inputs
@@ -496,35 +491,18 @@ SLT <- R6::R6Class(
          assert_scalar(symlink_type)
 
          # Define all eligible symlink regex patterns by type
-         arrow_regex <- " -> " # used in bash to show symlinks
+         # arrow_regex <- " -> " # used in bash to show symlinks
          # We're ONLY monitoring symlinks of a certain pattern - users are free to make others
-         symlink_regex <- switch_strict(
-            symlink_type
-            , best   = paste0("best", arrow_regex, ".*", version_name)
-            , latest = paste0("latest", arrow_regex, ".*", version_name)
-            , keep   = paste0("keep_", version_name, arrow_regex, ".*", version_name)
-            , remove = paste0("remove_", version_name, arrow_regex, ".*", version_name)
-         )
-
-         # validate
-         if(!all(names(symlink_regex) %in% get_symlink_types())){
-            stop("Some of your symlink_regex are not valid options - do you need to run new_symlink_type()?: \n  ",
-                 paste0(names(symlink_regex), collapse = "\n  ")
-            )
-         }
+         ls_regex_fn   <- get_symlink_registry_entry(symlink_type)[["ls_regex_fn"]]
+         symlink_regex <- ls_regex_fn(version_name)
 
          folder_contents <- system(paste("ls -l", root), intern = TRUE)
-         folder_contents <- folder_contents[-1] # remove "total xxx"
-         if(length(folder_contents) == 0) stop("No items found in your root folder - investigate")
+         folder_contents <- folder_contents[-1] # remove "total xxx" header row
+         if(length(folder_contents) == 0) stop("No items found in your root folder - investigate: ", root)
 
-         symlinks <- lapply(symlink_regex, function(regex){
-            grep(regex, folder_contents, value = TRUE)
-         })
-         # count symlinks by version_name
-         symlinks_found_lgl <- lapply(symlink_regex, function(regex){
-            grepl(regex, folder_contents)
-         })
-         symlink_count <- unlist(lapply(symlinks_found_lgl, sum))
+         symlinks           <- grep(symlink_regex, folder_contents, value = TRUE)
+         symlinks_found_lgl <- grepl(symlink_regex, folder_contents)
+         symlink_count      <- sum(as.integer(symlinks_found_lgl))
 
          return(list(
             symlinks      = symlinks,
@@ -632,13 +610,8 @@ SLT <- R6::R6Class(
          root         <- dirname(clean_path(version_path))
          version_name <- basename(clean_path(version_path))
 
-         symlink_suffix <- switch_strict(
-            symlink_type
-            , best   = ""
-            , latest = ""
-            , keep   = paste0("_", version_name)
-            , remove = paste0("_", version_name)
-         )
+         symlink_suffix_fn <- get_symlink_registry_entry(symlink_type)[["symlink_suffix_fn"]]
+         symlink_suffix    <- symlink_suffix_fn(version_name)
 
          # don't normalize - we want a symlink path
          return(clean_path(root, paste0(symlink_type, symlink_suffix), normalize = FALSE))

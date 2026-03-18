@@ -175,6 +175,10 @@ test_that("Mark keep works",
              expect_true(
                 all(file.exists(clean_path(root_list, "keep_1990_01_01")))
              )
+             # catch issues with multiple symlinks
+             expect_false(
+                all(file.exists(clean_path(root_list, "best")))
+             )
           })
 
 test_that("Mark remove works",
@@ -182,6 +186,10 @@ test_that("Mark remove works",
              slt$mark_remove(version_name = dv_list[["1990_01_01"]], user_entry = ue_list[["remove"]])
              expect_true(
                 all(file.exists(clean_path(root_list, "remove_1990_01_01")))
+             )
+             # catch issues with multiple symlinks
+             expect_false(
+                all(file.exists(clean_path(root_list, "keep_1990_01_01")))
              )
           })
 

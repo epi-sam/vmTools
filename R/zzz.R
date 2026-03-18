@@ -39,9 +39,9 @@ arrow_regex <- function() "->"
 make_symlink_suffix_fn <- function(is_singleton) {
     checkmate::assert_flag(is_singleton)
     if (is_singleton) {
-        return(function(version_name) {""})
+        function(version_name) {""}
     } else {
-        return(function(version_name) {sprintf("_%s", version_name)})
+        function(version_name) {sprintf("_%s", version_name)}
     }
 }
 
@@ -68,11 +68,12 @@ make_ls_regex_fn <- function(is_singleton, symlink_type) {
     checkmate::assert_flag(is_singleton)
     checkmate::assert_string(symlink_type)
     if (is_singleton) {
-        return(function(version_name) {sprintf("^%s %s .*%s$", symlink_type, arrow_regex(), version_name)})
+        function(version_name) {sprintf("%s %s .*%s$", symlink_type, arrow_regex(), version_name)}
     } else {
-        return(function(version_name) {sprintf("^%s_%s %s .*%s$", symlink_type, version_name, arrow_regex(), version_name)})
+        function(version_name) {sprintf("%s_%s %s .*%s$", symlink_type, version_name, arrow_regex(), version_name)}
     }
 }
+
 
 #' Make a regex pattern to find the symlink type when running `ls` system calls
 #'
@@ -88,13 +89,13 @@ make_ls_regex_fn <- function(is_singleton, symlink_type) {
 #' @return (chr) the regex pattern to find the symlink type when running `ls`
 #'
 #' @keywords internal
-make_query_regex <- function(is_singleton, symlink_type) {
+make_extract_regex <- function(is_singleton, symlink_type) {
     checkmate::assert_flag(is_singleton)
     checkmate::assert_string(symlink_type)
     if (is_singleton) {
-        return(sprintf("^%s$", symlink_type))
+        sprintf("^%s$", symlink_type)
     } else {
-        return(sprintf("^%s_", symlink_type))
+        sprintf("^%s_", symlink_type)
     }
 }
 
@@ -113,7 +114,7 @@ make_query_regex <- function(is_singleton, symlink_type) {
 #' @returns (list) the full symlink registry as a named list
 #' @keywords internal
 get_symlink_registry <- function() {
-    return(as.list(.symlink_registry))
+    as.list(.symlink_registry)
 }
 
 #' Get one entry from the symlink registry by name
@@ -127,9 +128,13 @@ get_symlink_registry <- function() {
 get_symlink_registry_entry <- function(symlink_type) {
     checkmate::assert_string(symlink_type)
     if (!exists(symlink_type, envir = .symlink_registry, inherits = FALSE)) {
-        stop("Symlink type '", symlink_type, "' is not registered.")
+        stop(
+            "Symlink type '", symlink_type, "' is not registered. "
+            , "\n    - Available types: ", toString(names(get_symlink_registry()))
+            , "\n    - Do you need to run `new_symlink_type()`?"
+        )
     }
-    return(get_symlink_registry()[[symlink_type]])
+    get_symlink_registry()[[symlink_type]]
 }
 
 
@@ -139,7 +144,7 @@ get_symlink_registry_entry <- function(symlink_type) {
 #'   c("best", "keep", "remove", "latest", etc.)
 #' @keywords internal
 get_symlink_types <- function() {
-    return(names(get_symlink_registry()))
+    names(get_symlink_registry())
 }
 
 
@@ -150,7 +155,7 @@ get_symlink_types <- function() {
 #' @keywords internal
 get_symlink_regex_extract <- function() {
     registry <- get_symlink_registry()
-    return(lapply(registry, `[[`, "extract_regex"))
+    lapply(registry, `[[`, "extract_regex")
 }
 
 
@@ -217,18 +222,22 @@ get_valid_actions <- function(){
 
     for(idx in seq_along(symlink_registry_builtins)) {
 
-        entry <- symlink_registry_builtins[[idx]]
-        key   <- names(symlink_registry_builtins)[idx]
+        entry        <- symlink_registry_builtins[[idx]]
+        symlink_name <- names(symlink_registry_builtins)[idx]
 
         entry$symlink_suffix_fn <- make_symlink_suffix_fn(entry$is_singleton)
-        entry$ls_regex_fn       <- make_ls_regex_fn(entry$is_singleton, key)
-        entry$extract_regex     <- make_query_regex(entry$is_singleton, key)
+        entry$ls_regex_fn       <- make_ls_regex_fn(entry$is_singleton, symlink_name)
+        entry$extract_regex     <- make_extract_regex(entry$is_singleton, symlink_name)
 
         symlink_registry_builtins[[idx]] <- entry
     }
 
-    for(key in names(symlink_registry_builtins)){
-        assign(key, symlink_registry_builtins[[key]], envir = .symlink_registry)
+    for(symlink_name in names(symlink_registry_builtins)){
+        assign(
+            symlink_name
+            , symlink_registry_builtins[[symlink_name]]
+            , envir = .symlink_registry
+        )
     }
 
     # Prevent user from overwriting built-in entries
@@ -282,7 +291,7 @@ new_symlink_type <- function(
         is_singleton        = is_singleton
         , symlink_suffix_fn = make_symlink_suffix_fn(is_singleton)
         , ls_regex_fn       = make_ls_regex_fn(is_singleton, symlink_type)
-        , extract_regex     = make_query_regex(is_singleton, symlink_type)
+        , extract_regex     = make_extract_regex(is_singleton, symlink_type)
     )
 
     assign(symlink_type, new_entry, envir = .symlink_registry)
