@@ -28,5 +28,5 @@ test_that("assert_named_list works", {
 # assert_dir_exists ------------------------------------------------------------
 test_that("assert_dir_exists works", {
    expect_no_error(assert_dir_exists("."))
-   expect_error(assert_dir_exists("nonexistent"), regexp = "root does not exist:")
+   expect_error(assert_dir_exists("nonexistent"), regexp = "No such file or directory")
 })

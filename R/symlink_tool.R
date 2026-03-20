@@ -665,19 +665,23 @@ SLT <- R6::R6Class(
          symlink <- unlist(symlink_list$symlinks)
 
          if(length(symlink) > 0){
-            symlink_clean              <- private$extract_symlink(symlink_string = symlink)
+            symlink_clean <- private$extract_symlink(symlink_string = symlink)
             # don't normalize - we want a symlink path
-            symlink_full               <- clean_path(root, symlink_clean, normalize = FALSE)
-            path_real                  <- private$resolve_symlink(path = symlink_full)
-            private$DYNAMIC$LOG$action <- paste0("demote_", symlink_type)
-            private$DYNAMIC$LOG$version_name <- version_name
+            symlink_full  <- clean_path(root, symlink_clean, normalize = FALSE)
+            path_real     <- private$resolve_symlink(path = symlink_full)
+            version_name_to_remove <- basename(path_real)
+            private$DYNAMIC$LOG$action       <- paste0("demote_", symlink_type)
+            private$DYNAMIC$LOG$version_name <- version_name_to_remove
 
             private$msg_sometimes("   removing ", symlink_full)
-            system(paste("unlink", symlink_full))
 
-            private$append_to_log(version_path = path_real, user_entry = user_entry)
-            private$append_to_central_log(version_path = path_real, user_entry = user_entry)
-
+            # Log only if the unlink succeeds (linux-style &&: act, then record the act)
+            if (system(paste("unlink", symlink_full)) == 0L) {
+               private$append_to_log(version_path = path_real, user_entry = user_entry)
+               private$append_to_central_log(version_path = path_real, user_entry = user_entry)
+            } else {
+               private$msg_sometimes("   unlink failed for: ", symlink_full, always_message = TRUE)
+            }
 
          } else {
             private$msg_sometimes("     No symlink found for: ", version_name, " - ", symlink_type, always_message = TRUE)
@@ -2097,7 +2101,6 @@ SLT <- R6::R6Class(
       #
       #  @return (none) Unlinks the 'best' symlink on disk
       demote_previous_best = function(version_path, version_name, user_entry){
-         assert_scalar(version_path)
          assert_dir_exists(version_path)
          path_best_sym <- private$make_symlink_path(version_path, "best")
          private$DYNAMIC$LOG$action <- "demote_best"
@@ -2122,6 +2125,20 @@ SLT <- R6::R6Class(
          }
       },
 
+      demote_previous_singleton = function(version_path, version_name, user_entry, symlink_type) {
+         assert_dir_exists(version_path)
+         root         <- dirname(clean_path(version_path))
+         path_symlink <- private$make_symlink_path(version_path, symlink_type)
+
+         if (dir.exists(path_symlink)) {
+            old_version_name <- basename(private$resolve_symlink(path_symlink))
+            private$remove_one_symlink(root, old_version_name, symlink_type, user_entry)
+            private$DYNAMIC$LOG$version_name <- version_name  # restore to the incoming version
+         } else {
+            private$msg_sometimes("No '", symlink_type, "' symlink found - moving on: ", path_symlink)
+         }
+      },
+
       # Promote a version_name folder to a symlink status.
       #
       # @param symlink_type (chr) Type of symlink to promote to, must be one of
@@ -2140,7 +2157,7 @@ SLT <- R6::R6Class(
          assert_dir_exists(version_path)
 
          symlink_reg  <- get_symlink_registry_entry(symlink_type)
-         path_symlink <- private$make_symlink_path(symlink_type, version_path)
+         path_symlink <- private$make_symlink_path(version_path, symlink_type)
 
          # Singleton types need Highlander demotion of the previous symlink
          if (symlink_reg$is_singleton) {
@@ -2163,7 +2180,7 @@ SLT <- R6::R6Class(
             # only symlink if logging is successful
             file.symlink(version_path, path_symlink)
          } else {
-            private$msg_sometimes("  ", symlink_type, " symlink already exists - moving on: ", path_sym)
+            private$msg_sometimes("  ", symlink_type, " symlink already exists - moving on: ", path_symlink)
          }
       },
 
@@ -2199,7 +2216,7 @@ SLT <- R6::R6Class(
       #  @return (none) Creates a symlink on disk
       promote_keep = function(version_path, user_entry){
          private$DYNAMIC$LOG$action <- "promote_keep"
-         path_keep_sym <- private$make_symlink_path(version_path = version_path, symlink_type = "keep")
+         path_keep_sym <- private$make_symlink_path(version_path, "keep")
          private$msg_sometimes("Promoting to 'keep': ", path_keep_sym)
          if(!dir.exists(path_keep_sym)){
             private$append_to_log(version_path = version_path, user_entry = user_entry)
@@ -2220,7 +2237,7 @@ SLT <- R6::R6Class(
       #  @return (none) Creates a symlink on disk
       promote_remove = function(version_path, user_entry){
          private$DYNAMIC$LOG$action <- "promote_remove"
-         path_remove_sym <- private$make_symlink_path(version_path = version_path, symlink_type = "remove")
+         path_remove_sym <- private$make_symlink_path(version_path, "remove")
          private$msg_sometimes("Promoting to 'remove': ", path_remove_sym)
          if(!dir.exists(path_remove_sym)){
             private$append_to_log(version_path = version_path, user_entry = user_entry)
