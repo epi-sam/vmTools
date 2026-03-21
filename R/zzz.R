@@ -102,21 +102,6 @@ make_extract_regex <- function(is_singleton, symlink_type) {
 
 # ---- Private Accessors -------------------------------------------------------
 
-#' Get the full symlink registry
-#'
-#' Returns the named list of symlink types and their associated properties/functions.
-#' Expected entries are:
-#' - `is_singleton`: (logical) whether this symlink type is a singleton (only one per root)
-#' - `symlink_suffix_fn`: (function) function to create symlink name based on version name (for non-singleton symlink types)
-#' - `ls_regex_fn`: (function) function to find a symlink (by version_name for non-singletons) when running `ls` system calls
-#' - `extract_regex`: (function) function to get the regex pattern to find the symlink type
-#'
-#' @returns (list) the full symlink registry as a named list
-#' @keywords internal
-get_symlink_registry <- function() {
-    as.list(.symlink_registry)
-}
-
 #' Get one entry from the symlink registry by name
 #'
 #' @param symlink_type (chr) name of the symlink type to retrieve, e.g. "best",
@@ -251,6 +236,22 @@ get_valid_actions <- function(){
 
 # ---- Public accessors -------------------------------------------------------
 
+#' Get the full symlink registry
+#'
+#' Returns the named list of symlink types and their associated properties/functions.
+#' Expected entries are:
+#' - `is_singleton`: (logical) whether this symlink type is a singleton (only one per root)
+#' - `symlink_suffix_fn`: (function) function to create symlink name based on version name (for non-singleton symlink types)
+#' - `ls_regex_fn`: (function) function to find a symlink (by version_name for non-singletons) when running `ls` system calls
+#' - `extract_regex`: (function) function to get the regex pattern to find the symlink type
+#'
+#' @returns (list) the full symlink registry as a named list
+#'
+#' @examples
+#' get_symlink_registry()
+get_symlink_registry <- function() {
+   as.list(.symlink_registry)
+}
 
 #' Register a new symlink type
 #'

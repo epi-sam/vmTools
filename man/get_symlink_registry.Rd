@@ -19,4 +19,6 @@ Expected entries are:
 \item \code{extract_regex}: (function) function to get the regex pattern to find the symlink type
 }
 }
-\keyword{internal}
+\examples{
+get_symlink_registry()
+}

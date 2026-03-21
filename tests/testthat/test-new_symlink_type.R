@@ -37,6 +37,17 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
 # Unit: Registry Accessors -----------------------------------------------------
 
+test_that("Symlink registiry is well-formed", {
+   registry <- get_symlink_registry()
+   assert_named_list(registry)
+   expect_true(all(c("best", "latest", "remove", "keep") %in% names(registry)))
+   for (entry in registry) {
+      expect_type(entry$is_singleton, "logical")
+      expect_true(is.function(entry$symlink_suffix_fn))
+      expect_true(is.function(entry$ls_regex_fn))
+   }
+})
+
 test_that("Registration succeeds and types appear in registry", {
    new_symlink_type("in_progress", is_singleton = TRUE)
    new_symlink_type("failed", is_singleton = FALSE)

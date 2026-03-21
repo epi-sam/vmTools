@@ -4,21 +4,33 @@ Introduces a plugin architecture for symlink types: register a new type once wit
 `new_symlink_type()` and it works immediately across all Symlink Tool and 
 Symlink Composer instances via the type-generic `mark()` and `roundup()` methods.
 
-## Breaking
+## Breaking from 1.0.0 to 2.0.0
 
-- `return_as` argument replaces `type` for `roundup_x()` methods on SLT. Changed
-   to reduce nomenclature confusion between the type of symlink (e.g. "best", 
-   "keep", "latest") and the type of return value (table vs character vector).
-- `SLC$roundup_all_symlinks()` removed — use
-  `SLC$roundup_all(symlink_type)` instead.
-- `DICT$symlink_types`, `DICT$symlink_regex_extract`, `DICT$valid_actions`, and
-  `DICT$symlink_registry` removed. The symlink type registry (the package's
-  central record of all known types and their behaviour) is now managed at the
-  package level — extend it with `new_symlink_type()`.
+Symlink Tool constructor args were clarified
+
+- `SLT$new()` 
+  - `user_root_list` is now `root_list`
+  - `user_central_log_root` is now `central_log_root`
+
+Symlink Registry related changes
+
+- `SLT$return_dictionaries()` no longer `returns DICT$symlink_types`, 
+  `DICT$symlink_regex_extract`, or `DICT$symlink_registry`. The symlink type 
+  registry (the package's central record of all known types and their behaviour) 
+  is now managed at the package level 
+  - extend it with `new_symlink_type()`.
+  - read it with `get_symlink_registry()`
 
 ## New Features
 
 **Extensible symlink type registry**
+
+```r
+new_symlink_type("production", is_singleton = TRUE)
+# One per root — promoting a new version demotes the previous one
+new_symlink_type("flagged", is_singleton = FALSE)
+# Many per root — flag several versions for QA review at once.
+```
 
 - Type definitions now live in a package-level environment shared across all
   SLT/SLC instances in your R session. Adding a type with
@@ -26,21 +38,13 @@ Symlink Composer instances via the type-generic `mark()` and `roundup()` methods
   re-creation needed.
 - `new_symlink_type(symlink_type, is_singleton)` — the `is_singleton` flag
   controls the type's behaviour:
-  - `TRUE` — one folder per root ("Highlander rule"). Promoting a new folder
-    automatically demotes the previous holder. For superlatives like `"best"`
-    or `"latest"`.
-  - `FALSE` — many folders per root. For accumulating marks like `"keep"` or
-    `"remove"`.
-  - All derived patterns are generated automatically. Built-in types are locked
-    ('best', 'latest', 'keep', 'remove').
-
-  ```r
-  new_symlink_type("production", is_singleton = TRUE)
-  # One per root — promoting a new version demotes the previous one.
-
-  new_symlink_type("flagged", is_singleton = FALSE)
-  # Many per root — flag several versions for QA review at once.
-  ```
+   - `TRUE` — one folder per root ("Highlander rule"). Promoting a new folder
+     automatically demotes the previous holder. For superlatives like `"best"`
+     or `"latest"`.
+   - `FALSE` — many folders per root. For accumulating marks like `"keep"` or
+     `"remove"`.
+   - All derived patterns are generated automatically. Built-in types are locked
+     ('best', 'latest', 'keep', 'remove').
 
 **Type-generic `mark()` and `roundup()` on SLT**
 
@@ -84,7 +88,7 @@ especially with custom types from `new_symlink_type()`.
 
 ## Features:
 
-'roundup_x' functions
+`roundup_x()` functions
 
 - New argument - `return_as = 'version_name'` returns a character vector of version names 
   instead of a full table of paths for easier automation. Full table remains the
@@ -123,8 +127,6 @@ Symlink Tool constructor args have changed
   - user_central_log_root is now central_log_root
 
 # vmTools 1.1.0
-
-## Breaking:
 
 `roundup_x()` family 
 
