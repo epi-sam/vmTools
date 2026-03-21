@@ -59,10 +59,10 @@ slc$list_tools()
 slc$get_common_symlink_types()
 
 # Should run cleanly with empty directories
-slc$roundup_all_symlinks("best")
-slc$roundup_all_symlinks("latest")
-slc$roundup_all_symlinks("remove")
-slc$roundup_all_symlinks("keep")
+slc$roundup_all("best")
+slc$roundup_all("latest")
+slc$roundup_all("remove")
+slc$roundup_all("keep")
 slc$roundup_all_by_date(Sys.Date(), "lt")
 
 # Access individual tools - these are full SLTs with central logs
@@ -85,10 +85,16 @@ project_a_tool$mark_remove(version_name = "2024_03_01.1", user_entry = list(comm
 project_a_tool$mark_latest(version_name = "2024_03_01.2", user_entry = list(comment = "testing best"))
 
 # Test roundup methods across all tools
-slc$roundup_all_symlinks('latest')
-slc$roundup_all_symlinks('best')
-slc$roundup_all_symlinks('remove')
-slc$roundup_all_symlinks('keep')
+slc$roundup_all('latest')
+slc$roundup_all('best')
+slc$roundup_all('remove')
+slc$roundup_all('keep')
+
+# with version names instead of tables
+slc$roundup_all('latest', type = "version_name")
+slc$roundup_all('best', type = "version_name")
+slc$roundup_all('remove', type = "version_name")
+slc$roundup_all('keep', type = "version_name")
 
 # Test date-based roundup
 slc$roundup_all_by_date("2024-03-01", "gte")
@@ -99,7 +105,7 @@ project_a_tool$unmark("2024_03_01.2", list(comment = "testing unmarked roundup")
 slc$roundup_all_unmarked()
 
 # Test that tool names appear correctly in results
-best_dt <- slc$roundup_all_symlinks('best')
+best_dt <- slc$roundup_all('best')
 if(nrow(best_dt) > 0) {
    print("Tool names in best roundup:")
    print(unique(best_dt$tool_name))

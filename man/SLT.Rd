@@ -170,10 +170,12 @@ to see.}
 \if{html}{\out{<a id="method-Symlink_Tool-mark"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-mark}{}}}
 \subsection{Method \code{mark()}}{
-Mark a version_name folder with a symlink of the specified type.
+Mark a version_name folder with a symlink of the specified
+type.
 
-Generic dispatch method for all symlink marking. Legacy per-type methods
-(\code{mark_best}, \code{mark_latest}, etc.) are deprecated thin wrappers around this.
+Generic dispatch method for all symlink marking. Legacy per-type
+methods (\code{mark_best}, \code{mark_latest}, etc.) are superceded thin
+wrappers around this.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$mark(symlink_type, version_name, user_entry)}\if{html}{\out{</div>}}
 }
@@ -181,8 +183,8 @@ Generic dispatch method for all symlink marking. Legacy per-type methods
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{symlink_type}}{(chr) A registered symlink type, e.g. \code{"best"}, \code{"keep"},
-or any type added via \code{new_symlink_type()}.}
+\item{\code{symlink_type}}{(chr) A registered symlink type, e.g. \code{"best"},
+\code{"keep"}, or any type added via \code{new_symlink_type()}.}
 
 \item{\code{version_name}}{(chr) The version_name folder to mark.}
 
@@ -199,7 +201,6 @@ or any type added via \code{new_symlink_type()}.}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-mark_best}{}}}
 \subsection{Method \code{mark_best()}}{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#superseded}{\figure{lifecycle-superseded.svg}{options: alt='[Superseded]'}}}{\strong{[Superseded]}}
-(Deprecated) Mark an output folder with a "best" symlink.
 
 Please use \code{mark("best", version_name, user_entry)} instead.
 
@@ -245,6 +246,7 @@ for them.}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-mark_latest}{}}}
 \subsection{Method \code{mark_latest()}}{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#superseded}{\figure{lifecycle-superseded.svg}{options: alt='[Superseded]'}}}{\strong{[Superseded]}}
+
 Mark an output folder with a "latest" symlink.
 
 Please use \code{mark("latest", version_name, user_entry)} instead.
@@ -287,6 +289,7 @@ for them.}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-mark_keep}{}}}
 \subsection{Method \code{mark_keep()}}{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#superseded}{\figure{lifecycle-superseded.svg}{options: alt='[Superseded]'}}}{\strong{[Superseded]}}
+
 Mark an output folder with a "keep_<version_name>" symlink
 
 Please use \code{mark("keep", version_name, user_entry)} instead.
@@ -325,6 +328,7 @@ for them.}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-mark_remove}{}}}
 \subsection{Method \code{mark_remove()}}{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#superseded}{\figure{lifecycle-superseded.svg}{options: alt='[Superseded]'}}}{\strong{[Superseded]}}
+
 Mark an output folder with a "remove_<version_name>" symlink
 
 Please use \code{mark("remove", version_name, user_entry)} instead.
@@ -406,7 +410,7 @@ for them.}
 Find all symlinks of a given type across all roots.
 
 Generic dispatch method for all roundup operations. Legacy per-type
-methods (\code{roundup_best}, \code{roundup_keep}, etc.) are deprecated thin
+methods (\code{roundup_best}, \code{roundup_keep}, etc.) are superceded thin
 wrappers.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$roundup(symlink_type, type = c("table", "version_name"))}\if{html}{\out{</div>}}
@@ -425,6 +429,12 @@ wrappers.
 (data.table/chr) A single data.table with results from all
 roots, with \code{root_name} as the first column, or a vector of
 \code{version_name}s if \code{type = version_name}.
+
+Table output schema
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{root_name version_name dir_name dir_name_resolved
+   <char>       <char>   <char>            <char>
+}\if{html}{\out{</div>}}
 }
 }
 \if{html}{\out{<hr>}}
@@ -432,7 +442,8 @@ roots, with \code{root_name} as the first column, or a vector of
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-roundup_best}{}}}
 \subsection{Method \code{roundup_best()}}{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#superseded}{\figure{lifecycle-superseded.svg}{options: alt='[Superseded]'}}}{\strong{[Superseded]}}
-Find all \code{best_} symlinks in all \code{roots}
+
+Find all \code{best} symlinks in all \code{roots}
 
 Please use \code{roundup("best", type)} instead.
 \subsection{Usage}{
@@ -465,6 +476,7 @@ Table output schema
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-roundup_latest}{}}}
 \subsection{Method \code{roundup_latest()}}{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#superseded}{\figure{lifecycle-superseded.svg}{options: alt='[Superseded]'}}}{\strong{[Superseded]}}
+
 Find all \code{latest} symlinks in all \code{roots}
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_latest(type = c("table", "version_name"))}\if{html}{\out{</div>}}
@@ -526,6 +538,7 @@ Table output schema
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-roundup_remove}{}}}
 \subsection{Method \code{roundup_remove()}}{
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#superseded}{\figure{lifecycle-superseded.svg}{options: alt='[Superseded]'}}}{\strong{[Superseded]}}
+
 Find all \code{remove_} symlinks in all \code{roots}
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_remove(type = c("table", "version_name"))}\if{html}{\out{</div>}}

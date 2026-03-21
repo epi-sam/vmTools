@@ -13,7 +13,7 @@ aggregated query operations across multiple projects.
 \item \href{#method-Symlink_Composer-new}{\code{SLC$new()}}
 \item \href{#method-Symlink_Composer-get_tool}{\code{SLC$get_tool()}}
 \item \href{#method-Symlink_Composer-list_tools}{\code{SLC$list_tools()}}
-\item \href{#method-Symlink_Composer-roundup_all_symlinks}{\code{SLC$roundup_all_symlinks()}}
+\item \href{#method-Symlink_Composer-roundup_all}{\code{SLC$roundup_all()}}
 \item \href{#method-Symlink_Composer-get_common_symlink_types}{\code{SLC$get_common_symlink_types()}}
 \item \href{#method-Symlink_Composer-roundup_all_unmarked}{\code{SLC$roundup_all_unmarked()}}
 \item \href{#method-Symlink_Composer-roundup_all_by_date}{\code{SLC$roundup_all_by_date()}}
@@ -81,16 +81,16 @@ List all tool names
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Symlink_Composer-roundup_all_symlinks"></a>}}
-\if{latex}{\out{\hypertarget{method-Symlink_Composer-roundup_all_symlinks}{}}}
-\subsection{Method \code{roundup_all_symlinks()}}{
+\if{html}{\out{<a id="method-Symlink_Composer-roundup_all"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Composer-roundup_all}{}}}
+\subsection{Method \code{roundup_all()}}{
 Roundup symlinks of a given type across all tools
 
 Valid types are determined by the intersection of \code{symlink_types} from
 all SLT instances held by this composer. Use \verb{$get_common_symlink_types()}
 to inspect the valid set.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLC$roundup_all_symlinks(symlink_type)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLC$roundup_all(symlink_type, type = c("table", "version_name"))}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -98,11 +98,13 @@ to inspect the valid set.
 \describe{
 \item{\code{symlink_type}}{(chr) One of the common symlink types across all tools,
 e.g. "best", "keep", "remove", "latest"}
+
+\item{\code{type}}{(chr) \code{"table"} (default) or \code{"version_name"}}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-(data.table) Combined results with 'tool_name' column
+(data.table/chr)
 }
 }
 \if{html}{\out{<hr>}}
@@ -126,9 +128,16 @@ These are the valid values for the \code{symlink_type} argument of \code{roundup
 \subsection{Method \code{roundup_all_unmarked()}}{
 Roundup all unmarked folders across all tools
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLC$roundup_all_unmarked()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLC$roundup_all_unmarked(type = c("table", "version_name"))}\if{html}{\out{</div>}}
 }
 
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{type}}{(chr default: \code{"table"}) or \code{"version_name"}}
+}
+\if{html}{\out{</div>}}
+}
 \subsection{Returns}{
 (data.table) Combined results with 'tool_name' column
 }
@@ -139,7 +148,11 @@ Roundup all unmarked folders across all tools
 \subsection{Method \code{roundup_all_by_date()}}{
 Roundup folders by date across all tools
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLC$roundup_all_by_date(user_date, date_selector)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLC$roundup_all_by_date(
+  user_date,
+  date_selector,
+  type = c("table", "version_name")
+)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -148,6 +161,8 @@ Roundup folders by date across all tools
 \item{\code{user_date}}{(chr/Date/POSIXct) Date to query}
 
 \item{\code{date_selector}}{(chr) One of: 'gt', 'gte', 'lt', 'lte', 'e'}
+
+\item{\code{type}}{(chr default: \code{"table"}) or \code{"version_name"}}
 }
 \if{html}{\out{</div>}}
 }
