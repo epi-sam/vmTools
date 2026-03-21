@@ -13,9 +13,9 @@ title: "Symlink Tool Intro Vignette"
 output: rmarkdown::html_vignette
 Encoding: UTF-8
 vignette: >
-  %\VignetteIndexEntry{Symlink Tool Intro Vignette}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+ %\VignetteIndexEntry{Symlink Tool Intro Vignette}
+ %\VignetteEngine{knitr::rmarkdown}
+ %\VignetteEncoding{UTF-8}
 
 # knitr:
 #   opts_chunk:
@@ -31,10 +31,10 @@ knitr::opts_chunk$set(
 
 # for debugging
 # knitr::opts_chunk$set(
-#   echo = TRUE,
+#   echo    = TRUE,
 #   message = TRUE,
 #   warning = TRUE,
-#   error = TRUE
+#   error   = TRUE
 # )
 
 # Chunk options
