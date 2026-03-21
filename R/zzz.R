@@ -246,6 +246,7 @@ get_valid_actions <- function(){
 #' - `extract_regex`: (function) function to get the regex pattern to find the symlink type
 #'
 #' @returns (list) the full symlink registry as a named list
+#' @export
 #'
 #' @examples
 #' get_symlink_registry()

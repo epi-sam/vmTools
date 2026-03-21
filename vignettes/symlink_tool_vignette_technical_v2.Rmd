@@ -2,20 +2,20 @@
 title: "Symlink Tool — Technical Reference"
 
 # Interactive rendering — uncomment this block and comment out the vignette output below
-output:
-  html_document:
-    highlight: zenburn
-    theme: readable
-    toc: true
-    toc_float: true
+# output:
+#   html_document:
+#     highlight: zenburn
+#     theme: readable
+#     toc: true
+#     toc_float: true
 
 # For package builds
-#output: rmarkdown::html_vignette
-#Encoding: UTF-8
-#vignette: >
-#  %\VignetteIndexEntry{Symlink Tool Technical Reference}
-#  %\VignetteEngine{knitr::rmarkdown}
-#  %\VignetteEncoding{UTF-8}
+output: rmarkdown::html_vignette
+Encoding: UTF-8
+vignette: >
+ %\VignetteIndexEntry{Symlink Tool Technical Reference}
+ %\VignetteEngine{knitr::rmarkdown}
+ %\VignetteEncoding{UTF-8}
 ---
 
 ```{r setup, include = FALSE}
