@@ -91,10 +91,9 @@ SLC <- R6::R6Class(
     , roundup_all = function(symlink_type, type = c("table", "version_name")) {
        type <- match.arg(type)
        checkmate::assert_choice(symlink_type, names(get_symlink_registry()))
-       method_name <- sprintf("roundup_%s", symlink_type)
 
        results <- lapply(names(private$TOOLS), function(tool_name) {
-          dt <- private$TOOLS[[tool_name]][[method_name]](type = "table")
+          dt <- private$TOOLS[[tool_name]]$roundup(symlink_type = symlink_type, type = "table")
           if (nrow(dt) > 0) dt[, tool_name := tool_name]
           return(dt)
        })
