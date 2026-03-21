@@ -1,69 +1,3 @@
-#' Function factory for SLT marking methods.
-#'
-#' Allows the user to mark a version_name with a symlink of a certain type, e.g.
-#' 'best', 'keep', 'remove', 'latest'
-#'
-#' @param symlink_type (chr) one of the symlink types in the SLT symlink
-#'   registry.
-#'
-#' @returns (function) a function that marks a version_name with the specified
-#'   symlink type when called e.g. `mark_best <- .mark_method_factory("best")`
-#' @keywords internal
-.mark_method_factory <- function(symlink_type){
-
-   force(symlink_type) # capture the value, not the promise
-
-   # make the marking
-   function(version_name, user_entry){
-
-      # For all version_name folders, do the following:
-      # 1. check if there is already a symlink
-      # 2. if there is, demote it using `system(paste0("unlink ", symlink))`
-      # 3. make a new symlink (promote) using `system(paste0("ln -s ", version_name, " ", symlink))`
-      # 4. append to the version_name log
-      # 5. append to the central log
-
-      private$handler_pre_mark(
-         version_name = version_name,
-         user_entry   = user_entry
-      )
-
-      private$msg_sometimes("Marking ", symlink_type, ": ", version_name)
-
-      # Manage symlinks and append logs
-      for(version_path in private$DYNAMIC$VERS_PATHS){
-
-         if(validate_dir_exists(version_path) == FALSE) next()
-         if(private$already_marked(version_path, symlink_type)) {
-            private$msg_sometimes(version_path, " - already marked ", symlink_type, " - moving on.")
-            next()
-         }
-
-         private$demote_existing_symlinks(
-            version_path   = version_path
-            , version_name = version_name
-            , user_entry   = user_entry
-         )
-
-         private$promote_symlink_type(
-            symlink_type   = symlink_type
-            , version_name = version_name
-            , version_path = version_path
-            , user_entry   = user_entry
-         )
-      }
-
-      private$handler_post_mark(
-         version_name = version_name
-         , user_entry = user_entry
-      )
-   }
-}
-
-
-
-
-
 # WARNING: DO NOT touch '.__enclos_env__' unless you want the tool to break
 # ROXYGEN
 #   - Roxygen docstrings cannot be added to private methods
@@ -1432,61 +1366,18 @@ SLT <- R6::R6Class(
          )
       },
 
-      # Query all folders with a "best_" symlink in a single `root`
-      #
-      # @param root (chr) path to a root folder defined at instantiation (`STL$new()`)
-      #
-      # @return (data.table) a data.table with the folder path, symlink name, and resolved path
-      query_all_best_symlinks = function(root){
-         # find all folders and their types
-         folder_dt <- private$query_root_folder_types(root)
-         # find all resolved paths attached to a "best_" symlink, and their symlink names
-         # allow the user to decide how to deal with removal
-         best_dirs_dt <- unique(folder_dt[is_symlink == TRUE & grepl("^best$", dir_leaf), .(version_name, dir_name, dir_name_resolved)])
-         return(best_dirs_dt)
+
+      query_all_symlink_type = function(root, symlink_type) {
+         checkmate::assert_choice(symlink_type, names(get_symlink_registry()))
+         symlink_reg <- get_symlink_registry_entry(symlink_type)
+         folder_dt   <- private$query_root_folder_types(root)
+         result_dt   <- unique(folder_dt[
+            is_symlink == TRUE & grepl(symlink_reg$extract_regex, dir_leaf),
+            .(version_name, dir_name, dir_name_resolved)
+         ])
+         return(result_dt)
       },
 
-      # Query all folders with a "latest" symlink in a single `root`
-      #
-      # @param root (chr) path to a root folder defined at instantiation (`STL$new()`)
-      #
-      # @return (data.table) a data.table with the folder path, symlink name, and resolved path
-      query_all_latest_symlinks = function(root){
-         # find all folders and their types
-         folder_dt <- private$query_root_folder_types(root)
-         # find all resolved paths attached to a "latest" symlink, and their symlink names
-         # allow the user to decide how to deal with removal
-         latest_dirs_dt <- unique(folder_dt[is_symlink == TRUE & grepl("^latest$", dir_leaf), .(version_name, dir_name, dir_name_resolved)])
-         return(latest_dirs_dt)
-      },
-
-      #  Query all folders with a "keep_" symlink in a single `root`
-      #
-      #  @param root (chr) path to a root folder defined at instantiation (`STL$new()`)
-      #
-      #  @return (data.table) a data.table with the folder path, symlink name, and resolved path
-      query_all_keep_symlinks = function(root){
-         # find all folders and their types
-         folder_dt <- private$query_root_folder_types(root)
-         # find all resolved paths attached to a "keep_" symlink, and their symlink names
-         # allow the user to decide how to deal with removal
-         keep_dirs_dt <- unique(folder_dt[is_symlink == TRUE & grepl("^keep_", dir_leaf), .(version_name, dir_name, dir_name_resolved)])
-         return(keep_dirs_dt)
-      },
-
-      #  Query all folders with a "remove_" symlink in a single `root`
-      #
-      #  @param root (chr) path to a root folder defined at instantiation (`STL$new()`)
-      #
-      #  @return (data.table) a data.table with the folder path, symlink name, and resolved path
-      query_all_remove_symlinks = function(root){
-         # find all folders and their types
-         folder_dt <- private$query_root_folder_types(root)
-         # find all resolved paths attached to a "remove_" symlink, and their symlink names
-         # allow the user to decide how to deal with removal
-         remove_dirs_dt <- unique(folder_dt[is_symlink == TRUE & grepl("^remove_", dir_leaf), .(version_name, dir_name, dir_name_resolved)])
-         return(remove_dirs_dt)
-      },
 
       query_all_unmarked = function(root){
          # find all folders and their types
@@ -2126,7 +2017,7 @@ SLT <- R6::R6Class(
       },
 
       demote_previous_singleton = function(version_path, version_name, user_entry, symlink_type) {
-         assert_dir_exists(version_path)
+         assert_scalar(version_path)
          root         <- dirname(clean_path(version_path))
          path_symlink <- private$make_symlink_path(version_path, symlink_type)
 
@@ -2162,10 +2053,10 @@ SLT <- R6::R6Class(
          # Singleton types need Highlander demotion of the previous symlink
          if (symlink_reg$is_singleton) {
             private$demote_previous_singleton(
-               symlink_type
-               , version_name
-               , version_path
-               , user_entry
+               version_path   = version_path
+               , version_name = version_name
+               , user_entry   = user_entry
+               , symlink_type = symlink_type
             )
          }
 
@@ -2173,6 +2064,7 @@ SLT <- R6::R6Class(
          private$msg_sometimes("Promoting to '", symlink_type, "': ", path_symlink)
          private$DYNAMIC$LOG$action <- sprintf("promote_%s", symlink_type)
 
+         # FIXME SB - 2026 Mar 20 - change to the safer "log if symlinking was successful" pattern
          if(!dir.exists(path_symlink)){
             private$append_to_log(version_path = version_path, user_entry = user_entry)
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
@@ -2576,8 +2468,58 @@ SLT <- R6::R6Class(
 
       ## Marks and Symlinks ----------------------------------------------------
 
+      #' @description Mark a version_name folder with a symlink of the specified type.
+      #'
+      #' Generic dispatch method for all symlink marking. Legacy per-type methods
+      #' (`mark_best`, `mark_latest`, etc.) are deprecated thin wrappers around this.
+      #'
+      #' @param symlink_type (chr) A registered symlink type, e.g. `"best"`, `"keep"`,
+      #'   or any type added via `new_symlink_type()`.
+      #' @param version_name (chr) The version_name folder to mark.
+      #' @param user_entry (list) Named list of user log fields.
+      #' @return (std_err) Messages about actions taken.
+      mark = function(symlink_type, version_name, user_entry) {
+         checkmate::assert_choice(symlink_type, names(get_symlink_registry()))
+
+         private$handler_pre_mark(
+            version_name = version_name,
+            user_entry   = user_entry
+         )
+
+         private$msg_sometimes("Marking ", symlink_type, ": ", version_name)
+
+         for (version_path in private$DYNAMIC$VERS_PATHS) {
+            if (validate_dir_exists(version_path) == FALSE) next()
+            if (private$already_marked(version_path, symlink_type)) {
+               private$msg_sometimes(version_path, " - already marked ", symlink_type, " - moving on.")
+               next()
+            }
+
+            private$demote_existing_symlinks(
+               version_path = version_path,
+               version_name = version_name,
+               user_entry   = user_entry
+            )
+
+            private$promote_symlink_type(
+               symlink_type = symlink_type,
+               version_name = version_name,
+               version_path = version_path,
+               user_entry   = user_entry
+            )
+         }
+
+         private$handler_post_mark(
+            version_name = version_name,
+            user_entry   = user_entry
+         )
+      },
+
       #' @description
-      #' Mark an output folder with a "best" symlink.
+      #' `r lifecycle::badge('superseded')`
+      #' (Deprecated) Mark an output folder with a "best" symlink.
+      #'
+      #' Please use `mark("best", version_name, user_entry)` instead.
       #'
       #' Enforces:
       #' - maximum of one best model
@@ -2601,51 +2543,16 @@ SLT <- R6::R6Class(
       #'
       #'
       #'
-      mark_best = function(version_name, user_entry){
-
-         # For all version_name folders, do the following:
-         # 1. check if there is already a best model symlink
-         # 2. if there is, demote it using `system(paste0("unlink ", symlink))` & append to the log
-         # 3. make a new best model symlink
-         # 4. append to the version_name log
-         # 5. append to the central log
-
-         private$handler_pre_mark(
-            version_name = version_name,
-            user_entry   = user_entry
-         )
-
-         private$msg_sometimes("Marking best: ", version_name)
-         # Manage symlinks and append logs
-         for(version_path in private$DYNAMIC$VERS_PATHS){
-
-            if(validate_dir_exists(version_path) == FALSE) next()
-            if(private$already_marked(version_path, "best")) {
-               private$msg_sometimes(version_path, " - already marked best - moving on.")
-               next()
-            }
-
-            private$demote_existing_symlinks(
-               version_path = version_path,
-               version_name = version_name,
-               user_entry   = user_entry
-            )
-
-            private$promote_best(
-               version_path    = version_path,
-               version_name    = version_name,
-               user_entry      = user_entry
-            )
-
-         }
-
-         private$handler_post_mark(version_name = version_name,
-                                   user_entry = user_entry)
+      mark_best = function(version_name, user_entry) {
+         self$mark("best", version_name, user_entry)
       },
 
 
       #' @description
-      #' Mark an output folder with a "latest" symlink
+      #' `r lifecycle::badge('superseded')`
+      #' Mark an output folder with a "latest" symlink.
+      #'
+      #' Please use `mark("latest", version_name, user_entry)` instead.
       #'
       #' Creates a 'latest' symlink (singleton) in each root. Auto-demotes
       #' current 'latest' if different. A folder cannot be both 'latest' and
@@ -2669,51 +2576,16 @@ SLT <- R6::R6Class(
       #'
       #'
       #'
-      mark_latest = function(version_name, user_entry){
-
-         # For all version_name folders, do the following:
-         # 1. check if there is already a latest symlink
-         # 2. if there is, demote it & append to the log
-         # 3. make a new latest symlink
-         # 4. append to the version_name log
-         # 5. append to the central log
-
-         private$handler_pre_mark(
-            version_name = version_name,
-            user_entry   = user_entry
-         )
-
-         private$msg_sometimes("Marking latest: ", version_name)
-         # Manage symlinks and append logs
-         for(version_path in private$DYNAMIC$VERS_PATHS){
-
-            if(validate_dir_exists(version_path) == FALSE) next()
-            if(private$already_marked(version_path, "latest")) {
-               private$msg_sometimes(version_path, " - already marked latest - moving on.")
-               next()
-            }
-
-            private$demote_existing_symlinks(
-               version_path = version_path,
-               version_name = version_name,
-               user_entry   = user_entry
-            )
-
-            private$promote_latest(
-               version_path    = version_path,
-               version_name    = version_name,
-               user_entry      = user_entry
-            )
-
-         }
-
-         private$handler_post_mark(version_name = version_name,
-                                   user_entry = user_entry)
+      mark_latest = function(version_name, user_entry) {
+         self$mark("latest", version_name, user_entry)
       },
 
 
       #' @description
+      #' `r lifecycle::badge('superseded')`
       #' Mark an output folder with a "keep_<version_name>" symlink
+      #'
+      #' Please use `mark("keep", version_name, user_entry)` instead.
       #'
       #' Writes:
       #' - appends to a log file in the output folder with a date and time stamp
@@ -2733,44 +2605,16 @@ SLT <- R6::R6Class(
       #'
       #'
       #'
-      mark_keep = function(version_name, user_entry){
-
-         # 1. make a new keep model symlink
-         # 2. append to the log
-         # 3. append to the central log
-
-         private$handler_pre_mark(
-            version_name = version_name,
-            user_entry   = user_entry
-         )
-
-         for(version_path in private$DYNAMIC$VERS_PATHS){
-
-            if(validate_dir_exists(version_path) == FALSE) next()
-            if(private$already_marked(version_path, "keep")) {
-               message(version_path, " - already marked keep - moving on.")
-               next()
-            }
-
-            private$demote_existing_symlinks(
-               version_path = version_path,
-               version_name = version_name,
-               user_entry   = user_entry
-            )
-
-            private$promote_keep(
-               version_path    = version_path,
-               user_entry      = user_entry
-            )
-         }
-
-         private$handler_post_mark(version_name = version_name,
-                                   user_entry = user_entry)
+      mark_keep = function(version_name, user_entry) {
+         self$mark("keep", version_name, user_entry)
       },
 
 
       #' @description
+      #' `r lifecycle::badge('superseded')`
       #' Mark an output folder with a "remove_<version_name>" symlink
+      #'
+      #' Please use `mark("remove", version_name, user_entry)` instead.
       #'
       #' Indication that the results can be deleted
       #' - In the future, this will be used to remove old versions of the
@@ -2794,40 +2638,8 @@ SLT <- R6::R6Class(
       #'
       #'
       #'
-      mark_remove = function(version_name, user_entry){
-
-         # 1. make a new remove model symlink
-         # 2. append to the log
-         # 3. append to the central log
-
-         private$handler_pre_mark(
-            version_name = version_name,
-            user_entry   = user_entry
-         )
-
-         for(version_path in private$DYNAMIC$VERS_PATHS){
-
-            if(validate_dir_exists(version_path) == FALSE) next()
-            if(private$already_marked(version_path, "remove")) {
-               message(version_path, " - already marked remove - moving on.")
-               next()
-            }
-
-            private$demote_existing_symlinks(
-               version_path = version_path,
-               version_name = version_name,
-               user_entry   = user_entry
-            )
-
-            private$promote_remove(
-               version_path    = version_path,
-               user_entry      = user_entry
-            )
-         }
-
-         private$handler_post_mark(version_name = version_name,
-                                   user_entry = user_entry)
-
+      mark_remove = function(version_name, user_entry) {
+         self$mark("remove", version_name, user_entry)
       },
 
 
@@ -2870,7 +2682,34 @@ SLT <- R6::R6Class(
 
       ## Path Roundups ---------------------------------------------------------
 
-      #' @description Find all `best_` symlinks in all `roots`
+      #' @description Find all symlinks of a given type across all roots.
+      #'
+      #'   Generic dispatch method for all roundup operations. Legacy per-type
+      #'   methods (`roundup_best`, `roundup_keep`, etc.) are deprecated thin
+      #'   wrappers.
+      #'
+      #' @param symlink_type (chr) A registered symlink type.
+      #' @param type (chr: default `"table"`) or `"version_name"`.
+      #'
+      #' @return (data.table/chr) A single data.table with results from all
+      #'   roots, with `root_name` as the first column, or a vector of
+      #'   `version_name`s if `type = version_name`.
+      roundup = function(symlink_type, type = c("table", "version_name")) {
+         type <- match.arg(type)
+         checkmate::assert_choice(symlink_type, names(get_symlink_registry()))
+         if (type == "table") {
+            ret <- private$combine_roundup_results(query_function = private$query_all_symlink_type, symlink_type)
+         } else if (type == "version_name") {
+            ret <- unique(private$combine_roundup_results(query_function = private$query_all_symlink_type, symlink_type)$version_name)
+         }
+         return(ret)
+      },
+
+      #' @description
+      #' `r lifecycle::badge('superseded')`
+      #' Find all `best_` symlinks in all `roots`
+      #'
+      #' Please use `roundup("best", type)` instead.
       #'
       #' @param type (chr) Default `table`.  Whether to return a data.table with
       #'   symlink and resolved paths (`table`) or just a vector of
@@ -2887,17 +2726,12 @@ SLT <- R6::R6Class(
       #'    <char>       <char>   <char>            <char>
       #' ```
       #'
-      roundup_best = function(type = c("table", "version_name")){
-         type <- match.arg(type)
-         if(type == "table"){
-            ret <- private$combine_roundup_results(private$query_all_best_symlinks)
-         } else if (type == "version_name"){
-            ret <- unique(private$combine_roundup_results(private$query_all_best_symlinks)$version_name)
-         }
-         return(ret)
+      roundup_best = function(type = c("table", "version_name")) {
+         self$roundup("best", type)
       },
 
       #' @description
+      #' `r lifecycle::badge('superseded')`
       #' Find all `latest` symlinks in all `roots`
       #'
       #' @param type (chr) Default `table`.  Whether to return a data.table with
@@ -2915,14 +2749,8 @@ SLT <- R6::R6Class(
       #'    <char>       <char>   <char>            <char>
       #' ```
       #'
-      roundup_latest = function(type = c("table", "version_name")){
-         type <- match.arg(type)
-         if(type == "table"){
-            ret <- private$combine_roundup_results(private$query_all_latest_symlinks)
-         } else if (type == "version_name"){
-            ret <- unique(private$combine_roundup_results(private$query_all_latest_symlinks)$version_name)
-         }
-         return(ret)
+      roundup_latest = function(type = c("table", "version_name")) {
+         self$roundup("latest", type)
       },
 
       #' @description
@@ -2944,16 +2772,11 @@ SLT <- R6::R6Class(
       #' ```
       #'
       roundup_keep = function(type = c("table", "version_name")){
-         type <- match.arg(type)
-         if(type == "table"){
-            ret <- private$combine_roundup_results(private$query_all_keep_symlinks)
-         } else if (type == "version_name"){
-            ret <- unique(private$combine_roundup_results(private$query_all_keep_symlinks)$version_name)
-         }
-         return(ret)
+         self$roundup("keep", type)
       },
 
       #' @description
+      #' `r lifecycle::badge('superseded')`
       #' Find all `remove_` symlinks in all `roots`
       #'
       #' @param type (chr) Default `table`.  Whether to return a data.table with
@@ -2972,13 +2795,7 @@ SLT <- R6::R6Class(
       #' ```
       #'
       roundup_remove = function(type = c("table", "version_name")){
-         type <- match.arg(type)
-         if(type == "table"){
-            ret <- private$combine_roundup_results(private$query_all_remove_symlinks)
-         } else if (type == "version_name"){
-            ret <- unique(private$combine_roundup_results(private$query_all_remove_symlinks)$version_name)
-         }
-         return(ret)
+         self$roundup("remove", type)
       },
 
       #' @description
