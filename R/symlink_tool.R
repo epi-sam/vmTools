@@ -2544,11 +2544,11 @@ SLT <- R6::R6Class(
       #' wrappers.
       #'
       #' @param symlink_type (chr) A registered symlink type.
-      #' @param type (chr: default `"table"`) or `"version_name"`.
+      #' @param return_as (chr: default `"table"`) or `"version_name"`.
       #'
       #' @return (data.table/chr) A single data.table with results from all
       #'   roots, with `root_name` as the first column, or a vector of
-      #'   `version_name`s if `type = version_name`.
+      #'   `version_name`s if `return_as = version_name`.
       #'
       #' Table output schema
       #'
@@ -2556,12 +2556,12 @@ SLT <- R6::R6Class(
       #' root_name version_name dir_name dir_name_resolved
       #'    <char>       <char>   <char>            <char>
       #' ```
-      roundup = function(symlink_type, type = c("table", "version_name")) {
-         type <- match.arg(type)
+      roundup = function(symlink_type, return_as = c("table", "version_name")) {
+         return_as <- match.arg(return_as)
          checkmate::assert_choice(symlink_type, names(get_symlink_registry()))
-         if (type == "table") {
+         if (return_as == "table") {
             ret <- private$combine_roundup_results(query_function = private$query_all_symlink_type, symlink_type)
-         } else if (type == "version_name") {
+         } else if (return_as == "version_name") {
             ret <- unique(private$combine_roundup_results(query_function = private$query_all_symlink_type, symlink_type)$version_name)
          }
          return(ret)
@@ -2572,15 +2572,15 @@ SLT <- R6::R6Class(
       #'
       #' Find all `best` symlinks in all `roots`
       #'
-      #' Please use `roundup("best", type)` instead.
+      #' Please use `roundup("best", return_as)` instead.
       #'
-      #' @param type (chr) Default `table`.  Whether to return a data.table with
+      #' @param return_as (chr) Default `table`.  Whether to return a data.table with
       #'   symlink and resolved paths (`table`) or just a vector of
       #'   `version_name`s (`version_name`) for easier automated round-ups.
       #'
       #' @return (data.table/chr) A single data.table with results from all
       #'   roots, with `root_name` as the first column, or a vector of
-      #'   `version_name`s if `type = version_name`.
+      #'   `version_name`s if `return_as = version_name`.
       #'
       #' Table output schema
       #'
@@ -2589,8 +2589,8 @@ SLT <- R6::R6Class(
       #'    <char>       <char>   <char>            <char>
       #' ```
       #'
-      roundup_best = function(type = c("table", "version_name")) {
-         self$roundup("best", type)
+      roundup_best = function(return_as = c("table", "version_name")) {
+         self$roundup("best", return_as)
       },
 
       #' @description
@@ -2598,13 +2598,13 @@ SLT <- R6::R6Class(
       #'
       #' Find all `latest` symlinks in all `roots`
       #'
-      #' @param type (chr) Default `table`.  Whether to return a data.table with
+      #' @param return_as (chr) Default `table`.  Whether to return a data.table with
       #'   symlink and resolved paths (`table`) or just a vector of
       #'   `version_name`s (`version_name`) for easier automated round-ups.
       #'
       #' @return (data.table/chr) A single data.table with results from all
       #'   roots, with `root_name` as the first column, or a vector of
-      #'   `version_name`s if `type = version_name`.
+      #'   `version_name`s if `return_as = version_name`.
       #'
       #' Table output schema
       #'
@@ -2613,20 +2613,20 @@ SLT <- R6::R6Class(
       #'    <char>       <char>   <char>            <char>
       #' ```
       #'
-      roundup_latest = function(type = c("table", "version_name")) {
-         self$roundup("latest", type)
+      roundup_latest = function(return_as = c("table", "version_name")) {
+         self$roundup("latest", return_as)
       },
 
       #' @description
       #' Find all `keep_` symlinks in all `roots`
       #'
-      #' @param type (chr) Default `table`.  Whether to return a data.table with
+      #' @param return_as (chr) Default `table`.  Whether to return a data.table with
       #'   symlink and resolved paths (`table`) or just a vector of
       #'   `version_name`s (`version_name`) for easier automated round-ups.
       #'
       #' @return (data.table/chr) A single data.table with results from all
       #'   roots, with `root_name` as the first column, or a vector of
-      #'   `version_name`s if `type = version_name`.
+      #'   `version_name`s if `return_as = version_name`.
       #'
       #' Table output schema
       #'
@@ -2635,8 +2635,8 @@ SLT <- R6::R6Class(
       #'    <char>       <char>   <char>            <char>
       #' ```
       #'
-      roundup_keep = function(type = c("table", "version_name")){
-         self$roundup("keep", type)
+      roundup_keep = function(return_as = c("table", "version_name")){
+         self$roundup("keep", return_as)
       },
 
       #' @description
@@ -2644,13 +2644,13 @@ SLT <- R6::R6Class(
       #'
       #' Find all `remove_` symlinks in all `roots`
       #'
-      #' @param type (chr) Default `table`.  Whether to return a data.table with
+      #' @param return_as (chr) Default `table`.  Whether to return a data.table with
       #'   symlink and resolved paths (`table`) or just a vector of
       #'   `version_name`s (`version_name`) for easier automated round-ups.
       #'
       #' @return (data.table/chr) A single data.table with results from all
       #'   roots, with `root_name` as the first column, or a vector of
-      #'   `version_name`s if `type = version_name`.
+      #'   `version_name`s if `return_as = version_name`.
       #'
       #' Table output schema
       #'
@@ -2659,20 +2659,20 @@ SLT <- R6::R6Class(
       #'    <char>       <char>   <char>            <char>
       #' ```
       #'
-      roundup_remove = function(type = c("table", "version_name")){
-         self$roundup("remove", type)
+      roundup_remove = function(return_as = c("table", "version_name")){
+         self$roundup("remove", return_as)
       },
 
       #' @description
       #' Find all folders without symlinks in all `roots`
       #'
-      #' @param type (chr) Default `table`.  Whether to return a data.table with
+      #' @param return_as (chr) Default `table`.  Whether to return a data.table with
       #'   symlink and resolved paths (`table`) or just a vector of
       #'   `version_name`s (`version_name`) for easier automated round-ups.
       #'
       #' @return (data.table/chr) A single data.table with results from all
       #'   roots, with `root_name` as the first column, or a vector of
-      #'   `version_name`s if `type = version_name`.
+      #'   `version_name`s if `return_as = version_name`.
       #'
       #' Table output schema
       #'
@@ -2681,11 +2681,11 @@ SLT <- R6::R6Class(
       #'    <char>       <char>   <char>            <char>
       #' ```
       #'
-      roundup_unmarked = function(type = c("table", "version_name")){
-         type <- match.arg(type)
-         if(type == "table"){
+      roundup_unmarked = function(return_as = c("table", "version_name")){
+         return_as <- match.arg(return_as)
+         if(return_as == "table"){
             ret <- private$combine_roundup_results(private$query_all_unmarked)
-         } else if (type == "version_name"){
+         } else if (return_as == "version_name"){
             ret <- unique(private$combine_roundup_results(private$query_all_unmarked)$version_name)
          }
          return(ret)
@@ -2707,14 +2707,14 @@ SLT <- R6::R6Class(
       #'   or 2020/01/01"
       #' @param date_selector (chr) See docstring explanation.
       #'
-      #' @param type (chr) Default `table`.  Whether to return a data.table with
+      #' @param return_as (chr) Default `table`.  Whether to return a data.table with
       #' symlink and resolved paths (`table`) or just a vector of
       #' `version_name`s (`version_name`) for easier automated round-ups.
       #'
       #'
       #' @return (data.table/chr) A single data.table with results from all
       #'   roots, with `root_name` as the first column, or a vector of
-      #'   `version_name`s if `type = version_name`.
+      #'   `version_name`s if `return_as = version_name`.
       #'
       #' Table output schema
       #'
@@ -2723,9 +2723,9 @@ SLT <- R6::R6Class(
       #'    <char>       <char>   <char>            <char>
       #' ```
       #'
-      roundup_by_date = function(user_date, date_selector, type = c("table", "version_name")){
+      roundup_by_date = function(user_date, date_selector, return_as = c("table", "version_name")){
 
-         type          <- match.arg(type)
+         return_as     <- match.arg(return_as)
          date_selector <- tolower(date_selector)
 
          private$assert_date_selector(date_selector)
@@ -2740,13 +2740,13 @@ SLT <- R6::R6Class(
          user_date_parsed <- as.POSIXct(user_date, tz = tzone, tryFormats = c("%Y-%m-%d", "%Y_%m_%d", "%Y/%m/%d"))
 
          private$msg_sometimes("Folders with symlinks will have duplicate rows by `version_name` (one row for each unique `dir_name`) - showing all for completeness.\n")
-         if(type == "table"){
+         if(return_as == "table"){
             ret <- private$combine_roundup_results(
                query_function   = private$query_by_date,
                user_date_parsed = user_date_parsed,
                date_selector    = date_selector
             )
-         } else if (type == "version_name"){
+         } else if (return_as == "version_name"){
             ret <- unique(private$combine_roundup_results(
                query_function   = private$query_by_date,
                user_date_parsed = user_date_parsed,

@@ -413,7 +413,7 @@ Generic dispatch method for all roundup operations. Legacy per-type
 methods (\code{roundup_best}, \code{roundup_keep}, etc.) are superceded thin
 wrappers.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup(symlink_type, type = c("table", "version_name"))}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup(symlink_type, return_as = c("table", "version_name"))}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -421,14 +421,14 @@ wrappers.
 \describe{
 \item{\code{symlink_type}}{(chr) A registered symlink type.}
 
-\item{\code{type}}{(chr: default \code{"table"}) or \code{"version_name"}.}
+\item{\code{return_as}}{(chr: default \code{"table"}) or \code{"version_name"}.}
 }
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
 (data.table/chr) A single data.table with results from all
 roots, with \code{root_name} as the first column, or a vector of
-\code{version_name}s if \code{type = version_name}.
+\code{version_name}s if \code{return_as = version_name}.
 
 Table output schema
 
@@ -445,15 +445,15 @@ Table output schema
 
 Find all \code{best} symlinks in all \code{roots}
 
-Please use \code{roundup("best", type)} instead.
+Please use \code{roundup("best", return_as)} instead.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_best(type = c("table", "version_name"))}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_best(return_as = c("table", "version_name"))}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{type}}{(chr) Default \code{table}.  Whether to return a data.table with
+\item{\code{return_as}}{(chr) Default \code{table}.  Whether to return a data.table with
 symlink and resolved paths (\code{table}) or just a vector of
 \code{version_name}s (\code{version_name}) for easier automated round-ups.}
 }
@@ -462,7 +462,7 @@ symlink and resolved paths (\code{table}) or just a vector of
 \subsection{Returns}{
 (data.table/chr) A single data.table with results from all
 roots, with \code{root_name} as the first column, or a vector of
-\code{version_name}s if \code{type = version_name}.
+\code{version_name}s if \code{return_as = version_name}.
 
 Table output schema
 
@@ -479,13 +479,13 @@ Table output schema
 
 Find all \code{latest} symlinks in all \code{roots}
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_latest(type = c("table", "version_name"))}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_latest(return_as = c("table", "version_name"))}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{type}}{(chr) Default \code{table}.  Whether to return a data.table with
+\item{\code{return_as}}{(chr) Default \code{table}.  Whether to return a data.table with
 symlink and resolved paths (\code{table}) or just a vector of
 \code{version_name}s (\code{version_name}) for easier automated round-ups.}
 }
@@ -494,7 +494,7 @@ symlink and resolved paths (\code{table}) or just a vector of
 \subsection{Returns}{
 (data.table/chr) A single data.table with results from all
 roots, with \code{root_name} as the first column, or a vector of
-\code{version_name}s if \code{type = version_name}.
+\code{version_name}s if \code{return_as = version_name}.
 
 Table output schema
 
@@ -509,13 +509,13 @@ Table output schema
 \subsection{Method \code{roundup_keep()}}{
 Find all \code{keep_} symlinks in all \code{roots}
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_keep(type = c("table", "version_name"))}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_keep(return_as = c("table", "version_name"))}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{type}}{(chr) Default \code{table}.  Whether to return a data.table with
+\item{\code{return_as}}{(chr) Default \code{table}.  Whether to return a data.table with
 symlink and resolved paths (\code{table}) or just a vector of
 \code{version_name}s (\code{version_name}) for easier automated round-ups.}
 }
@@ -524,7 +524,7 @@ symlink and resolved paths (\code{table}) or just a vector of
 \subsection{Returns}{
 (data.table/chr) A single data.table with results from all
 roots, with \code{root_name} as the first column, or a vector of
-\code{version_name}s if \code{type = version_name}.
+\code{version_name}s if \code{return_as = version_name}.
 
 Table output schema
 
@@ -541,13 +541,13 @@ Table output schema
 
 Find all \code{remove_} symlinks in all \code{roots}
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_remove(type = c("table", "version_name"))}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_remove(return_as = c("table", "version_name"))}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{type}}{(chr) Default \code{table}.  Whether to return a data.table with
+\item{\code{return_as}}{(chr) Default \code{table}.  Whether to return a data.table with
 symlink and resolved paths (\code{table}) or just a vector of
 \code{version_name}s (\code{version_name}) for easier automated round-ups.}
 }
@@ -556,7 +556,7 @@ symlink and resolved paths (\code{table}) or just a vector of
 \subsection{Returns}{
 (data.table/chr) A single data.table with results from all
 roots, with \code{root_name} as the first column, or a vector of
-\code{version_name}s if \code{type = version_name}.
+\code{version_name}s if \code{return_as = version_name}.
 
 Table output schema
 
@@ -571,13 +571,13 @@ Table output schema
 \subsection{Method \code{roundup_unmarked()}}{
 Find all folders without symlinks in all \code{roots}
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_unmarked(type = c("table", "version_name"))}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_unmarked(return_as = c("table", "version_name"))}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{type}}{(chr) Default \code{table}.  Whether to return a data.table with
+\item{\code{return_as}}{(chr) Default \code{table}.  Whether to return a data.table with
 symlink and resolved paths (\code{table}) or just a vector of
 \code{version_name}s (\code{version_name}) for easier automated round-ups.}
 }
@@ -586,7 +586,7 @@ symlink and resolved paths (\code{table}) or just a vector of
 \subsection{Returns}{
 (data.table/chr) A single data.table with results from all
 roots, with \code{root_name} as the first column, or a vector of
-\code{version_name}s if \code{type = version_name}.
+\code{version_name}s if \code{return_as = version_name}.
 
 Table output schema
 
@@ -614,7 +614,7 @@ row.  User may select dates by (using the \code{date_selector} argument):
 \if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_by_date(
   user_date,
   date_selector,
-  type = c("table", "version_name")
+  return_as = c("table", "version_name")
 )}\if{html}{\out{</div>}}
 }
 
@@ -627,7 +627,7 @@ or 2020/01/01"}
 
 \item{\code{date_selector}}{(chr) See docstring explanation.}
 
-\item{\code{type}}{(chr) Default \code{table}.  Whether to return a data.table with
+\item{\code{return_as}}{(chr) Default \code{table}.  Whether to return a data.table with
 symlink and resolved paths (\code{table}) or just a vector of
 \code{version_name}s (\code{version_name}) for easier automated round-ups.}
 }
@@ -636,7 +636,7 @@ symlink and resolved paths (\code{table}) or just a vector of
 \subsection{Returns}{
 (data.table/chr) A single data.table with results from all
 roots, with \code{root_name} as the first column, or a vector of
-\code{version_name}s if \code{type = version_name}.
+\code{version_name}s if \code{return_as = version_name}.
 
 Table output schema
 

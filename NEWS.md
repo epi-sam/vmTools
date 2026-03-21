@@ -6,8 +6,11 @@ Symlink Composer instances via the type-generic `mark()` and `roundup()` methods
 
 ## Breaking
 
+- `return_as` argument replaces `type` for `roundup_x()` methods on SLT. Changed
+   to reduce nomenclature confusion between the type of symlink (e.g. "best", 
+   "keep", "latest") and the type of return value (table vs character vector).
 - `SLC$roundup_all_symlinks()` removed — use
-  `SLC$roundup_all(symlink_type, type)` instead.
+  `SLC$roundup_all(symlink_type)` instead.
 - `DICT$symlink_types`, `DICT$symlink_regex_extract`, `DICT$valid_actions`, and
   `DICT$symlink_registry` removed. The symlink type registry (the package's
   central record of all known types and their behaviour) is now managed at the
@@ -50,13 +53,13 @@ Symlink Composer instances via the type-generic `mark()` and `roundup()` methods
 
 **Type-generic `roundup_all()` on SLC**
 
-- `slc$roundup_all(symlink_type, type)` — combines results across all Symlink 
+- `slc$roundup_all(symlink_type)` — combines results across all Symlink 
   Composer tools for any registered type. Replaces `roundup_all_symlinks()`.
 
-**`type` pass-through on SLC aggregates**
+**`return_as` pass-through on SLC aggregates**
 
 - `slc$roundup_all_unmarked()` and `slc$roundup_all_by_date()` now accept
-  `type = c("table", "version_name")`, matching the SLT equivalents.
+  `return_as = c("table", "version_name")`, matching the SLT equivalents.
 
 ## Superseded
 
@@ -83,9 +86,9 @@ especially with custom types from `new_symlink_type()`.
 
 'roundup_x' functions
 
-- New argument - `type = 'version_name'` returns a character vector of version names 
+- New argument - `return_as = 'version_name'` returns a character vector of version names 
   instead of a full table of paths for easier automation. Full table remains the
-  default return type.
+  default return data structure.
   
 
 # vmTools 1.3.0

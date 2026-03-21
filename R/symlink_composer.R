@@ -86,14 +86,14 @@ SLC <- R6::R6Class(
     #'
     #' @param symlink_type (chr) One of the common symlink types across all tools,
     #'   e.g. "best", "keep", "remove", "latest"
-    #' @param type (chr) `"table"` (default) or `"version_name"`
+    #' @param return_as (chr) `"table"` (default) or `"version_name"`
     #' @return (data.table/chr)
-    , roundup_all = function(symlink_type, type = c("table", "version_name")) {
-       type <- match.arg(type)
+    , roundup_all = function(symlink_type, return_as = c("table", "version_name")) {
+       return_as <- match.arg(return_as)
        checkmate::assert_choice(symlink_type, names(get_symlink_registry()))
 
        results <- lapply(names(private$TOOLS), function(tool_name) {
-          dt <- private$TOOLS[[tool_name]]$roundup(symlink_type = symlink_type, type = "table")
+          dt <- private$TOOLS[[tool_name]]$roundup(symlink_type = symlink_type, return_as = "table")
           if (nrow(dt) > 0) dt[, tool_name := tool_name]
           return(dt)
        })
@@ -104,7 +104,7 @@ SLC <- R6::R6Class(
           data.table::setcolorder(combined, c("tool_name", setdiff(names(combined), "tool_name")))
        }
 
-       if (type == "version_name") return(unique(combined$version_name))
+       if (return_as == "version_name") return(unique(combined$version_name))
        return(combined)
     }
 
@@ -119,13 +119,13 @@ SLC <- R6::R6Class(
 
     #' @description Roundup all unmarked folders across all tools
     #'
-    #' @param type (chr default: `"table"`) or `"version_name"`
+    #' @param return_as (chr default: `"table"`) or `"version_name"`
     #'
     #' @return (data.table) Combined results with 'tool_name' column
-    , roundup_all_unmarked = function(type = c("table", "version_name")) {
-       type <- match.arg(type)
+    , roundup_all_unmarked = function(return_as = c("table", "version_name")) {
+       return_as <- match.arg(return_as)
        results <- lapply(names(private$TOOLS), function(tool_name) {
-          dt <- private$TOOLS[[tool_name]]$roundup_unmarked(type = "table")
+          dt <- private$TOOLS[[tool_name]]$roundup_unmarked(return_as = "table")
           if (nrow(dt) > 0) dt[, tool_name := tool_name]
           return(dt)
        })
@@ -133,7 +133,7 @@ SLC <- R6::R6Class(
        if (nrow(combined) > 0) {
           data.table::setcolorder(combined, c("tool_name", setdiff(names(combined), "tool_name")))
        }
-       if (type == "version_name") return(unique(combined$version_name))
+       if (return_as == "version_name") return(unique(combined$version_name))
        return(combined)
     }
 
@@ -141,13 +141,13 @@ SLC <- R6::R6Class(
     #'
     #' @param user_date (chr/Date/POSIXct) Date to query
     #' @param date_selector (chr) One of: 'gt', 'gte', 'lt', 'lte', 'e'
-    #' @param type (chr default: `"table"`) or `"version_name"`
+    #' @param return_as (chr default: `"table"`) or `"version_name"`
     #'
     #' @return (data.table) Combined results with 'tool_name' column
-    , roundup_all_by_date = function(user_date, date_selector, type = c("table", "version_name")) {
-       type <- match.arg(type)
+    , roundup_all_by_date = function(user_date, date_selector, return_as = c("table", "version_name")) {
+       return_as <- match.arg(return_as)
        results <- lapply(names(private$TOOLS), function(tool_name) {
-          dt <- private$TOOLS[[tool_name]]$roundup_by_date(user_date, date_selector, type = "table")
+          dt <- private$TOOLS[[tool_name]]$roundup_by_date(user_date, date_selector, return_as = "table")
           if (nrow(dt) > 0) dt[, tool_name := tool_name]
           return(dt)
        })
@@ -155,7 +155,7 @@ SLC <- R6::R6Class(
        if (nrow(combined) > 0) {
           data.table::setcolorder(combined, c("tool_name", setdiff(names(combined), "tool_name")))
        }
-       if (type == "version_name") return(unique(combined$version_name))
+       if (return_as == "version_name") return(unique(combined$version_name))
        return(combined)
     }
   )
