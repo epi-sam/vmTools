@@ -1,4 +1,4 @@
-# vmTools 2.0.0
+# vmTools 2.0.1
 
 Introduces a plugin architecture for symlink types: register a new type once with
 `new_symlink_type()` and it works immediately across all Symlink Tool and 
@@ -22,6 +22,11 @@ Symlink Registry related changes
   - read it with `get_symlink_registry()`
 
 ## New Features
+
+**Improved Vignettes**
+
+See new, simplified vignette documents.
+
 
 **Extensible symlink type registry**
 
