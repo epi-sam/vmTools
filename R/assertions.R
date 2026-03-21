@@ -95,8 +95,8 @@ assert_named_list = function(x){
 assert_dir_exists = function(x){
    if(is.null(x)) stop("x is NULL")
    assert_scalar(x)
-   root <- suppressWarnings(normalizePath(x))
-   if(!dir.exists(root)) stop("root does not exist: ", x)
+   x <- normalizePath(x, mustWork = TRUE)
+   x
 }
 
 #' Assert all elements of x are in y

@@ -1,7 +1,7 @@
 Package: vmTools
 Type: Package
 Title: Version Management Tools on the File System
-Version: 1.3.1
+Version: 2.0.0
 Authors@R: c(
     person("Sam", "Byrne", email = "ssbyrne@uw.edu"
     , role = c("aut", "cre", "cph")
@@ -18,7 +18,9 @@ Encoding: UTF-8
 LazyData: true
 Imports:
     R6 (>= 2.5.1),
-    data.table (>= 1.10.0)
+    data.table (>= 1.10.0),
+    checkmate (>= 2.0.0),
+    lifecycle
 Suggests: 
     devtools (>= 2.4.5),
     knitr (>= 1.46),

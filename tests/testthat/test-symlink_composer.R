@@ -72,7 +72,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
                bad_tool = mtcars
             )
          )
-         , regexp = "is not an SLT instance"
+         , regexp = "is not a Symlink Tool \\(SLT\\) instance"
       )
    })
 
@@ -91,15 +91,15 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
          slt_a <- SLT$new(
             root_list          = project_a_roots
             , central_log_root = central_log_a
-            , verbose               = FALSE
-            , verbose_startup       = FALSE
+            , verbose          = FALSE
+            , verbose_startup  = FALSE
          )
 
          slt_b <- SLT$new(
             root_list          = project_b_roots
             , central_log_root = central_log_b
-            , verbose               = FALSE
-            , verbose_startup       = FALSE
+            , verbose          = FALSE
+            , verbose_startup  = FALSE
          )
 
          # Project C uses lazy central log (single root = central log root)
@@ -133,16 +133,16 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
 
    test_that("SLC roundups run cleanly on empty directories", {
       expect_no_error({
-         slc$roundup_all_best()
-         slc$roundup_all_keep()
-         slc$roundup_all_remove()
+         slc$roundup_all("best")
+         slc$roundup_all("keep")
+         slc$roundup_all("remove")
          slc$roundup_all_unmarked()
          slc$roundup_all_by_date(Sys.Date(), "lt")
       })
    })
 
    test_that("SLC roundups return empty data.tables with correct structure", {
-      best_dt <- slc$roundup_all_best()
+      best_dt <- slc$roundup_all("best")
       expect_s3_class(best_dt, "data.table")
       expect_equal(nrow(best_dt), 0)
    })
@@ -211,7 +211,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    # Aggregated roundups ---------------------------------------------------------
 
    test_that("roundup_all_best aggregates across all tools", {
-      best_dt <- slc$roundup_all_best()
+      best_dt <- slc$roundup_all("best")
       expect_s3_class(best_dt, "data.table")
       expect_true("tool_name" %in% names(best_dt))
       expect_true(nrow(best_dt) > 0)
@@ -224,7 +224,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    })
 
    test_that("roundup_all_keep aggregates across all tools", {
-      keep_dt <- slc$roundup_all_keep()
+      keep_dt <- slc$roundup_all("keep")
       expect_s3_class(keep_dt, "data.table")
       expect_true("tool_name" %in% names(keep_dt))
 
@@ -233,7 +233,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    })
 
    test_that("roundup_all_remove aggregates across all tools", {
-      remove_dt <- slc$roundup_all_remove()
+      remove_dt <- slc$roundup_all("remove")
       expect_s3_class(remove_dt, "data.table")
       expect_true("tool_name" %in% names(remove_dt))
 
@@ -264,17 +264,17 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    # tool_name column ordering ---------------------------------------------------
 
    test_that("tool_name is the first column in aggregated results", {
-      best_dt <- slc$roundup_all_best()
+      best_dt <- slc$roundup_all("best")
       if(nrow(best_dt) > 0) {
          expect_equal(names(best_dt)[1], "tool_name")
       }
 
-      keep_dt <- slc$roundup_all_keep()
+      keep_dt <- slc$roundup_all("keep")
       if(nrow(keep_dt) > 0) {
          expect_equal(names(keep_dt)[1], "tool_name")
       }
 
-      remove_dt <- slc$roundup_all_remove()
+      remove_dt <- slc$roundup_all("remove")
       if(nrow(remove_dt) > 0) {
          expect_equal(names(remove_dt)[1], "tool_name")
       }
