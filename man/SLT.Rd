@@ -696,7 +696,7 @@ when you instantiate the tool.  For convenience, user may leave NULL
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-(std_err) Messages about the folder creation.
+(chr) new version_name (in YYYY_MM_DD.VV format if defualts are used)
 }
 }
 \if{html}{\out{<hr>}}

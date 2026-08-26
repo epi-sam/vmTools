@@ -2792,7 +2792,7 @@ SLT <- R6::R6Class(
       #'   when you instantiate the tool.  For convenience, user may leave NULL
       #'   (default) and `get_common_new_version_name()` is used on that root.
       #'
-      #' @return (std_err) Messages about the folder creation.
+      #' @return (chr) new version_name (in YYYY_MM_DD.VV format if defualts are used)
       #'
       #'
       #'
@@ -2805,6 +2805,8 @@ SLT <- R6::R6Class(
          for(version_path in private$DYNAMIC$VERS_PATHS){
             private$make_folder_with_log(version_path = version_path)
          }
+
+         return(version_name)
 
       },
 
