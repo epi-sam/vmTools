@@ -2993,7 +2993,7 @@ SLT <- R6::R6Class(
       #'   (e.g. `"keep_"`, `"remove_"`). Types added with `new_symlink_type()`
       #'   reserve their names the same way.
       #'
-      #' @return (std_err) Messages about the folder creation.
+      #' @return (chr) new version_name (in YYYY_MM_DD.VV format if defualts are used)
       #'
       #'
       #'
@@ -3007,6 +3007,8 @@ SLT <- R6::R6Class(
          for(version_path in private$DYNAMIC$VERS_PATHS){
             private$make_folder_with_log(version_path = version_path)
          }
+
+         return(version_name)
 
       },
 
