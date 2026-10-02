@@ -498,6 +498,56 @@ test_that("A symlink name that points to different versions in different roots i
           })
 
 
+# Reserved folder names ---------------------------------------------------------
+
+test_that("Reserved symlink names are refused as version_name folders",
+          {
+             root_rsv    <- clean_path(tempdir(), "slt_reserved_names")
+             roots_rsv   <- list(root_a = clean_path(root_rsv, "a"))
+             central_rsv <- clean_path(root_rsv, "central")
+             lapply(c(unlist(roots_rsv), central_rsv), make_directory)
+             on.exit(unlink(root_rsv, recursive = TRUE), add = TRUE)
+             slt_rsv <- suppressMessages(suppressWarnings(
+                SLT$new(root_list = roots_rsv, central_log_root = central_rsv, verbose = FALSE, verbose_startup = FALSE)
+             ))
+             slt_rsv$make_new_version_folder(version_name = "1990_01_01")
+
+             # creating a folder with a reserved name
+             expect_error(slt_rsv$make_new_version_folder(version_name = "best"), regexp = "cannot be used as a version_name")
+             expect_false(dir.exists(clean_path(roots_rsv[["root_a"]], "best")))
+
+             # passing a symlink name when no such symlink exists
+             expect_error(
+                slt_rsv$mark_best(version_name = "latest", user_entry = list(comment = "c"))
+                , regexp = "is the name of a shortcut \\(symlink\\), not a versioned folder"
+             )
+          })
+
+test_that("A real folder using a reserved symlink name blocks marking and is reported",
+          {
+             root_occ    <- clean_path(tempdir(), "slt_reserved_occupied")
+             roots_occ   <- list(root_a = clean_path(root_occ, "a"))
+             central_occ <- clean_path(root_occ, "central")
+             lapply(c(unlist(roots_occ), central_occ), make_directory)
+             on.exit(unlink(root_occ, recursive = TRUE), add = TRUE)
+             slt_occ <- suppressMessages(suppressWarnings(
+                SLT$new(root_list = roots_occ, central_log_root = central_occ, verbose = FALSE, verbose_startup = FALSE)
+             ))
+             slt_occ$make_new_version_folder(version_name = "1990_01_01")
+             dir.create(clean_path(roots_occ[["root_a"]], "best"))   # hand-made real folder
+
+             expect_error(
+                suppressMessages(slt_occ$mark_best(version_name = "1990_01_01", user_entry = list(comment = "c")))
+                , regexp = "a real folder with that name already exists"
+             )
+             expect_identical(slt_occ$roundup_best()$version_name, character(0))   # not mistaken for a mark
+
+             suppressMessages(slt_occ$.__enclos_env__$private$report_discrepancies(roots_occ[["root_a"]], verbose = FALSE))
+             disc <- data.table::fread(clean_path(roots_occ[["root_a"]], slt_occ$return_dictionaries()$report_fnames$discrepancies))
+             expect_true(any(grepl("real folder is using a name reserved", disc$discrepancy)))
+          })
+
+
 # Empty Directories ---------------------------------------------------------
 
 test_that("SLT roundups run cleanly on empty directories",

@@ -615,6 +615,18 @@ SLT <- R6::R6Class(
          }
          resolved <- unique(resolved)
 
+         # Still a reserved name after resolving?  Then no such shortcut exists
+         # (user meant e.g. "latest" but nothing is marked latest), or a real
+         # folder is using the name.  Either way there is no version to act on.
+         if(!is.null(find_reserved_name_conflict(resolved))){
+            stop(
+               "'", version_name, "' is the name of a shortcut (symlink), not a versioned folder, ",
+               "and no shortcut with that name currently exists in:\n  ", paste(roots, collapse = "\n  "),
+               "\nPlease pass the name of the versioned folder you want (e.g. '1990_01_01'). ",
+               "Use roundup() to see which folders are currently marked."
+            )
+         }
+
          if(!identical(resolved, version_name)){
             private$msg_sometimes("Resolved '", version_name, "' -> '", resolved, "'")
          }
@@ -1383,7 +1395,10 @@ SLT <- R6::R6Class(
          tool_symlink_regex  <- get_symlink_regex_extract()
          tool_symlink_regex  <- paste(tool_symlink_regex, collapse = "|")
          folder_dt[, is_symlink := dir_name != dir_name_resolved]
-         folder_dt[, is_tool_symlink := grepl(tool_symlink_regex, dir_leaf)]
+         # a tool symlink must actually BE a symlink - a real folder named e.g.
+         # `best` is a collision, not a mark, and is flagged separately
+         folder_dt[, is_tool_symlink      := is_symlink & grepl(tool_symlink_regex, dir_leaf)]
+         folder_dt[, is_reserved_name_dir := !is_symlink & grepl(tool_symlink_regex, dir_leaf)]
 
          # reporting requires logs to be in a consistent location
          has_bare_log <- file.exists(clean_path(folder_dt$dir_name_resolved, basename(private$DICT$log_name)))
@@ -1841,6 +1856,10 @@ SLT <- R6::R6Class(
          dirs_non_tool_symlinks_dt       <- folder_dt[is_symlink == TRUE & is_tool_symlink == FALSE, .N, by = dir_name]
          discrepant_dt_non_tool_symlinks <- private$make_report_schema_for_discrepant_paths(dirs_non_tool_symlinks_dt, "non-tool symlinks in root folder")
 
+         # Real folders using a name reserved for a tool symlink, e.g. a directory literally called `best` (dir_name only)
+         dirs_reserved_name_dt       <- folder_dt[is_reserved_name_dir == TRUE, .N, by = dir_name]
+         discrepant_dt_reserved_name <- private$make_report_schema_for_discrepant_paths(dirs_reserved_name_dt, "real folder is using a name reserved for a tool shortcut (symlink)")
+
          # Active tool symlink logs with `demote_` as last row (these should have been 'promoted)
          log_list_tool_symlinks    <- private$query_all_logs_tool_symlink(root, verbose = TRUE)
          last_row_dt_tool_symlinks <- private$query_logs_last_row(log_list_tool_symlinks)
@@ -1887,6 +1906,7 @@ SLT <- R6::R6Class(
             list(
                discrepant_dt_tool_symlink_no_logs = discrepant_dt_tool_symlink_no_logs
                , discrepant_dt_non_tool_symlinks  = discrepant_dt_non_tool_symlinks
+               , discrepant_dt_reserved_name      = discrepant_dt_reserved_name
                , discrepant_dt_mult_symlinks      = discrepant_dt_mult_symlinks
                , discrepant_dt_demote             = discrepant_dt_demote
                , discrepant_dt_promote            = discrepant_dt_promote
@@ -2174,8 +2194,17 @@ SLT <- R6::R6Class(
          private$DYNAMIC$LOG$action <- sprintf("promote_%s", symlink_type)
 
          if(dir.exists(path_symlink)){
-            private$msg_sometimes("  ", symlink_type, " symlink already exists - moving on: ", path_symlink)
-            return(invisible(NULL))
+            if(nzchar(Sys.readlink(path_symlink))){
+               private$msg_sometimes("  ", symlink_type, " symlink already exists - moving on: ", path_symlink)
+               return(invisible(NULL))
+            }
+            # A real directory, not a symlink, is using the name the symlink needs
+            stop(
+               "Cannot mark '", version_name, "' as '", symlink_type, "'.",
+               "\nThe tool needs to create a shortcut (symlink) named '", basename(path_symlink), "' here:\n  ", path_symlink,
+               "\nbut a real folder with that name already exists.",
+               "\nPlease move or rename that folder, then try again. Nothing has been changed."
+            )
          }
 
          # Log only if the link succeeds (linux-style &&: act, then record the act)
@@ -2183,7 +2212,7 @@ SLT <- R6::R6Class(
             private$append_to_log(version_path = version_path, user_entry = user_entry)
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
          } else {
-            private$msg_sometimes("   symlink creation failed for: ", symlink_full, always_message = TRUE)
+            private$msg_sometimes("   symlink creation failed for: ", path_symlink, always_message = TRUE)
          }
 
          return(invisible(NULL))
@@ -2948,6 +2977,7 @@ SLT <- R6::R6Class(
       make_new_version_folder = function(version_name = self$get_common_new_version_name()){
 
          assert_scalar_not_empty(x = version_name)
+         assert_version_name_not_reserved(version_name)
 
          private$handler_update_dynamic_fields(version_name = version_name)
 
