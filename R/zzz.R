@@ -173,9 +173,9 @@ assert_version_name_not_reserved <- function(version_name) {
     if (is.null(conflict)) return(invisible(TRUE))
     reserved <- get_reserved_version_names()
     what <- if (conflict == version_name) {
-        sprintf("the tool uses this name for its '%s' shortcut (symlink).", conflict)
+        sprintf("the tool uses this name for its '%s' symlink (shortcut).", conflict)
     } else {
-        sprintf("the tool uses names starting with '%s' for its '%s' shortcuts (symlinks).", conflict, sub("_$", "", conflict))
+        sprintf("the tool uses names starting with '%s' for its '%s' symlinks (shortcuts).", conflict, sub("_$", "", conflict))
     }
     stop(
         sprintf("'%s' cannot be used as a version_name - %s", version_name, what)
@@ -350,7 +350,9 @@ get_symlink_registry <- function() {
 #' @param is_singleton (lgl) Can there be only one of this symlink type per root
 #'   directory? If `TRUE`, the symlink name will be exactly `symlink_type` (e.g.
 #'   "best"). If `FALSE`, the symlink name will be `symlink_type` + "_" +
-#'   version_name (e.g. "keep_2025_01_01.01").
+#'   version_name (e.g. "keep_2025_01_01.01"). Either way, registering a type
+#'   reserves that name (or that prefix) so it cannot be used as a
+#'   version_name folder.
 #' @param verbose (lgl: default `TRUE`) control message verbosity when
 #'   registering the new symlink type
 #'

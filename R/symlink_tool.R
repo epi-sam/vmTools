@@ -615,13 +615,13 @@ SLT <- R6::R6Class(
          }
          resolved <- unique(resolved)
 
-         # Still a reserved name after resolving?  Then no such shortcut exists
+         # Still a reserved name after resolving?  Then no such symlink exists
          # (user meant e.g. "latest" but nothing is marked latest), or a real
          # folder is using the name.  Either way there is no version to act on.
          if(!is.null(find_reserved_name_conflict(resolved))){
             stop(
-               "'", version_name, "' is the name of a shortcut (symlink), not a versioned folder, ",
-               "and no shortcut with that name currently exists in:\n  ", paste(roots, collapse = "\n  "),
+               "'", version_name, "' is the name of a symlink (shortcut), not a versioned folder, ",
+               "and no symlink with that name currently exists in:\n  ", paste(roots, collapse = "\n  "),
                "\nPlease pass the name of the versioned folder you want (e.g. '1990_01_01'). ",
                "Use roundup() to see which folders are currently marked."
             )
@@ -1858,7 +1858,7 @@ SLT <- R6::R6Class(
 
          # Real folders using a name reserved for a tool symlink, e.g. a directory literally called `best` (dir_name only)
          dirs_reserved_name_dt       <- folder_dt[is_reserved_name_dir == TRUE, .N, by = dir_name]
-         discrepant_dt_reserved_name <- private$make_report_schema_for_discrepant_paths(dirs_reserved_name_dt, "real folder is using a name reserved for a tool shortcut (symlink)")
+         discrepant_dt_reserved_name <- private$make_report_schema_for_discrepant_paths(dirs_reserved_name_dt, "real folder is using a name reserved for a tool symlink (shortcut)")
 
          # Active tool symlink logs with `demote_` as last row (these should have been 'promoted)
          log_list_tool_symlinks    <- private$query_all_logs_tool_symlink(root, verbose = TRUE)
@@ -2201,7 +2201,7 @@ SLT <- R6::R6Class(
             # A real directory, not a symlink, is using the name the symlink needs
             stop(
                "Cannot mark '", version_name, "' as '", symlink_type, "'.",
-               "\nThe tool needs to create a shortcut (symlink) named '", basename(path_symlink), "' here:\n  ", path_symlink,
+               "\nThe tool needs to create a symlink (shortcut) named '", basename(path_symlink), "' here:\n  ", path_symlink,
                "\nbut a real folder with that name already exists.",
                "\nPlease move or rename that folder, then try again. Nothing has been changed."
             )
@@ -2503,6 +2503,9 @@ SLT <- R6::R6Class(
       #' @param symlink_type (chr) A registered symlink type, e.g. `"best"`,
       #'   `"keep"`, or any type added via `new_symlink_type()`.
       #' @param version_name (chr) The version_name folder to mark.
+      #'   You may also pass the name of an existing symlink (shortcut) such
+      #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
+      #'   version_name folder it points to.
       #' @param user_entry (list) Named list of user log fields.
       #'
       #' @return (std_err) Messages about actions taken.
@@ -2560,6 +2563,9 @@ SLT <- R6::R6Class(
       #' @param version_name (chr) The directory name of the output folder that
       #'   lives directly under one of the `root`s you define when you
       #'   instantiate the tool.
+      #'   You may also pass the name of an existing symlink (shortcut) such
+      #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
+      #'   version_name folder it points to.
       #' @param user_entry (list) Named list of user-defined fields to append to
       #'   the log.  After making a tool called e.g. slt, call
       #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
@@ -2594,6 +2600,9 @@ SLT <- R6::R6Class(
       #' @param version_name (chr) The directory name of the output folder that
       #'   lives directly under one of the `root`s you define when you
       #'   instantiate the tool.
+      #'   You may also pass the name of an existing symlink (shortcut) such
+      #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
+      #'   version_name folder it points to.
       #' @param user_entry (list) Named list of user-defined fields to append to
       #'   the log.  After making a tool called e.g. slt, call
       #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
@@ -2624,6 +2633,9 @@ SLT <- R6::R6Class(
       #' @param version_name (chr) The directory name of the output folder that
       #'   lives directly under one of the `root`s you define when you
       #'   instantiate the tool.
+      #'   You may also pass the name of an existing symlink (shortcut) such
+      #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
+      #'   version_name folder it points to.
       #' @param user_entry (list) Named list of user-defined fields to append to
       #'   the log.  After making a tool called e.g. slt, call
       #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
@@ -2658,6 +2670,9 @@ SLT <- R6::R6Class(
       #' @param version_name (chr) The directory name of the output folder that
       #'   lives directly under one of the `root`s you define when you
       #'   instantiate the tool.
+      #'   You may also pass the name of an existing symlink (shortcut) such
+      #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
+      #'   version_name folder it points to.
       #' @param user_entry (list) Named list of user-defined fields to append to
       #'   the log.  After making a tool called e.g. slt, call
       #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
@@ -2684,6 +2699,9 @@ SLT <- R6::R6Class(
       #' @param version_name (chr) The directory name of the output folder that
       #'   lives directly under one of the `root`s you define when you
       #'   instantiate the tool.
+      #'   You may also pass the name of an existing symlink (shortcut) such
+      #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
+      #'   version_name folder it points to.
       #' @param user_entry (list) Named list of user-defined fields to append to
       #'   the log.  After making a tool called e.g. slt, call
       #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
@@ -2969,6 +2987,11 @@ SLT <- R6::R6Class(
       #'   output folder that lives directly under one of the `root`s you define
       #'   when you instantiate the tool.  For convenience, user may leave NULL
       #'   (default) and `get_common_new_version_name()` is used on that root.
+      #'   Names used by the tool's own symlinks (shortcuts) are reserved and
+      #'   refused: the name of any singleton type (e.g. `"best"`, `"latest"`)
+      #'   and any name starting with a non-singleton type plus underscore
+      #'   (e.g. `"keep_"`, `"remove_"`). Types added with `new_symlink_type()`
+      #'   reserve their names the same way.
       #'
       #' @return (std_err) Messages about the folder creation.
       #'
@@ -2998,6 +3021,9 @@ SLT <- R6::R6Class(
       #' @param version_name (chr) The directory name of the output folder that
       #'   lives directly under one of the `root`s you define when you
       #'   instantiate the tool.
+      #'   You may also pass the name of an existing symlink (shortcut) such
+      #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
+      #'   version_name folder it points to.
       #'
       #' @return (std_err) Messages about the log creation.
       #'
@@ -3040,6 +3066,9 @@ SLT <- R6::R6Class(
       #' @param version_name (chr) The directory name of the output folder that
       #'   lives directly under one of the `root`s you define when you
       #'   instantiate the tool.
+      #'   You may also pass the name of an existing symlink (shortcut) such
+      #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
+      #'   version_name folder it points to.
       #' @param user_entry (list) Named list of user-defined fields to append to
       #'   the log.  After making a tool called e.g. slt, call
       #'   `slt$return_dictionaries("log_fields_user")` to find which fields a

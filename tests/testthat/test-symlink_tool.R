@@ -519,7 +519,7 @@ test_that("Reserved symlink names are refused as version_name folders",
              # passing a symlink name when no such symlink exists
              expect_error(
                 slt_rsv$mark_best(version_name = "latest", user_entry = list(comment = "c"))
-                , regexp = "is the name of a shortcut \\(symlink\\), not a versioned folder"
+                , regexp = "is the name of a symlink \\(shortcut\\), not a versioned folder"
              )
           })
 

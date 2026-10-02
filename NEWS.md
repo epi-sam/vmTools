@@ -95,6 +95,14 @@ especially with custom types from `new_symlink_type()`.
   readers never see a partially written file.
 - A log that is non-empty but unreadable now errors instead of being silently
   rebuilt (and its history lost). Zero-byte logs are still rebuilt.
+- Passing a symlink name (`"latest"`, `"keep_<version>"`) as a `version_name`
+  now resolves to the real folder it points to instead of silently doing nothing
+  or logging under the wrong name.
+- Symlink names are reserved: `make_new_version_folder()` refuses them, and a
+  real folder sitting on one blocks marking and appears in the discrepancy
+  report.
+- Symlink lookup no longer matches other versions by suffix or treats `.` as a
+  wildcard, so marking one version can no longer delete another's symlink.
 
 
 

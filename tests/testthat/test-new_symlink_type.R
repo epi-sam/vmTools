@@ -170,7 +170,7 @@ test_that("Registering a symlink type reserves its name for folders", {
    expect_identical(vmTools:::find_reserved_name_conflict("in_progress"), "in_progress")  # singleton word
    expect_identical(vmTools:::find_reserved_name_conflict("failed_x"),    "failed_")      # non-singleton prefix
    expect_null(vmTools:::find_reserved_name_conflict("2024_01_01.01"))
-   expect_error(vmTools:::assert_version_name_not_reserved("in_progress"), regexp = "shortcut \\(symlink\\)")
+   expect_error(vmTools:::assert_version_name_not_reserved("in_progress"), regexp = "symlink \\(shortcut\\)")
 })
 
 
