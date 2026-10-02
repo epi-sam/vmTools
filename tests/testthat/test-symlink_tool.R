@@ -313,6 +313,70 @@ test_that("Zero-byte logs are rebuilt, unreadable logs are refused and left unto
           })
 
 
+# Parallel smoke test -----------------------------------------------------------
+
+# Many processes constructing SLT and querying at once against one populated
+# central log must leave that log byte-identical.
+
+test_that("Concurrent construction and querying never modifies the central log",
+          {
+             skip_on_os("windows")   # forked workers (mclapply) unavailable
+             skip_on_cran()
+
+             root_par    <- clean_path(tempdir(), "slt_parallel_smoke")
+             roots_par   <- list(root_a = clean_path(root_par, "a"), root_b = clean_path(root_par, "b"))
+             central_par <- clean_path(root_par, "central")
+             lapply(c(unlist(roots_par), central_par), make_directory)
+             on.exit(unlink(root_par, recursive = TRUE), add = TRUE)
+
+             make_slt_par <- function(){
+                suppressMessages(suppressWarnings(
+                   SLT$new(
+                      root_list          = roots_par
+                      , central_log_root = central_par
+                      , verbose          = FALSE
+                      , verbose_startup  = FALSE
+                   )
+                ))
+             }
+
+             # populate the central log with a few real entries
+             slt_par <- make_slt_par()
+             slt_par$make_new_version_folder(version_name = "1990_01_01")
+             slt_par$make_new_version_folder(version_name = "1990_01_02")
+             slt_par$mark_best(version_name = "1990_01_01", user_entry = list(comment = "setup"))
+             slt_par$mark_keep(version_name = "1990_01_02", user_entry = list(comment = "setup"))
+             fpath_central <- slt_par$return_dictionaries()$LOG_CENTRAL$path
+             md5_before    <- unname(tools::md5sum(fpath_central))
+             mtime_before  <- file.mtime(fpath_central)
+
+             # IMPORTANT: every child must return, never error - a forked child
+             # that errors can delete the session tempdir on exit.
+             # R CMD check limits tests to 2 cores; 20 workers interleaved on 2
+             # cores still exercises concurrent construction.
+             n_workers <- 20L
+             results <- parallel::mclapply(
+                seq_len(n_workers)
+                , mc.cores = 2L
+                , function(i){
+                   tryCatch({
+                      slt_i <- make_slt_par()
+                      rb    <- slt_i$roundup_best()
+                      rk    <- slt_i$roundup_keep()
+                      if(!all(c("1990_01_01") %in% rb$version_name)) stop("roundup_best missing version")
+                      if(!all(c("1990_01_02") %in% rk$version_name)) stop("roundup_keep missing version")
+                      "ok"
+                   }, error = function(e) paste("worker", i, "error:", conditionMessage(e)))
+                }
+             )
+
+             expect_identical(unique(unlist(results)), "ok")
+             expect_identical(unname(tools::md5sum(fpath_central)), md5_before)
+             expect_identical(file.mtime(fpath_central), mtime_before)
+             expect_identical(list.files(central_par, all.files = TRUE, no.. = TRUE), basename(fpath_central))
+          })
+
+
 # Empty Directories ---------------------------------------------------------
 
 test_that("SLT roundups run cleanly on empty directories",
