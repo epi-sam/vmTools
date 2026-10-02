@@ -548,6 +548,31 @@ test_that("A real folder using a reserved symlink name blocks marking and is rep
           })
 
 
+# Version names that are suffixes of other version names -----------------------
+
+test_that("Marking one version never touches another version whose name ends the same way",
+          {
+             root_sfx    <- clean_path(tempdir(), "slt_suffix_collision")
+             roots_sfx   <- list(root_a = clean_path(root_sfx, "a"))
+             central_sfx <- clean_path(root_sfx, "central")
+             lapply(c(unlist(roots_sfx), central_sfx), make_directory)
+             on.exit(unlink(root_sfx, recursive = TRUE), add = TRUE)
+             slt_sfx <- suppressMessages(suppressWarnings(
+                SLT$new(root_list = roots_sfx, central_log_root = central_sfx, verbose = FALSE, verbose_startup = FALSE)
+             ))
+             v_short <- "1990_01_01"; v_long <- "x1990_01_01"
+             for(v in c(v_short, v_long)) slt_sfx$make_new_version_folder(version_name = v)
+
+             slt_sfx$mark_best(version_name = v_long,  user_entry = list(comment = "best is the long one"))
+             slt_sfx$mark_keep(version_name = v_short, user_entry = list(comment = "keep the short one"))
+
+             # best still exists and still points at the long version
+             expect_identical(slt_sfx$roundup_best()$version_name, v_long)
+             vlog_long <- data.table::fread(clean_path(roots_sfx[["root_a"]], v_long, slt_sfx$return_dictionaries()$log_path))
+             expect_false("demote_best" %in% vlog_long$action)
+          })
+
+
 # Empty Directories ---------------------------------------------------------
 
 test_that("SLT roundups run cleanly on empty directories",

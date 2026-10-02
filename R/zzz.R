@@ -17,6 +17,20 @@
 #' @keywords internal
 arrow_regex <- function() "->"
 
+#' Escape a string so it matches literally inside a regular expression
+#'
+#' version_names are user-chosen and the package's own default scheme
+#' (`YYYY_MM_DD.VV`) contains a `.`, which is a regex wildcard. Anything
+#' interpolated into a pattern must go through this first.
+#'
+#' @param x (chr) literal string(s)
+#'
+#' @returns (chr) `x` with regex metacharacters backslash-escaped
+#' @keywords internal
+regex_escape <- function(x) {
+    gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", x)
+}
+
 
 # ---- Function Factories -----------------------------------------------------------------
 
@@ -48,10 +62,17 @@ make_symlink_suffix_fn <- function(is_singleton) {
 #' Make a function to create a regex pattern to find the symlink type when
 #' running `ls` system calls
 #'
-#' The pattern depends on whether the symlink type is a singleton or not. For
-#' example, for a singleton "best" symlink type, the pattern would be "^best$".
-#' For a non-singleton "keep" symlink type, the pattern would be "^keep_.* ->
-#' .*version_name$".
+#' Matches one line of `ls -l` output, e.g.
+#' `"lrwxrwxrwx 1 user group 46 Oct  1 20:20 keep_1990_01_01 -> /root/1990_01_01"`.
+#' For a singleton type the pattern is `" best -> .*/<version>/?$"`; for a
+#' non-singleton type it is `" keep_<version> -> .*/<version>/?$"`.
+#'
+#' The version_name is regex-escaped (the default `YYYY_MM_DD.VV` scheme has a
+#' `.`), the symlink name is anchored on the leading space `ls -l` always
+#' emits, and the target is anchored on a path separator. Without those
+#' anchors `1990_01_01` also matched `x1990_01_01` and `2024_01_01.01` matched
+#' `2024_01_01x01`, so marking one version could delete another version's
+#' symlink.
 #'
 #' @param is_singleton (logical) whether this symlink type is a singleton (only
 #'   one per root)
@@ -68,9 +89,13 @@ make_ls_regex_fn <- function(is_singleton, symlink_type) {
     checkmate::assert_flag(is_singleton)
     checkmate::assert_string(symlink_type)
     if (is_singleton) {
-        function(version_name) {sprintf("%s %s .*%s$", symlink_type, arrow_regex(), version_name)}
+        function(version_name) {
+            sprintf(" %s %s .*/%s/?$", regex_escape(symlink_type), arrow_regex(), regex_escape(version_name))
+        }
     } else {
-        function(version_name) {sprintf("%s_%s %s .*%s$", symlink_type, version_name, arrow_regex(), version_name)}
+        function(version_name) {
+            sprintf(" %s_%s %s .*/%s/?$", regex_escape(symlink_type), regex_escape(version_name), arrow_regex(), regex_escape(version_name))
+        }
     }
 }
 
