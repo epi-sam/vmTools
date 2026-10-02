@@ -114,7 +114,7 @@ suppressMessages(
 
 # Central log - constructor is read-only --------------------------------------
 
-# Many jobs (e.g. a Slurm array) may instantiate SLT concurrently against one
+# Many parallel jobs may instantiate SLT concurrently against one
 # central_log_root.  The constructor must never read-modify-write that file.
 
 test_that("Constructor does not create or modify the central log",
@@ -168,6 +168,72 @@ test_that("Constructor does not create or modify the central log",
              expect_true(file.exists(fpath_central))
              log_central <- data.table::fread(fpath_central)
              expect_identical(log_central$action, c("create", "demote_best", "promote_keep"))
+          })
+
+
+# Atomic CSV writer -------------------------------------------------------------
+
+# All log/report writes go to a hidden temp file in the target directory and
+# are then renamed into place, so concurrent readers never see a torn file.
+
+test_that("csv_writer writes atomically and leaves no temp files",
+          {
+             dir_atomic <- clean_path(tempdir(), "slt_atomic_writer")
+             make_directory(dir_atomic)
+             on.exit(unlink(dir_atomic, recursive = TRUE), add = TRUE)
+
+             csv_writer <- slt$.__enclos_env__$private$csv_writer
+             fpath      <- clean_path(dir_atomic, "test.csv")
+             dt_in      <- data.table::data.table(a = 1:3, b = c("x", "y", "z"))
+
+             # 1. fresh write round-trips and leaves only the target behind
+             csv_writer(dt_in, fpath, row.names = FALSE)
+             expect_true(file.exists(fpath))
+             expect_identical(data.table::fread(fpath), dt_in)
+             expect_identical(list.files(dir_atomic, all.files = TRUE, no.. = TRUE), "test.csv")
+
+             # 2. overwrite replaces content and still leaves no temp files
+             dt_in_2 <- data.table::data.table(a = 4:5, b = c("p", "q"))
+             csv_writer(dt_in_2, fpath, row.names = FALSE)
+             expect_identical(data.table::fread(fpath), dt_in_2)
+             expect_identical(list.files(dir_atomic, all.files = TRUE, no.. = TRUE), "test.csv")
+
+             # 3. missing target directory errors cleanly
+             expect_error(
+                csv_writer(dt_in, clean_path(dir_atomic, "nope", "test.csv"), row.names = FALSE)
+                , regexp = "folder does not exist"
+             )
+          })
+
+test_that("csv_writer preserves file mode and cleans up on failure (POSIX only)",
+          {
+             skip_on_os("windows")
+             skip_if(identical(Sys.info()[["user"]], "root"), "root ignores directory permissions")
+
+             dir_atomic <- clean_path(tempdir(), "slt_atomic_writer_posix")
+             make_directory(dir_atomic)
+             on.exit({
+                Sys.chmod(dir_atomic, mode = "0755", use_umask = FALSE)
+                unlink(dir_atomic, recursive = TRUE)
+             }, add = TRUE)
+
+             csv_writer <- slt$.__enclos_env__$private$csv_writer
+             fpath      <- clean_path(dir_atomic, "test.csv")
+             dt_in      <- data.table::data.table(a = 1:3, b = c("x", "y", "z"))
+
+             # 1. an existing file's mode is carried over to the rewritten file
+             csv_writer(dt_in, fpath, row.names = FALSE)
+             Sys.chmod(fpath, mode = "0640", use_umask = FALSE)
+             csv_writer(dt_in, fpath, row.names = FALSE)
+             expect_identical(as.character(file.mode(fpath)), "640")
+
+             # 2. a write into an unwritable directory errors and leaves no temp file
+             Sys.chmod(dir_atomic, mode = "0500", use_umask = FALSE)
+             expect_error(csv_writer(dt_in, fpath, row.names = FALSE))
+             Sys.chmod(dir_atomic, mode = "0755", use_umask = FALSE)
+             expect_identical(list.files(dir_atomic, all.files = TRUE, no.. = TRUE), "test.csv")
+             # original content untouched by the failed write
+             expect_identical(data.table::fread(fpath), dt_in)
           })
 
 
@@ -534,6 +600,18 @@ test_that("bad csv_reader option produces expected error",
                 )
                 , regexp = "csv_reader must be one of: fread, fread_quiet, read.csv, read.csv2"
              )
+          })
+
+test_that("read.csv alternate CSV writer round-trips through the atomic wrapper",
+          {
+             dir_atomic <- clean_path(tempdir(), "slt_atomic_writer_readcsv")
+             make_directory(dir_atomic)
+             on.exit(unlink(dir_atomic, recursive = TRUE), add = TRUE)
+             fpath <- clean_path(dir_atomic, "test.csv")
+             dt_in <- data.table::data.table(a = 1:3, b = c("x", "y", "z"))
+             slt_readcsv$.__enclos_env__$private$csv_writer(dt_in, fpath, row.names = FALSE)
+             expect_identical(data.table::setDT(utils::read.csv(fpath)), dt_in)
+             expect_identical(list.files(dir_atomic, all.files = TRUE, no.. = TRUE), "test.csv")
           })
 
 test_that("read.csv alternate CSV reader works",

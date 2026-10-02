@@ -140,8 +140,62 @@ SLT <- R6::R6Class(
       # Functions under the user's control on instantiation
       # - requires NULL placeholder
 
-      csv_reader = NULL,
-      csv_writer = NULL,
+      csv_reader     = NULL,
+      csv_writer_raw = NULL,
+
+      # Atomic CSV write: temp file in the target directory, then rename.
+      #
+      # All log and report writes go through here.  A plain `fwrite()` /
+      # `write.csv()` truncates the target in place and then streams rows in, so
+      # any concurrent reader (e.g. another array job) can observe an empty or
+      # half-written file.  `file.rename()` within one filesystem is atomic, so
+      # readers only ever see the complete old file or the complete new file.
+      # The temp file MUST live in the same directory as the target: rename
+      # across filesystems is not atomic (and may fail).
+      #
+      # If the target already exists, its permissions are copied onto the new
+      # file so a rewrite does not silently change group/world access on
+      # shared directories.
+      #
+      # @param x (data.frame) table to write
+      # @param fpath (chr) target file path
+      # @param ... passed to the underlying writer (`private$csv_writer_raw`)
+      #
+      # @return (none) writes to disk
+      csv_writer = function(x, fpath, ...){
+         assert_scalar(fpath)
+         target_dir <- dirname(fpath)
+         if(!dir.exists(target_dir)){
+            stop(
+               "Could not write the file: ", fpath,
+               "\nIts folder does not exist: ", target_dir
+            )
+         }
+         fpath_tmp <- tempfile(
+            pattern   = paste0(".", basename(fpath), ".")
+            , tmpdir  = target_dir
+            , fileext = ".tmp"
+         )
+         # always remove the temp file if anything below fails
+         on.exit(if(file.exists(fpath_tmp)) unlink(fpath_tmp), add = TRUE)
+
+         private$csv_writer_raw(x, fpath_tmp, ...)
+
+         if(file.exists(fpath)){
+            Sys.chmod(fpath_tmp, mode = file.mode(fpath), use_umask = FALSE)
+         }
+
+         rename_ok <- file.rename(fpath_tmp, fpath)
+         if(!isTRUE(rename_ok)){
+            stop(
+               "Could not finish writing the file: ", fpath,
+               "\nThe original file (if any) was left untouched.\n",
+               "Common causes: you do not have write permission on the folder, ",
+               "the file is locked by another program, or the disk is full."
+            )
+         }
+         invisible(NULL)
+      },
 
       # Message Functions ------------------------------------------------------
 
@@ -2209,12 +2263,15 @@ SLT <- R6::R6Class(
             , stop("csv_reader must be one of: fread, fread_quiet, read.csv, read.csv2")
          )
 
-         private$csv_writer <- switch_strict(
+         # raw writer - never call directly; `private$csv_writer()` wraps it
+         # with an atomic temp-file + rename so concurrent readers never see a
+         # truncated file
+         private$csv_writer_raw <- switch_strict(
             csv_reader
             , "fread"       = function(...) return(data.table::fwrite(...))
             , "fread_quiet" = function(...) return(data.table::fwrite(...))
-            , "read.csv"    = function(...) return(data.table::setDT(utils::write.csv(...)))
-            , "read.csv2"   = function(...) return(data.table::setDT(utils::write.csv2(...)))
+            , "read.csv"    = function(...) return(utils::write.csv(...))
+            , "read.csv2"   = function(...) return(utils::write.csv2(...))
             , stop("csv_reader must be one of: fread, fread_quiet, read.csv, read.csv2")
          )
 
