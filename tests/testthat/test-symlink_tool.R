@@ -112,6 +112,65 @@ suppressMessages(
    })
 )
 
+# Central log - constructor is read-only --------------------------------------
+
+# Many jobs (e.g. a Slurm array) may instantiate SLT concurrently against one
+# central_log_root.  The constructor must never read-modify-write that file.
+
+test_that("Constructor does not create or modify the central log",
+          {
+             root_ctor    <- clean_path(tempdir(), "slt_ctor_readonly")
+             roots_ctor   <- list(root_a = clean_path(root_ctor, "a"))
+             central_ctor <- clean_path(root_ctor, "central")
+             make_directory(roots_ctor[["root_a"]])
+             make_directory(central_ctor)
+             on.exit(unlink(root_ctor, recursive = TRUE), add = TRUE)
+
+             make_slt_ctor <- function(){
+                suppressMessages(suppressWarnings(
+                   SLT$new(
+                      root_list          = roots_ctor
+                      , central_log_root = central_ctor
+                      , verbose          = FALSE
+                      , verbose_startup  = FALSE
+                   )
+                ))
+             }
+
+             # 1. Fresh root: construction creates no central log
+             slt_ctor <- make_slt_ctor()
+             fpath_central <- slt_ctor$return_dictionaries()$LOG_CENTRAL$path
+             expect_false(file.exists(fpath_central))
+             expect_identical(list.files(central_ctor), character(0))
+
+             # 2. First mark creates it with a 'create' row plus the action row
+             slt_ctor$make_new_version_folder(version_name = "1990_01_01")
+             slt_ctor$mark_best(version_name = "1990_01_01", user_entry = list(comment = "first mark"))
+             expect_true(file.exists(fpath_central))
+             log_central <- data.table::fread(fpath_central)
+             expect_identical(log_central$log_id, c(0L, 1L))
+             expect_identical(log_central$action, c("create", "promote_best"))
+             expect_identical(log_central$version_name, c("CENTRAL_LOG", "1990_01_01"))
+
+             # 3. Re-constructing over a populated central log leaves it byte-identical
+             md5_before   <- unname(tools::md5sum(fpath_central))
+             mtime_before <- file.mtime(fpath_central)
+             slt_ctor_2   <- make_slt_ctor()
+             slt_ctor_3   <- make_slt_ctor()
+             expect_identical(unname(tools::md5sum(fpath_central)), md5_before)
+             expect_identical(file.mtime(fpath_central), mtime_before)
+
+             # 4. A central log that does not exist at construction still
+             #    gets written on the first mark of a *second* tool instance
+             #    (i.e. nothing is cached at construction that depends on the file)
+             unlink(fpath_central)
+             slt_ctor_2$mark_keep(version_name = "1990_01_01", user_entry = list(comment = "second mark"))
+             expect_true(file.exists(fpath_central))
+             log_central <- data.table::fread(fpath_central)
+             expect_identical(log_central$action, c("create", "demote_best", "promote_keep"))
+          })
+
+
 # Empty Directories ---------------------------------------------------------
 
 test_that("SLT roundups run cleanly on empty directories",

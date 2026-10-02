@@ -2266,10 +2266,11 @@ SLT <- R6::R6Class(
             private$DICT$LOG_CENTRAL$root
             , private$DICT$LOG_CENTRAL$fname
          )
-         private$write_expected_central_log(
-            fpath        = private$DICT$LOG_CENTRAL$path
-            , log_schema = private$DICT$log_schema
-         )
+         # NOTE: the constructor must NOT touch the central log on disk.
+         # Many jobs (e.g. job arrays) may instantiate this tool
+         # concurrently against the same central_log_root; any read-modify-write
+         # here is a race.  The central log is created/repaired lazily on the
+         # first mark/delete via `append_to_central_log()`.
       },
 
 
