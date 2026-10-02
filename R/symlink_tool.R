@@ -941,7 +941,7 @@ SLT <- R6::R6Class(
          private$csv_writer(dt_log, fpath, row.names = FALSE)
       },
 
-      #  Safely correct a null log, if found (all dim == 0).
+      #  Safely read a log, correcting a null log (all dim == 0), if found
       #
       #  If log is null (all dim == 0), rebuild schema and write a new 'create' row.
       #
@@ -950,9 +950,61 @@ SLT <- R6::R6Class(
       #  @param dt_log (data.table) log data.table
       #
       #  @return (data.table) log data.table
+      #  Read a log file from disk, refusing to mistake a damaged file for an
+      #  empty one.
+      #
+      #  A genuinely empty (zero-byte) file is returned as a 0x0 data.table so
+      #  the callers' existing "null log" repair can rebuild it.  A file that
+      #  HAS bytes but cannot be read as a table (hand-edited, corrupted, or
+      #  being simultaneously written by another process (race condition)) is an
+      #  error: rebuilding it from scratch would silently erase its history.
+      #
+      #  @param fpath (chr) path to the log file
+      #  @param log_schema (named list) named list of column names and data types
+      #
+      #  @return (data.table) raw log contents (0x0 if the file is zero bytes)
+      read_log_file = function(fpath, log_schema = private$DICT$log_schema){
+         assert_scalar(fpath)
+         if(!file.exists(fpath)){
+            stop("Could not read the log file - it does not exist: ", fpath)
+         }
+         if(file.size(fpath) == 0){
+            return(data.table::data.table())
+         }
+
+         dt_log <- tryCatch(
+            private$csv_reader(fpath, colClasses = unlist(log_schema))
+            , error = function(e) e
+         )
+         read_failed <- inherits(dt_log, "error") || all(dim(dt_log) == 0)
+
+         if(read_failed){
+            stop(
+               "Refusing to rebuild the log file: ", fpath,
+               "\nIt is not empty (", file.size(fpath), " bytes) but could not be read as a table.",
+               "\nThis usually means the file was hand-edited, corrupted, or was being written ",
+               "by another process at the moment it was read (race condition).",
+               "\nNothing has been written, to avoid destroying the log's history.",
+               "\nPlease inspect the file. If it is truly unrecoverable, delete it and it ",
+               "will be recreated on the next write.",
+               if(inherits(dt_log, "error")) paste0("\nReader error: ", conditionMessage(dt_log)) else ""
+            )
+         }
+         return(dt_log)
+      },
+
+      #  Rebuild a log that read as 0x0 (zero-byte file), adding a 'create' row.
+      #
+      #  `read_log_file()` guarantees we only get here for a genuinely empty
+      #  file, never for a damaged one.
+      #
+      #  @param version_path (chr) path to a version_name folder
+      #  @param dt_log (data.table) log as read from disk
+      #
+      #  @return (data.table) log data.table, rebuilt if it was null
       correct_null_log = function(version_path, dt_log){
          if(all(dim(dt_log) == 0)){
-            private$msg_sometimes("NULL log found (all dim = 0) - rebuilding schema and writing a new 'create' row.", always_message = TRUE)
+            private$msg_sometimes("Empty (zero-byte) log found - rebuilding schema and writing a new 'create' row.", always_message = TRUE)
             dt_log <- private$make_schema_dt(private$DICT$log_schema)
             dt_log <- private$ensure_log_creation_entry(version_path, dt_log)
          }
@@ -969,10 +1021,9 @@ SLT <- R6::R6Class(
       #  @return (data.table) log data.table
       read_log = function(fpath, log_schema = private$DICT$log_schema){
 
-         col_classes        <- unlist(log_schema)
-         dt_log <- private$csv_reader(fpath, colClasses = col_classes)
+         dt_log <- private$read_log_file(fpath, log_schema)
 
-         # safely correct a null log, if found (all dim == 0)
+         # safely correct a null log, if found (all dim == 0, i.e. zero-byte file)
          dt_log <- private$correct_null_log(dirname(fpath), dt_log)
          dt_log <- private$repair_log_schema(dt_log, log_schema = log_schema)
          private$assert_data_schema(dt_log, data_types = log_schema)
@@ -1079,13 +1130,11 @@ SLT <- R6::R6Class(
       #  @return (data.table) log data.table
       read_central_log = function(fpath, log_schema = private$DICT$log_schema){
 
-         col_classes        <- unlist(log_schema)
+         dt_log <- private$read_log_file(fpath, log_schema)
 
-         dt_log <- private$csv_reader(fpath, colClasses = col_classes)
-
-         # safely correct a null log, if found (all dim == 0)
+         # safely correct a null log, if found (all dim == 0, i.e. zero-byte file)
          if(all(dim(dt_log) == 0)){
-            private$msg_sometimes("NULL central log found (all dim = 0) - rebuilding schema and writing a new 'create' row.", always_message = TRUE)
+            private$msg_sometimes("Empty (zero-byte) central log found - rebuilding schema and writing a new 'create' row.", always_message = TRUE)
             dt_log <- private$make_schema_dt(private$DICT$log_schema)
             dt_log <- private$make_central_log_creation_entry(dt_log)
          }

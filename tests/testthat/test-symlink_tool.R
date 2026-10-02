@@ -237,6 +237,82 @@ test_that("csv_writer preserves file mode and cleans up on failure (POSIX only)"
           })
 
 
+# Null-log guard ----------------------------------------------------------------
+
+# A zero-byte log is genuinely empty and may be rebuilt.  A log that has bytes
+# but cannot be read as a table must NOT be rebuilt - that would erase history.
+
+test_that("Zero-byte logs are rebuilt, unreadable logs are refused and left untouched",
+          {
+             root_guard    <- clean_path(tempdir(), "slt_null_log_guard")
+             roots_guard   <- list(root_a = clean_path(root_guard, "a"))
+             central_guard <- clean_path(root_guard, "central")
+             make_directory(roots_guard[["root_a"]])
+             make_directory(central_guard)
+             on.exit(unlink(root_guard, recursive = TRUE), add = TRUE)
+
+             slt_guard <- suppressMessages(suppressWarnings(
+                SLT$new(
+                   root_list          = roots_guard
+                   , central_log_root = central_guard
+                   , verbose          = FALSE
+                   , verbose_startup  = FALSE
+                )
+             ))
+             priv          <- slt_guard$.__enclos_env__$private
+             fpath_central <- slt_guard$return_dictionaries()$LOG_CENTRAL$path
+             slt_guard$make_new_version_folder(version_name = "1990_01_01")
+             fpath_version <- clean_path(roots_guard[["root_a"]], "1990_01_01", slt_guard$return_dictionaries()$log_path)
+             make_directory(dirname(fpath_version))
+
+             # --- zero-byte files: rebuilt with a 'create' row -------------------
+             file.create(fpath_central)
+             file.create(fpath_version)
+             expect_identical(file.size(fpath_central), 0)
+
+             dt_central <- suppressMessages(priv$read_central_log(fpath_central))
+             expect_identical(dt_central$action, "create")
+             expect_identical(dt_central$version_name, "CENTRAL_LOG")
+
+             dt_version <- suppressMessages(priv$read_log(fpath_version))
+             expect_identical(dt_version$action, "create")
+             expect_identical(dt_version$version_name, "1990_01_01")
+
+             # end-to-end: a mark over a zero-byte central log rebuilds it
+             suppressMessages(slt_guard$mark_best(version_name = "1990_01_01", user_entry = list(comment = "rebuild")))
+             expect_identical(data.table::fread(fpath_central)$action, c("create", "promote_best"))
+
+             # --- files with bytes that are not a table: refused ----------------
+             writeLines(c("", "   ", ""), fpath_central)   # whitespace only
+             writeLines(c("", "   ", ""), fpath_version)
+             expect_gt(file.size(fpath_central), 0)
+             md5_central <- unname(tools::md5sum(fpath_central))
+             md5_version <- unname(tools::md5sum(fpath_version))
+
+             expect_error(priv$read_central_log(fpath_central), regexp = "Refusing to rebuild the log file")
+             expect_error(priv$read_log(fpath_version),         regexp = "Refusing to rebuild the log file")
+
+             # end-to-end: marking refuses and writes nothing to the damaged central log
+             expect_error(
+                suppressMessages(slt_guard$mark_keep(version_name = "1990_01_01", user_entry = list(comment = "should fail")))
+                , regexp = "Refusing to rebuild the log file"
+             )
+             expect_identical(unname(tools::md5sum(fpath_central)), md5_central)
+             expect_identical(unname(tools::md5sum(fpath_version)), md5_version)
+             expect_identical(list.files(central_guard, all.files = TRUE, no.. = TRUE), basename(fpath_central))
+
+             # --- header-only file (0 rows, N cols) is NOT "null": read normally --
+             writeLines(paste(names(slt_guard$return_dictionaries()$log_schema), collapse = ","), fpath_central)
+             expect_no_error(dt_header <- priv$read_central_log(fpath_central))
+             expect_identical(nrow(dt_header), 0L)  # 0 rows, full schema; 'create' row is added on append, not on read
+             expect_true(all(names(slt_guard$return_dictionaries()$log_schema) %in% names(dt_header)))
+
+             # --- missing file is a clear error, not a silent rebuild ----------
+             unlink(fpath_central)
+             expect_error(priv$read_central_log(fpath_central), regexp = "does not exist")
+          })
+
+
 # Empty Directories ---------------------------------------------------------
 
 test_that("SLT roundups run cleanly on empty directories",
