@@ -377,6 +377,127 @@ test_that("Concurrent construction and querying never modifies the central log",
           })
 
 
+# Symlink names passed as version_name ------------------------------------------
+
+# Users naturally pass "latest"/"best"/"keep_<v>" where a version_name is
+# expected. These must resolve to the real folder name, never be used raw.
+
+test_that("Symlink names passed as version_name resolve to the real version",
+          {
+             root_res    <- clean_path(tempdir(), "slt_resolve_names")
+             roots_res   <- list(root_a = clean_path(root_res, "a"))
+             central_res <- clean_path(root_res, "central")
+             lapply(c(unlist(roots_res), central_res), make_directory)
+             on.exit(unlink(root_res, recursive = TRUE), add = TRUE)
+
+             slt_res <- suppressMessages(suppressWarnings(
+                SLT$new(root_list = roots_res, central_log_root = central_res, verbose = TRUE, verbose_startup = FALSE)
+             ))
+             v1          <- "1990_01_01"
+             fpath_vlog  <- clean_path(roots_res[["root_a"]], v1, slt_res$return_dictionaries()$log_path)
+             fpath_clog  <- slt_res$return_dictionaries()$LOG_CENTRAL$path
+             fpath_disc  <- clean_path(roots_res[["root_a"]], slt_res$return_dictionaries()$report_fnames$discrepancies)
+             read_actions <- function(f) data.table::fread(f)[, .(version_name, action)]
+
+             suppressMessages(slt_res$make_new_version_folder(version_name = v1))
+             suppressMessages(slt_res$mark_latest(version_name = v1, user_entry = list(comment = "setup")))
+             expect_true(file.exists(clean_path(roots_res[["root_a"]], "latest")))
+
+             # --- A plain version_name is untouched and prints no "Resolved" message
+             expect_no_message(
+                suppressWarnings(slt_res$mark_keep(version_name = v1, user_entry = list(comment = "plain")))
+                , message = "Resolved"
+             )
+             expect_true(file.exists(clean_path(roots_res[["root_a"]], paste0("keep_", v1))))
+
+             # --- Symptom B: mark("best", "latest") - wait, keep_ is on; use the keep_ name
+             #     non-singleton symlink name resolves too
+             expect_message(
+                slt_res$unmark(version_name = paste0("keep_", v1), user_entry = list(comment = "unmark via keep_ name"))
+                , regexp = "Resolved 'keep_1990_01_01' -> '1990_01_01'"
+             )
+             expect_false(file.exists(clean_path(roots_res[["root_a"]], paste0("keep_", v1))))
+
+             # re-mark latest for the next checks
+             suppressMessages(slt_res$mark_latest(version_name = v1, user_entry = list(comment = "setup 2")))
+
+             # --- Symptom B: mark("best", "latest") logs under the REAL version name
+             expect_message(
+                slt_res$mark("best", version_name = "latest", user_entry = list(comment = "best via latest"))
+                , regexp = "Resolved 'latest' -> '1990_01_01'"
+             )
+             expect_true(file.exists(clean_path(roots_res[["root_a"]], "best")))
+             vlog <- read_actions(fpath_vlog)
+             clog <- read_actions(fpath_clog)
+             expect_false("latest" %in% vlog$version_name)
+             expect_false("latest" %in% clog$version_name)
+             expect_identical(tail(vlog$action, 1), "promote_best")
+             expect_identical(tail(vlog$version_name, 1), v1)
+             expect_false(file.exists(fpath_disc))   # no discrepancy report triggered
+
+             # --- Symptom A: unmark("best") actually removes the symlink and logs it
+             expect_message(
+                slt_res$unmark(version_name = "best", user_entry = list(comment = "unmark via best"))
+                , regexp = "Resolved 'best' -> '1990_01_01'"
+             )
+             expect_false(file.exists(clean_path(roots_res[["root_a"]], "best")))
+             vlog <- read_actions(fpath_vlog)
+             expect_identical(tail(vlog$action, 1), "demote_best")
+             expect_identical(tail(vlog$version_name, 1), v1)
+
+             # --- A non-existent name passes through unchanged (resolution never invents a name)
+             #     NOTE: mark() on a non-existent version is currently a silent skip (pre-existing,
+             #     see plan finding G) - so test the helper directly rather than the public method.
+             expect_identical(
+                slt_res$.__enclos_env__$private$resolve_version_name("does_not_exist_1990")
+                , "does_not_exist_1990"
+             )
+          })
+
+test_that("A symlink name that points to different versions in different roots is refused",
+          {
+             root_amb    <- clean_path(tempdir(), "slt_resolve_ambiguous")
+             roots_amb   <- list(root_a = clean_path(root_amb, "a"), root_b = clean_path(root_amb, "b"))
+             central_amb <- clean_path(root_amb, "central")
+             lapply(c(unlist(roots_amb), central_amb), make_directory)
+             on.exit(unlink(root_amb, recursive = TRUE), add = TRUE)
+
+             slt_amb <- suppressMessages(suppressWarnings(
+                SLT$new(root_list = roots_amb, central_log_root = central_amb, verbose = FALSE, verbose_startup = FALSE)
+             ))
+             v1 <- "1990_01_01"; v2 <- "1990_01_02"
+             for(v in c(v1, v2)) slt_amb$make_new_version_folder(version_name = v)
+             slt_amb$mark_latest(version_name = v1, user_entry = list(comment = "setup"))
+
+             # hand-repoint root_b's `latest` at v2 so the two roots disagree
+             latest_b <- clean_path(roots_amb[["root_b"]], "latest", normalize = FALSE)
+             unlink(latest_b)
+             file.symlink(clean_path(roots_amb[["root_b"]], v2), latest_b)
+
+             logs <- c(
+                clean_path(roots_amb[["root_a"]], v1, slt_amb$return_dictionaries()$log_path)
+                , clean_path(roots_amb[["root_b"]], v1, slt_amb$return_dictionaries()$log_path)
+                , clean_path(roots_amb[["root_b"]], v2, slt_amb$return_dictionaries()$log_path)
+             )
+             md5_before <- unname(tools::md5sum(logs))
+
+             expect_error(
+                slt_amb$unmark(version_name = "latest", user_entry = list(comment = "ambiguous"))
+                , regexp = "points to different versioned folders in each root"
+             )
+             expect_error(
+                slt_amb$mark_best(version_name = "latest", user_entry = list(comment = "ambiguous"))
+                , regexp = "root_a: 1990_01_01.*root_b: 1990_01_02"
+             )
+
+             # nothing changed on disk
+             expect_identical(unname(tools::md5sum(logs)), md5_before)
+             expect_true(file.exists(clean_path(roots_amb[["root_a"]], "latest")))
+             expect_true(file.exists(latest_b))
+             expect_false(file.exists(clean_path(roots_amb[["root_a"]], "best")))
+          })
+
+
 # Empty Directories ---------------------------------------------------------
 
 test_that("SLT roundups run cleanly on empty directories",

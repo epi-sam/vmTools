@@ -583,6 +583,44 @@ SLT <- R6::R6Class(
          }
       },
 
+      #  Resolve a user-supplied `version_name` to the real folder name.
+      #
+      #  Users naturally pass a symlink name ("latest", "best",
+      #  "keep_1990_01_01") where the API asks for a version_name
+      #  ("1990_01_01").  Paths are already normalized through symlinks by
+      #  `clean_path()`, but the *name* was not, so logs were written under the
+      #  symlink's name and `ls`-regex lookups silently found nothing.
+      #
+      #  - A symlink name resolves to the version_name it points to.
+      #  - A real version_name, or a name that does not exist, passes through
+      #    unchanged so downstream "folder does not exist" errors still fire.
+      #  - With several roots, the name must resolve to the SAME version in
+         # every root; otherwise the request is ambiguous & stop.
+      #
+      #  @param version_name (chr) user-supplied version_name or symlink name
+      #
+      #  @return (chr) the resolved version_name
+      resolve_version_name = function(version_name){
+         assert_scalar(version_name)
+         roots    <- unlist(private$DICT$ROOTS)
+         resolved <- basename(clean_path(roots, version_name)) # normalizes through symlinks
+         names(resolved) <- names(roots)
+
+         if(length(unique(resolved)) != 1L){
+            stop(
+               "'", version_name, "' points to different versioned folders in each root and is ambiguous:\n  ",
+               paste0(names(resolved), ": ", resolved, collapse = "\n  "),
+               "\nPlease pass the exact version_name instead of a symlink name."
+            )
+         }
+         resolved <- unique(resolved)
+
+         if(!identical(resolved, version_name)){
+            private$msg_sometimes("Resolved '", version_name, "' -> '", resolved, "'")
+         }
+         return(resolved)
+      },
+
       #
       #  Make a symlink string of a certain type for a folder
       #
@@ -2440,6 +2478,7 @@ SLT <- R6::R6Class(
       #'
       #' @return (std_err) Messages about actions taken.
       mark = function(symlink_type, version_name, user_entry) {
+         version_name <- private$resolve_version_name(version_name)
          checkmate::assert_choice(symlink_type, names(get_symlink_registry()))
 
          private$handler_pre_mark(
@@ -2628,6 +2667,7 @@ SLT <- R6::R6Class(
       #'
       #'
       unmark = function(version_name, user_entry){
+         version_name <- private$resolve_version_name(version_name)
 
          # 1. remove all symlinks associated with a version_name
          # 2. append to the log
@@ -2934,6 +2974,7 @@ SLT <- R6::R6Class(
       #'
       #'
       make_new_log = function(version_name){
+         version_name <- private$resolve_version_name(version_name)
 
          private$handler_update_dynamic_fields(version_name = version_name)
 
@@ -2983,6 +3024,7 @@ SLT <- R6::R6Class(
       #'
       #'
       delete_version_folders = function(version_name, user_entry, require_user_input = TRUE){
+         version_name <- private$resolve_version_name(version_name)
 
          private$handler_pre_mark(
             version_name = version_name,
