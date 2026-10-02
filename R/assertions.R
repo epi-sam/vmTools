@@ -14,7 +14,7 @@
 assert_scalar <- function(x) {
    x_name <- deparse(substitute(x))
    if (!(is.atomic(x) && length(x) == 1L)) {
-      stop(x_name, " must be atomic and length 1L")
+      stop(x_name, " must be atomic and length 1L.\n", "got: ", toString(x))
    }
 }
 
@@ -30,7 +30,7 @@ assert_scalar_not_empty = function(x) {
    assert_scalar(x)
    if (!isTRUE(validate_not_empty(x))) {
       x_name <- deparse(substitute(x))
-      stop(x_name, " is empty in some way.")
+      stop(x_name, " is empty in some way.\n", "got: ", toString(x))
    }
 }
 
@@ -48,7 +48,8 @@ assert_type = function(x, type) {
    stopifnot(is.character(type))
    if (!inherits(x, type)) {
       x_name <- deparse(substitute(x))
-      stop(x_name, " must be of type ", type)
+      x_type <- typeof(x)
+      stop(x_name, " must be of type ", type, "\n", "got: ", x_type)
    }
 }
 
