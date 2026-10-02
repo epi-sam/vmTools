@@ -1261,7 +1261,7 @@ SLT <- R6::R6Class(
                   , colClasses = unlist(private$DICT$log_schema)
                )
             },
-            error = function(e) if(verbose == TRUE) private$msg_sometimes("No log found for folder: ", version_path, always_message = TRUE)
+            error = function(e) if(verbose == TRUE) private$msg_sometimes("No readable log found for folder: ", version_path, always_message = TRUE)
          )
 
       },
