@@ -140,8 +140,62 @@ SLT <- R6::R6Class(
       # Functions under the user's control on instantiation
       # - requires NULL placeholder
 
-      csv_reader = NULL,
-      csv_writer = NULL,
+      csv_reader     = NULL,
+      csv_writer_raw = NULL,
+
+      # Atomic CSV write: temp file in the target directory, then rename.
+      #
+      # All log and report writes go through here.  A plain `fwrite()` /
+      # `write.csv()` truncates the target in place and then streams rows in, so
+      # any concurrent reader (e.g. another array job) can observe an empty or
+      # half-written file.  `file.rename()` within one filesystem is atomic, so
+      # readers only ever see the complete old file or the complete new file.
+      # The temp file MUST live in the same directory as the target: rename
+      # across filesystems is not atomic (and may fail).
+      #
+      # If the target already exists, its permissions are copied onto the new
+      # file so a rewrite does not silently change group/world access on
+      # shared directories.
+      #
+      # @param x (data.frame) table to write
+      # @param fpath (chr) target file path
+      # @param ... passed to the underlying writer (`private$csv_writer_raw`)
+      #
+      # @return (none) writes to disk
+      csv_writer = function(x, fpath, ...){
+         assert_scalar(fpath)
+         target_dir <- dirname(fpath)
+         if(!dir.exists(target_dir)){
+            stop(
+               "Could not write the file: ", fpath,
+               "\nIts folder does not exist: ", target_dir
+            )
+         }
+         fpath_tmp <- tempfile(
+            pattern   = paste0(".", basename(fpath), ".")
+            , tmpdir  = target_dir
+            , fileext = ".tmp"
+         )
+         # always remove the temp file if anything below fails
+         on.exit(if(file.exists(fpath_tmp)) unlink(fpath_tmp), add = TRUE)
+
+         private$csv_writer_raw(x, fpath_tmp, ...)
+
+         if(file.exists(fpath)){
+            Sys.chmod(fpath_tmp, mode = file.mode(fpath), use_umask = FALSE)
+         }
+
+         rename_ok <- file.rename(fpath_tmp, fpath)
+         if(!isTRUE(rename_ok)){
+            stop(
+               "Could not finish writing the file: ", fpath,
+               "\nThe original file (if any) was left untouched.\n",
+               "Common causes: you do not have write permission on the folder, ",
+               "the file is locked by another program, or the disk is full."
+            )
+         }
+         invisible(NULL)
+      },
 
       # Message Functions ------------------------------------------------------
 
@@ -529,6 +583,56 @@ SLT <- R6::R6Class(
          }
       },
 
+      #  Resolve a user-supplied `version_name` to the real folder name.
+      #
+      #  Users naturally pass a symlink name ("latest", "best",
+      #  "keep_1990_01_01") where the API asks for a version_name
+      #  ("1990_01_01").  Paths are already normalized through symlinks by
+      #  `clean_path()`, but the *name* was not, so logs were written under the
+      #  symlink's name and `ls`-regex lookups silently found nothing.
+      #
+      #  - A symlink name resolves to the version_name it points to.
+      #  - A real version_name, or a name that does not exist, passes through
+      #    unchanged so downstream "folder does not exist" errors still fire.
+      #  - With several roots, the name must resolve to the SAME version in
+         # every root; otherwise the request is ambiguous & stop.
+      #
+      #  @param version_name (chr) user-supplied version_name or symlink name
+      #
+      #  @return (chr) the resolved version_name
+      resolve_version_name = function(version_name){
+         assert_scalar(version_name)
+         roots    <- unlist(private$DICT$ROOTS)
+         resolved <- basename(clean_path(roots, version_name)) # normalizes through symlinks
+         names(resolved) <- names(roots)
+
+         if(length(unique(resolved)) != 1L){
+            stop(
+               "'", version_name, "' points to different versioned folders in each root and is ambiguous:\n  ",
+               paste0(names(resolved), ": ", resolved, collapse = "\n  "),
+               "\nPlease pass the exact version_name instead of a symlink name."
+            )
+         }
+         resolved <- unique(resolved)
+
+         # Still a reserved name after resolving?  Then no such symlink exists
+         # (user meant e.g. "latest" but nothing is marked latest), or a real
+         # folder is using the name.  Either way there is no version to act on.
+         if(!is.null(find_reserved_name_conflict(resolved))){
+            stop(
+               "'", version_name, "' is the name of a symlink (shortcut), not a versioned folder, ",
+               "and no symlink with that name currently exists in:\n  ", paste(roots, collapse = "\n  "),
+               "\nPlease pass the name of the versioned folder you want (e.g. '1990_01_01'). ",
+               "Use roundup() to see which folders are currently marked."
+            )
+         }
+
+         if(!identical(resolved, version_name)){
+            private$msg_sometimes("Resolved '", version_name, "' -> '", resolved, "'")
+         }
+         return(resolved)
+      },
+
       #
       #  Make a symlink string of a certain type for a folder
       #
@@ -887,18 +991,72 @@ SLT <- R6::R6Class(
          private$csv_writer(dt_log, fpath, row.names = FALSE)
       },
 
-      #  Safely correct a null log, if found (all dim == 0).
+      #  Safely read a log, correcting a null log (all dim == 0), if found
       #
       #  If log is null (all dim == 0), rebuild schema and write a new 'create' row.
       #
-      #  Helper for `read_log()`
+      #  Helper for `read_log()` for safety in read-modify-write cycles; not
+      #  really necessary for the `query_x` family of functions that are _only_
+      #  readers.
       #
       #  @param dt_log (data.table) log data.table
       #
       #  @return (data.table) log data.table
+      #  Read a log file from disk, refusing to mistake a damaged file for an
+      #  empty one.
+      #
+      #  A genuinely empty (zero-byte) file is returned as a 0x0 data.table so
+      #  the callers' existing "null log" repair can rebuild it.  A file that
+      #  HAS bytes but cannot be read as a table (hand-edited, corrupted, or
+      #  being simultaneously written by another process (race condition)) is an
+      #  error: rebuilding it from scratch would silently erase its history.
+      #
+      #  @param fpath (chr) path to the log file
+      #  @param log_schema (named list) named list of column names and data types
+      #
+      #  @return (data.table) raw log contents (0x0 if the file is zero bytes)
+      read_log_file = function(fpath, log_schema = private$DICT$log_schema){
+         assert_scalar(fpath)
+         if(!file.exists(fpath)){
+            stop("Could not read the log file - it does not exist: ", fpath)
+         }
+         if(file.size(fpath) == 0){
+            return(data.table::data.table())
+         }
+
+         dt_log <- tryCatch(
+            private$csv_reader(fpath, colClasses = unlist(log_schema))
+            , error = function(e) e
+         )
+         read_failed <- inherits(dt_log, "error") || all(dim(dt_log) == 0)
+
+         if(read_failed){
+            stop(
+               "Refusing to rebuild the log file: ", fpath,
+               "\nIt is not empty (", file.size(fpath), " bytes) but could not be read as a table.",
+               "\nThis usually means the file was hand-edited, corrupted, or was being written ",
+               "by another process at the moment it was read (race condition).",
+               "\nNothing has been written, to avoid destroying the log's history.",
+               "\nPlease inspect the file. If it is truly unrecoverable, delete it and it ",
+               "will be recreated on the next write.",
+               if(inherits(dt_log, "error")) paste0("\nReader error: ", conditionMessage(dt_log)) else ""
+            )
+         }
+         return(dt_log)
+      },
+
+      #  Rebuild a log that read as 0x0 (zero-byte file), adding a 'create' row.
+      #
+      #  `read_log_file()` guarantees we only get here for a genuinely empty
+      #  file, never for a damaged one.
+      #
+      #  @param version_path (chr) path to a version_name folder
+      #  @param dt_log (data.table) log as read from disk
+      #
+      #  @return (data.table) log data.table, rebuilt if it was null
       correct_null_log = function(version_path, dt_log){
          if(all(dim(dt_log) == 0)){
-            private$msg_sometimes("NULL log found (all dim = 0) - rebuilding schema and writing a new 'create' row.", always_message = TRUE)
+            private$msg_sometimes("Empty (zero-byte) log found - rebuilding schema and writing a new 'create' row.", always_message = TRUE)
             dt_log <- private$make_schema_dt(private$DICT$log_schema)
             dt_log <- private$ensure_log_creation_entry(version_path, dt_log)
          }
@@ -915,10 +1073,9 @@ SLT <- R6::R6Class(
       #  @return (data.table) log data.table
       read_log = function(fpath, log_schema = private$DICT$log_schema){
 
-         col_classes        <- unlist(log_schema)
-         dt_log <- private$csv_reader(fpath, colClasses = col_classes)
+         dt_log <- private$read_log_file(fpath, log_schema)
 
-         # safely correct a null log, if found (all dim == 0)
+         # safely correct a null log, if found (all dim == 0, i.e. zero-byte file)
          dt_log <- private$correct_null_log(dirname(fpath), dt_log)
          dt_log <- private$repair_log_schema(dt_log, log_schema = log_schema)
          private$assert_data_schema(dt_log, data_types = log_schema)
@@ -1025,13 +1182,11 @@ SLT <- R6::R6Class(
       #  @return (data.table) log data.table
       read_central_log = function(fpath, log_schema = private$DICT$log_schema){
 
-         col_classes        <- unlist(log_schema)
+         dt_log <- private$read_log_file(fpath, log_schema)
 
-         dt_log <- private$csv_reader(fpath, colClasses = col_classes)
-
-         # safely correct a null log, if found (all dim == 0)
+         # safely correct a null log, if found (all dim == 0, i.e. zero-byte file)
          if(all(dim(dt_log) == 0)){
-            private$msg_sometimes("NULL central log found (all dim = 0) - rebuilding schema and writing a new 'create' row.", always_message = TRUE)
+            private$msg_sometimes("Empty (zero-byte) central log found - rebuilding schema and writing a new 'create' row.", always_message = TRUE)
             dt_log <- private$make_schema_dt(private$DICT$log_schema)
             dt_log <- private$make_central_log_creation_entry(dt_log)
          }
@@ -1158,7 +1313,7 @@ SLT <- R6::R6Class(
                   , colClasses = unlist(private$DICT$log_schema)
                )
             },
-            error = function(e) if(verbose == TRUE) private$msg_sometimes("No log found for folder: ", version_path, always_message = TRUE)
+            error = function(e) if(verbose == TRUE) private$msg_sometimes("No readable log found for folder: ", version_path, always_message = TRUE)
          )
 
       },
@@ -1240,7 +1395,10 @@ SLT <- R6::R6Class(
          tool_symlink_regex  <- get_symlink_regex_extract()
          tool_symlink_regex  <- paste(tool_symlink_regex, collapse = "|")
          folder_dt[, is_symlink := dir_name != dir_name_resolved]
-         folder_dt[, is_tool_symlink := grepl(tool_symlink_regex, dir_leaf)]
+         # a tool symlink must actually BE a symlink - a real folder named e.g.
+         # `best` is a collision, not a mark, and is flagged separately
+         folder_dt[, is_tool_symlink      := is_symlink & grepl(tool_symlink_regex, dir_leaf)]
+         folder_dt[, is_reserved_name_dir := !is_symlink & grepl(tool_symlink_regex, dir_leaf)]
 
          # reporting requires logs to be in a consistent location
          has_bare_log <- file.exists(clean_path(folder_dt$dir_name_resolved, basename(private$DICT$log_name)))
@@ -1698,6 +1856,10 @@ SLT <- R6::R6Class(
          dirs_non_tool_symlinks_dt       <- folder_dt[is_symlink == TRUE & is_tool_symlink == FALSE, .N, by = dir_name]
          discrepant_dt_non_tool_symlinks <- private$make_report_schema_for_discrepant_paths(dirs_non_tool_symlinks_dt, "non-tool symlinks in root folder")
 
+         # Real folders using a name reserved for a tool symlink, e.g. a directory literally called `best` (dir_name only)
+         dirs_reserved_name_dt       <- folder_dt[is_reserved_name_dir == TRUE, .N, by = dir_name]
+         discrepant_dt_reserved_name <- private$make_report_schema_for_discrepant_paths(dirs_reserved_name_dt, "real folder is using a name reserved for a tool symlink (shortcut)")
+
          # Active tool symlink logs with `demote_` as last row (these should have been 'promoted)
          log_list_tool_symlinks    <- private$query_all_logs_tool_symlink(root, verbose = TRUE)
          last_row_dt_tool_symlinks <- private$query_logs_last_row(log_list_tool_symlinks)
@@ -1744,6 +1906,7 @@ SLT <- R6::R6Class(
             list(
                discrepant_dt_tool_symlink_no_logs = discrepant_dt_tool_symlink_no_logs
                , discrepant_dt_non_tool_symlinks  = discrepant_dt_non_tool_symlinks
+               , discrepant_dt_reserved_name      = discrepant_dt_reserved_name
                , discrepant_dt_mult_symlinks      = discrepant_dt_mult_symlinks
                , discrepant_dt_demote             = discrepant_dt_demote
                , discrepant_dt_promote            = discrepant_dt_promote
@@ -2031,8 +2194,17 @@ SLT <- R6::R6Class(
          private$DYNAMIC$LOG$action <- sprintf("promote_%s", symlink_type)
 
          if(dir.exists(path_symlink)){
-            private$msg_sometimes("  ", symlink_type, " symlink already exists - moving on: ", path_symlink)
-            return(invisible(NULL))
+            if(nzchar(Sys.readlink(path_symlink))){
+               private$msg_sometimes("  ", symlink_type, " symlink already exists - moving on: ", path_symlink)
+               return(invisible(NULL))
+            }
+            # A real directory, not a symlink, is using the name the symlink needs
+            stop(
+               "Cannot mark '", version_name, "' as '", symlink_type, "'.",
+               "\nThe tool needs to create a symlink (shortcut) named '", basename(path_symlink), "' here:\n  ", path_symlink,
+               "\nbut a real folder with that name already exists.",
+               "\nPlease move or rename that folder, then try again. Nothing has been changed."
+            )
          }
 
          # Log only if the link succeeds (linux-style &&: act, then record the act)
@@ -2040,7 +2212,7 @@ SLT <- R6::R6Class(
             private$append_to_log(version_path = version_path, user_entry = user_entry)
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
          } else {
-            private$msg_sometimes("   symlink creation failed for: ", symlink_full, always_message = TRUE)
+            private$msg_sometimes("   symlink creation failed for: ", path_symlink, always_message = TRUE)
          }
 
          return(invisible(NULL))
@@ -2209,12 +2381,15 @@ SLT <- R6::R6Class(
             , stop("csv_reader must be one of: fread, fread_quiet, read.csv, read.csv2")
          )
 
-         private$csv_writer <- switch_strict(
+         # raw writer - never call directly; `private$csv_writer()` wraps it
+         # with an atomic temp-file + rename so concurrent readers never see a
+         # truncated file
+         private$csv_writer_raw <- switch_strict(
             csv_reader
             , "fread"       = function(...) return(data.table::fwrite(...))
             , "fread_quiet" = function(...) return(data.table::fwrite(...))
-            , "read.csv"    = function(...) return(data.table::setDT(utils::write.csv(...)))
-            , "read.csv2"   = function(...) return(data.table::setDT(utils::write.csv2(...)))
+            , "read.csv"    = function(...) return(utils::write.csv(...))
+            , "read.csv2"   = function(...) return(utils::write.csv2(...))
             , stop("csv_reader must be one of: fread, fread_quiet, read.csv, read.csv2")
          )
 
@@ -2266,10 +2441,11 @@ SLT <- R6::R6Class(
             private$DICT$LOG_CENTRAL$root
             , private$DICT$LOG_CENTRAL$fname
          )
-         private$write_expected_central_log(
-            fpath        = private$DICT$LOG_CENTRAL$path
-            , log_schema = private$DICT$log_schema
-         )
+         # NOTE: the constructor must NOT touch the central log on disk.
+         # Many jobs (e.g. job arrays) may instantiate this tool
+         # concurrently against the same central_log_root; any read-modify-write
+         # here is a race.  The central log is created/repaired lazily on the
+         # first mark/delete via `append_to_central_log()`.
       },
 
 
@@ -2327,10 +2503,14 @@ SLT <- R6::R6Class(
       #' @param symlink_type (chr) A registered symlink type, e.g. `"best"`,
       #'   `"keep"`, or any type added via `new_symlink_type()`.
       #' @param version_name (chr) The version_name folder to mark.
+      #'   You may also pass the name of an existing symlink (shortcut) such
+      #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
+      #'   version_name folder it points to.
       #' @param user_entry (list) Named list of user log fields.
       #'
       #' @return (std_err) Messages about actions taken.
       mark = function(symlink_type, version_name, user_entry) {
+         version_name <- private$resolve_version_name(version_name)
          checkmate::assert_choice(symlink_type, names(get_symlink_registry()))
 
          private$handler_pre_mark(
@@ -2383,6 +2563,9 @@ SLT <- R6::R6Class(
       #' @param version_name (chr) The directory name of the output folder that
       #'   lives directly under one of the `root`s you define when you
       #'   instantiate the tool.
+      #'   You may also pass the name of an existing symlink (shortcut) such
+      #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
+      #'   version_name folder it points to.
       #' @param user_entry (list) Named list of user-defined fields to append to
       #'   the log.  After making a tool called e.g. slt, call
       #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
@@ -2417,6 +2600,9 @@ SLT <- R6::R6Class(
       #' @param version_name (chr) The directory name of the output folder that
       #'   lives directly under one of the `root`s you define when you
       #'   instantiate the tool.
+      #'   You may also pass the name of an existing symlink (shortcut) such
+      #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
+      #'   version_name folder it points to.
       #' @param user_entry (list) Named list of user-defined fields to append to
       #'   the log.  After making a tool called e.g. slt, call
       #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
@@ -2447,6 +2633,9 @@ SLT <- R6::R6Class(
       #' @param version_name (chr) The directory name of the output folder that
       #'   lives directly under one of the `root`s you define when you
       #'   instantiate the tool.
+      #'   You may also pass the name of an existing symlink (shortcut) such
+      #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
+      #'   version_name folder it points to.
       #' @param user_entry (list) Named list of user-defined fields to append to
       #'   the log.  After making a tool called e.g. slt, call
       #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
@@ -2481,6 +2670,9 @@ SLT <- R6::R6Class(
       #' @param version_name (chr) The directory name of the output folder that
       #'   lives directly under one of the `root`s you define when you
       #'   instantiate the tool.
+      #'   You may also pass the name of an existing symlink (shortcut) such
+      #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
+      #'   version_name folder it points to.
       #' @param user_entry (list) Named list of user-defined fields to append to
       #'   the log.  After making a tool called e.g. slt, call
       #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
@@ -2507,6 +2699,9 @@ SLT <- R6::R6Class(
       #' @param version_name (chr) The directory name of the output folder that
       #'   lives directly under one of the `root`s you define when you
       #'   instantiate the tool.
+      #'   You may also pass the name of an existing symlink (shortcut) such
+      #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
+      #'   version_name folder it points to.
       #' @param user_entry (list) Named list of user-defined fields to append to
       #'   the log.  After making a tool called e.g. slt, call
       #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
@@ -2519,6 +2714,7 @@ SLT <- R6::R6Class(
       #'
       #'
       unmark = function(version_name, user_entry){
+         version_name <- private$resolve_version_name(version_name)
 
          # 1. remove all symlinks associated with a version_name
          # 2. append to the log
@@ -2791,6 +2987,11 @@ SLT <- R6::R6Class(
       #'   output folder that lives directly under one of the `root`s you define
       #'   when you instantiate the tool.  For convenience, user may leave NULL
       #'   (default) and `get_common_new_version_name()` is used on that root.
+      #'   Names used by the tool's own symlinks (shortcuts) are reserved and
+      #'   refused: the name of any singleton type (e.g. `"best"`, `"latest"`)
+      #'   and any name starting with a non-singleton type plus underscore
+      #'   (e.g. `"keep_"`, `"remove_"`). Types added with `new_symlink_type()`
+      #'   reserve their names the same way.
       #'
       #' @return (std_err) Messages about the folder creation.
       #'
@@ -2799,6 +3000,7 @@ SLT <- R6::R6Class(
       make_new_version_folder = function(version_name = self$get_common_new_version_name()){
 
          assert_scalar_not_empty(x = version_name)
+         assert_version_name_not_reserved(version_name)
 
          private$handler_update_dynamic_fields(version_name = version_name)
 
@@ -2819,12 +3021,16 @@ SLT <- R6::R6Class(
       #' @param version_name (chr) The directory name of the output folder that
       #'   lives directly under one of the `root`s you define when you
       #'   instantiate the tool.
+      #'   You may also pass the name of an existing symlink (shortcut) such
+      #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
+      #'   version_name folder it points to.
       #'
       #' @return (std_err) Messages about the log creation.
       #'
       #'
       #'
       make_new_log = function(version_name){
+         version_name <- private$resolve_version_name(version_name)
 
          private$handler_update_dynamic_fields(version_name = version_name)
 
@@ -2860,6 +3066,9 @@ SLT <- R6::R6Class(
       #' @param version_name (chr) The directory name of the output folder that
       #'   lives directly under one of the `root`s you define when you
       #'   instantiate the tool.
+      #'   You may also pass the name of an existing symlink (shortcut) such
+      #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
+      #'   version_name folder it points to.
       #' @param user_entry (list) Named list of user-defined fields to append to
       #'   the log.  After making a tool called e.g. slt, call
       #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
@@ -2874,6 +3083,7 @@ SLT <- R6::R6Class(
       #'
       #'
       delete_version_folders = function(version_name, user_entry, require_user_input = TRUE){
+         version_name <- private$resolve_version_name(version_name)
 
          private$handler_pre_mark(
             version_name = version_name,

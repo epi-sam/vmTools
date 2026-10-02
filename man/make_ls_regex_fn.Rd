@@ -20,9 +20,17 @@ non-singleton types) and returns the appropriate regex pattern to find the
 symlink type when running \code{ls}
 }
 \description{
-The pattern depends on whether the symlink type is a singleton or not. For
-example, for a singleton "best" symlink type, the pattern would be "^best$".
-For a non-singleton "keep" symlink type, the pattern would be "^keep_.* ->
-.*version_name$".
+Matches one line of \code{ls -l} output, e.g.
+\code{"lrwxrwxrwx 1 user group 46 Oct  1 20:20 keep_1990_01_01 -> /root/1990_01_01"}.
+For a singleton type the pattern is \code{" best -> .*/<version>/?$"}; for a
+non-singleton type it is \code{" keep_<version> -> .*/<version>/?$"}.
+}
+\details{
+The version_name is regex-escaped (the default \code{YYYY_MM_DD.VV} scheme has a
+\code{.}), the symlink name is anchored on the leading space \code{ls -l} always
+emits, and the target is anchored on a path separator. Without those
+anchors \verb{1990_01_01} also matched \code{x1990_01_01} and \verb{2024_01_01.01} matched
+\verb{2024_01_01x01}, so marking one version could delete another version's
+symlink.
 }
 \keyword{internal}

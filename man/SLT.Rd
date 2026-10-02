@@ -186,7 +186,10 @@ wrappers around this.
 \item{\code{symlink_type}}{(chr) A registered symlink type, e.g. \code{"best"},
 \code{"keep"}, or any type added via \code{new_symlink_type()}.}
 
-\item{\code{version_name}}{(chr) The version_name folder to mark.}
+\item{\code{version_name}}{(chr) The version_name folder to mark.
+You may also pass the name of an existing symlink (shortcut) such
+as \code{"latest"} or \code{"keep_1990_01_01"}; it is resolved to the real
+version_name folder it points to.}
 
 \item{\code{user_entry}}{(list) Named list of user log fields.}
 }
@@ -226,7 +229,10 @@ Writes:
 \describe{
 \item{\code{version_name}}{(chr) The directory name of the output folder that
 lives directly under one of the \code{root}s you define when you
-instantiate the tool.}
+instantiate the tool.
+You may also pass the name of an existing symlink (shortcut) such
+as \code{"latest"} or \code{"keep_1990_01_01"}; it is resolved to the real
+version_name folder it points to.}
 
 \item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call
@@ -269,7 +275,10 @@ Writes:
 \describe{
 \item{\code{version_name}}{(chr) The directory name of the output folder that
 lives directly under one of the \code{root}s you define when you
-instantiate the tool.}
+instantiate the tool.
+You may also pass the name of an existing symlink (shortcut) such
+as \code{"latest"} or \code{"keep_1990_01_01"}; it is resolved to the real
+version_name folder it points to.}
 
 \item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call
@@ -308,7 +317,10 @@ Writes:
 \describe{
 \item{\code{version_name}}{(chr) The directory name of the output folder that
 lives directly under one of the \code{root}s you define when you
-instantiate the tool.}
+instantiate the tool.
+You may also pass the name of an existing symlink (shortcut) such
+as \code{"latest"} or \code{"keep_1990_01_01"}; it is resolved to the real
+version_name folder it points to.}
 
 \item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call
@@ -353,7 +365,10 @@ Writes:
 \describe{
 \item{\code{version_name}}{(chr) The directory name of the output folder that
 lives directly under one of the \code{root}s you define when you
-instantiate the tool.}
+instantiate the tool.
+You may also pass the name of an existing symlink (shortcut) such
+as \code{"latest"} or \code{"keep_1990_01_01"}; it is resolved to the real
+version_name folder it points to.}
 
 \item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call
@@ -388,7 +403,10 @@ Writes:
 \describe{
 \item{\code{version_name}}{(chr) The directory name of the output folder that
 lives directly under one of the \code{root}s you define when you
-instantiate the tool.}
+instantiate the tool.
+You may also pass the name of an existing symlink (shortcut) such
+as \code{"latest"} or \code{"keep_1990_01_01"}; it is resolved to the real
+version_name folder it points to.}
 
 \item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call
@@ -691,7 +709,12 @@ Create a new log in each folder.  No symlinks are created.  No
 \item{\code{version_name}}{(chr) The directory name of the
 output folder that lives directly under one of the \code{root}s you define
 when you instantiate the tool.  For convenience, user may leave NULL
-(default) and \code{get_common_new_version_name()} is used on that root.}
+(default) and \code{get_common_new_version_name()} is used on that root.
+Names used by the tool's own symlinks (shortcuts) are reserved and
+refused: the name of any singleton type (e.g. \code{"best"}, \code{"latest"})
+and any name starting with a non-singleton type plus underscore
+(e.g. \code{"keep_"}, \code{"remove_"}). Types added with \code{new_symlink_type()}
+reserve their names the same way.}
 }
 \if{html}{\out{</div>}}
 }
@@ -720,7 +743,10 @@ When you start a new pipeline run, make an empty log
 \describe{
 \item{\code{version_name}}{(chr) The directory name of the output folder that
 lives directly under one of the \code{root}s you define when you
-instantiate the tool.}
+instantiate the tool.
+You may also pass the name of an existing symlink (shortcut) such
+as \code{"latest"} or \code{"keep_1990_01_01"}; it is resolved to the real
+version_name folder it points to.}
 }
 \if{html}{\out{</div>}}
 }
@@ -751,7 +777,10 @@ Writes:
 \describe{
 \item{\code{version_name}}{(chr) The directory name of the output folder that
 lives directly under one of the \code{root}s you define when you
-instantiate the tool.}
+instantiate the tool.
+You may also pass the name of an existing symlink (shortcut) such
+as \code{"latest"} or \code{"keep_1990_01_01"}; it is resolved to the real
+version_name folder it points to.}
 
 \item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call

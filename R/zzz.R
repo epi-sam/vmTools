@@ -17,6 +17,20 @@
 #' @keywords internal
 arrow_regex <- function() "->"
 
+#' Escape a string so it matches literally inside a regular expression
+#'
+#' version_names are user-chosen and the package's own default scheme
+#' (`YYYY_MM_DD.VV`) contains a `.`, which is a regex wildcard. Anything
+#' interpolated into a pattern must go through this first.
+#'
+#' @param x (chr) literal string(s)
+#'
+#' @returns (chr) `x` with regex metacharacters backslash-escaped
+#' @keywords internal
+regex_escape <- function(x) {
+    gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", x)
+}
+
 
 # ---- Function Factories -----------------------------------------------------------------
 
@@ -48,10 +62,17 @@ make_symlink_suffix_fn <- function(is_singleton) {
 #' Make a function to create a regex pattern to find the symlink type when
 #' running `ls` system calls
 #'
-#' The pattern depends on whether the symlink type is a singleton or not. For
-#' example, for a singleton "best" symlink type, the pattern would be "^best$".
-#' For a non-singleton "keep" symlink type, the pattern would be "^keep_.* ->
-#' .*version_name$".
+#' Matches one line of `ls -l` output, e.g.
+#' `"lrwxrwxrwx 1 user group 46 Oct  1 20:20 keep_1990_01_01 -> /root/1990_01_01"`.
+#' For a singleton type the pattern is `" best -> .*/<version>/?$"`; for a
+#' non-singleton type it is `" keep_<version> -> .*/<version>/?$"`.
+#'
+#' The version_name is regex-escaped (the default `YYYY_MM_DD.VV` scheme has a
+#' `.`), the symlink name is anchored on the leading space `ls -l` always
+#' emits, and the target is anchored on a path separator. Without those
+#' anchors `1990_01_01` also matched `x1990_01_01` and `2024_01_01.01` matched
+#' `2024_01_01x01`, so marking one version could delete another version's
+#' symlink.
 #'
 #' @param is_singleton (logical) whether this symlink type is a singleton (only
 #'   one per root)
@@ -68,9 +89,13 @@ make_ls_regex_fn <- function(is_singleton, symlink_type) {
     checkmate::assert_flag(is_singleton)
     checkmate::assert_string(symlink_type)
     if (is_singleton) {
-        function(version_name) {sprintf("%s %s .*%s$", symlink_type, arrow_regex(), version_name)}
+        function(version_name) {
+            sprintf(" %s %s .*/%s/?$", regex_escape(symlink_type), arrow_regex(), regex_escape(version_name))
+        }
     } else {
-        function(version_name) {sprintf("%s_%s %s .*%s$", symlink_type, version_name, arrow_regex(), version_name)}
+        function(version_name) {
+            sprintf(" %s_%s %s .*/%s/?$", regex_escape(symlink_type), regex_escape(version_name), arrow_regex(), regex_escape(version_name))
+        }
     }
 }
 
@@ -97,6 +122,67 @@ make_extract_regex <- function(is_singleton, symlink_type) {
     } else {
         sprintf("^%s_", symlink_type)
     }
+}
+
+
+# ---- Reserved version names --------------------------------------------------
+
+#' Reserved folder names, derived from the symlink registry
+#'
+#' Singleton symlink types live as bare names directly in a root (`best`,
+#' `latest`), so a real folder with that name collides with the tool's own
+#' symlink. Non-singleton types claim a prefix (`keep_<version_name>`,
+#' `remove_<version_name>`). Registering a new type with `new_symlink_type()`
+#' reserves its name automatically.
+#'
+#' @returns (list) `words` (chr) exact names that are reserved; `prefixes`
+#'   (chr) leading strings that are reserved, each ending in `_`
+#' @keywords internal
+get_reserved_version_names <- function() {
+    reg          <- get_symlink_registry()
+    is_singleton <- vapply(reg, function(entry) isTRUE(entry[["is_singleton"]]), logical(1))
+    list(
+        words      = names(reg)[is_singleton]
+        , prefixes = sprintf("%s_", names(reg)[!is_singleton])
+    )
+}
+
+#' Find the reserved folder name a version_name collides with, if any
+#'
+#' @param version_name (chr) a candidate folder name
+#'
+#' @returns (chr) the reserved word or prefix it collides with, or `NULL` if it is free
+#' @keywords internal
+find_reserved_name_conflict <- function(version_name) {
+    checkmate::assert_string(version_name)
+    reserved <- get_reserved_version_names()
+    if (version_name %in% reserved$words) return(version_name)
+    conflicting_prefix <- reserved$prefixes[startsWith(version_name, reserved$prefixes)]
+    if (length(conflicting_prefix)) return(conflicting_prefix[1])
+    NULL
+}
+
+#' Stop if a version_name is a reserved folder name
+#'
+#' @param version_name (chr) a candidate folder name
+#'
+#' @returns (invisible TRUE) or stops with a plain-language message
+#' @keywords internal
+assert_version_name_not_reserved <- function(version_name) {
+    conflict <- find_reserved_name_conflict(version_name)
+    if (is.null(conflict)) return(invisible(TRUE))
+    reserved <- get_reserved_version_names()
+    what <- if (conflict == version_name) {
+        sprintf("the tool uses this name for its '%s' symlink (shortcut).", conflict)
+    } else {
+        sprintf("the tool uses names starting with '%s' for its '%s' symlinks (shortcuts).", conflict, sub("_$", "", conflict))
+    }
+    stop(
+        sprintf("'%s' cannot be used as a version_name - %s", version_name, what)
+        , "\n    - Reserved names:    ", toString(reserved$words)
+        , "\n    - Reserved prefixes: ", toString(reserved$prefixes)
+        , "\n    - Please choose a different folder name."
+    )
 }
 
 
@@ -264,7 +350,9 @@ get_symlink_registry <- function() {
 #' @param is_singleton (lgl) Can there be only one of this symlink type per root
 #'   directory? If `TRUE`, the symlink name will be exactly `symlink_type` (e.g.
 #'   "best"). If `FALSE`, the symlink name will be `symlink_type` + "_" +
-#'   version_name (e.g. "keep_2025_01_01.01").
+#'   version_name (e.g. "keep_2025_01_01.01"). Either way, registering a type
+#'   reserves that name (or that prefix) so it cannot be used as a
+#'   version_name folder.
 #' @param verbose (lgl: default `TRUE`) control message verbosity when
 #'   registering the new symlink type
 #'

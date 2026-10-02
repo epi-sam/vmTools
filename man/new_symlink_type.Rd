@@ -15,7 +15,9 @@ overwritten.}
 \item{is_singleton}{(lgl) Can there be only one of this symlink type per root
 directory? If \code{TRUE}, the symlink name will be exactly \code{symlink_type} (e.g.
 "best"). If \code{FALSE}, the symlink name will be \code{symlink_type} + "_" +
-version_name (e.g. "keep_2025_01_01.01").}
+version_name (e.g. "keep_2025_01_01.01"). Either way, registering a type
+reserves that name (or that prefix) so it cannot be used as a
+version_name folder.}
 
 \item{verbose}{(lgl: default \code{TRUE}) control message verbosity when
 registering the new symlink type}

@@ -162,3 +162,27 @@ test_that("Cleanup is complete", {
    system(paste("rm -rf", root_base))
    expect_error(dir_tree(root_base), regexp = "no such file")
 })
+
+
+# Reserved names follow the registry -------------------------------------------
+
+test_that("Registering a symlink type reserves its name for folders", {
+   expect_identical(vmTools:::find_reserved_name_conflict("in_progress"), "in_progress")  # singleton word
+   expect_identical(vmTools:::find_reserved_name_conflict("failed_x"),    "failed_")      # non-singleton prefix
+   expect_null(vmTools:::find_reserved_name_conflict("2024_01_01.01"))
+   expect_error(vmTools:::assert_version_name_not_reserved("in_progress"), regexp = "symlink \\(shortcut\\)")
+})
+
+
+# ls regex is anchored and escaped ---------------------------------------------
+
+test_that("ls regex matches only its own version: no suffix match, no wildcard dot", {
+   ls_line <- function(name, target) sprintf("lrwxrwxrwx 1 user group 46 Oct  1 20:20 %s -> /root/%s", name, target)
+   keep_regex <- vmTools:::make_ls_regex_fn(is_singleton = FALSE, "keep")("1990_01_01")
+   best_regex <- vmTools:::make_ls_regex_fn(is_singleton = TRUE,  "best")("2024_01_01.01")
+
+   expect_true( grepl(keep_regex, ls_line("keep_1990_01_01",  "1990_01_01")))
+   expect_false(grepl(keep_regex, ls_line("keep_x1990_01_01", "x1990_01_01")))   # suffix collision (E)
+   expect_true( grepl(best_regex, ls_line("best", "2024_01_01.01")))
+   expect_false(grepl(best_regex, ls_line("best", "2024_01_01x01")))             # wildcard dot (F)
+})
