@@ -945,7 +945,9 @@ SLT <- R6::R6Class(
       #
       #  If log is null (all dim == 0), rebuild schema and write a new 'create' row.
       #
-      #  Helper for `read_log()`
+      #  Helper for `read_log()` for safety in read-modify-write cycles; not
+      #  really necessary for the `query_x` family of functions that are _only_
+      #  readers.
       #
       #  @param dt_log (data.table) log data.table
       #
