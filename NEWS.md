@@ -87,6 +87,15 @@ especially with custom types from `new_symlink_type()`.
 | `slt$roundup_keep()` | `slt$roundup("keep", type)` |
 | `slt$roundup_remove()` | `slt$roundup("remove", type)` |
 
+## Bug Fixes
+
+- Safe for many processes to instantiate `SLT` at once. The constructor no
+  longer writes the central log; it is created on the first mark.
+- All log and report writes are atomic (temp file + rename), so concurrent
+  readers never see a partially written file.
+- A log that is non-empty but unreadable now errors instead of being silently
+  rebuilt (and its history lost). Zero-byte logs are still rebuilt.
+
 
 
 # vmTools 1.3.1
