@@ -1,3 +1,11 @@
+# vmTools 2.0.3
+
+## QOL Updates
+
+- `make_new_version_folder()` returns the `version_name`
+
+
+
 # vmTools 2.0.2
 
 ## Bug Fixes
