@@ -1,3 +1,11 @@
+# vmTools 2.0.3
+
+## QOL Updates
+
+- `make_new_version_folder()` returns the `version_name`
+
+
+
 # vmTools 2.0.2
 
 ## Bug Fixes
@@ -16,8 +24,6 @@
   report.
 - Symlink lookup no longer matches other versions by suffix or treats `.` as a
   wildcard, so marking one version can no longer delete another's symlink.
-
-
 
 
 
