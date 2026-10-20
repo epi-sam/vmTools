@@ -27,8 +27,6 @@
 
 
 
-
-
 # vmTools 2.0.1
 
 Introduces a plugin architecture for symlink types: register a new type once with

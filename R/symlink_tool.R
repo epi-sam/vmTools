@@ -2993,7 +2993,7 @@ SLT <- R6::R6Class(
       #'   (e.g. `"keep_"`, `"remove_"`). Types added with `new_symlink_type()`
       #'   reserve their names the same way.
       #'
-      #' @return (chr) new version_name (in YYYY_MM_DD.VV format if defualts are used)
+      #' @return (chr) new version_name (in YYYY_MM_DD.VV format if defaults are used)
       #'
       #'
       #'

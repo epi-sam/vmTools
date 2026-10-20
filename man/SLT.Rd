@@ -719,7 +719,7 @@ reserve their names the same way.}
 \if{html}{\out{</div>}}
 }
 \subsection{Returns}{
-(chr) new version_name (in YYYY_MM_DD.VV format if defualts are used)
+(chr) new version_name (in YYYY_MM_DD.VV format if defaults are used)
 }
 }
 \if{html}{\out{<hr>}}
