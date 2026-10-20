@@ -2,6 +2,9 @@
 # Setup ------------------------------------------------------------------------
 
 # use clean_path() liberally for github/cran checks
+# - Mac uses /var symlink vs. /private/var hard path
+# - All text fixtures need a normalized path
+# - Symlink Tool normalizes all paths internally
 
 .user <- Sys.info()[['user']]
 # system(paste("rm -rf", tempdir()))
