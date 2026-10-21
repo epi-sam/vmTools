@@ -61,6 +61,27 @@ test_that(
 
 # Integration Tests ------------------------------------------------------------
 
+# ORDERED STORY - read before adding tests below this line
+#
+# One shared `slt` on two roots runs a single history in phases:
+#   A  marking           create -> best -> keep -> remove -> unmark; asserts exact log ids
+#   B  latest            singleton + auto-demotion; ends unmarked, but phase C asserts its comments
+#   B2 csv readers       second instance, read-only
+#   C  discrepancies     hand-corrupted logs + bad symlink; expects an exact 8-row report
+#   D  roundups          counts are cumulative log rows; marks happen at top level between blocks
+#   E  deletion + names  expects .01 then .05
+#
+# Every mark appends rows to the central log, so a mark inserted mid-story shifts
+# every absolute expectation after it. Rules:
+#   - new story steps go at the END of the story (before Clean up)
+#   - anything else goes in a self-contained block with its own root, like the
+#     tests above this line (`make_test_root()` + on.exit unlink)
+# Each phase opens with a precondition block that names the phase, so a broken
+# order fails there with a plain message, not deep inside a table compare.
+
+n_central_rows <- function() nrow(data.table::fread(slt$return_dictionaries()$LOG_CENTRAL$path))
+n_links <- function() sum(vapply(root_list, function(r) sum(vmTools:::link_list(r)$is_link), integer(1)))
+
 # Create a real tool with two roots
 # - doing integration tests with multiple roots to really torture test things
 suppressMessages(
@@ -573,6 +594,11 @@ fpaths_dv_logs <- lapply(fpaths_dv_logs, function(x) {names(x) <- names(dv_list)
 
 # Integration - Make new folders -----------------------------------------------
 
+test_that("Phase A precondition: no version folders, no central log yet",
+          {
+             expect_false(any(file.exists(unlist(path_list))))
+             expect_false(file.exists(slt$return_dictionaries()$LOG_CENTRAL$path))
+          })
 
 test_that("SLT creates new folders",
           {
@@ -812,6 +838,12 @@ test_that("Central log has expected content",
 # 2026 Mar 02 - new feature
 # - testing after logs to avoid refactoring existing expectations
 
+test_that("Phase B precondition: phase A left 13 central rows and no links",
+          {
+             expect_identical(n_central_rows(), 13L)
+             expect_identical(n_links(), 0L)
+          })
+
 test_that("Mark latest works (creates singleton 'latest' symlink)",
           {
              slt$mark_latest(version_name = dv_list[["1990_01_02"]], user_entry = list(comment = "Testing mark latest"))
@@ -931,7 +963,11 @@ test_that("read.csv alternate CSV reader works",
 
 # Integration - Reports --------------------------------------------------------
 
-
+test_that("Phase C precondition: phase B left 33 central rows and no links",
+          {
+             expect_identical(n_central_rows(), 33L)
+             expect_identical(n_links(), 0L)
+          })
 
 test_that("Discrepancy report has expected structure after manual edits",
           {
@@ -1055,6 +1091,12 @@ test_that("make_new_log works when promoting an existing folder without a log",
 
 # Integration - Roundups -------------------------------------------------------
 
+test_that("Phase D precondition: phase C left 37 central rows; remove_1990_01_01, keep_1990_01_02 and bad_symlink in root_input",
+          {
+             expect_identical(n_central_rows(), 37L)
+             expect_true(all(file.exists(clean_path(root_list$root_input, c("remove_1990_01_01", "keep_1990_01_02", "bad_symlink")))))
+          })
+
 test_that("Roundup by date throws expected errors",
           {
              expect_error(
@@ -1162,6 +1204,12 @@ test_that("Roundup unmarked works, even with a handmande-symlink pointing to a f
 
 
 # Integration - Deletion -------------------------------------------------------
+
+test_that("Phase E precondition: phase D left 49 central rows and only the hand-made link",
+          {
+             expect_identical(n_central_rows(), 49L)
+             expect_identical(n_links(), 1L)   # bad_symlink in root_input
+          })
 
 test_that("Folder deletion works, and only for a folder marked _remove",
           {
