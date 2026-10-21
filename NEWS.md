@@ -4,6 +4,10 @@
 
 - `make_new_version_folder()` returns the `version_name`
 
+## Bug Fixes
+
+- `clean_path()` now drops a trailing slash (bare roots such as `/` and `C:/` are kept). Previously a trailing slash survived, which made symlink checks look through the link instead of at it.
+
 
 
 # vmTools 2.0.2

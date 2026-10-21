@@ -311,6 +311,10 @@ get_valid_actions <- function(){
         )
     }
 
+    # Decide the link mechanism for this OS once per session (symlink vs junction)
+    # - see R/links.R; this is the only OS check in the package
+    link_set_backend()
+
     # Prevent user from overwriting built-in entries
     lock_some_bindings(
         objs  = names(symlink_registry_builtins)
