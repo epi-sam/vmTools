@@ -2,8 +2,7 @@
 
 # use clean_path() liberally for github/cran checks
 
-make_directory <- function(path) dir.create(path, recursive = TRUE, showWarnings = FALSE)
-root_base <- clean_path(tempdir(), "new_types")
+root_base <- make_test_root("new_types")
 root_list <- list(
    root_a   = clean_path(root_base, "root_a")
    , root_b = clean_path(root_base, "root_b")
@@ -159,7 +158,7 @@ test_that("roundup_all() works for user-defined types", {
 # Cleanup ----------------------------------------------------------------------
 
 test_that("Cleanup is complete", {
-   system(paste("rm -rf", root_base))
+   unlink(root_base, recursive = TRUE)
    expect_error(dir_tree(root_base), regexp = "no such file")
 })
 

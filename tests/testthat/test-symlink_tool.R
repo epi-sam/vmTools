@@ -8,8 +8,7 @@
 
 .user <- Sys.info()[['user']]
 # system(paste("rm -rf", tempdir()))
-make_directory <- function(path) dir.create(path, recursive = TRUE, showWarnings = FALSE)
-root_base      <- clean_path(tempdir(), "slt")
+root_base      <- make_test_root("slt")
 root_list      <- list(
    root_input    = clean_path(root_base, "dir_1")
    , root_output = clean_path(root_base, "dir_2")
@@ -122,7 +121,7 @@ suppressMessages(
 
 test_that("Constructor does not create or modify the central log",
           {
-             root_ctor    <- clean_path(tempdir(), "slt_ctor_readonly")
+             root_ctor    <- make_test_root("slt_ctor_readonly")
              roots_ctor   <- list(root_a = clean_path(root_ctor, "a"))
              central_ctor <- clean_path(root_ctor, "central")
              make_directory(roots_ctor[["root_a"]])
@@ -181,7 +180,7 @@ test_that("Constructor does not create or modify the central log",
 
 test_that("csv_writer writes atomically and leaves no temp files",
           {
-             dir_atomic <- clean_path(tempdir(), "slt_atomic_writer")
+             dir_atomic <- make_test_root("slt_atomic_writer")
              make_directory(dir_atomic)
              on.exit(unlink(dir_atomic, recursive = TRUE), add = TRUE)
 
@@ -213,7 +212,7 @@ test_that("csv_writer preserves file mode and cleans up on failure (POSIX only)"
              skip_on_os("windows")
              skip_if(identical(Sys.info()[["user"]], "root"), "root ignores directory permissions")
 
-             dir_atomic <- clean_path(tempdir(), "slt_atomic_writer_posix")
+             dir_atomic <- make_test_root("slt_atomic_writer_posix")
              make_directory(dir_atomic)
              on.exit({
                 Sys.chmod(dir_atomic, mode = "0755", use_umask = FALSE)
@@ -247,7 +246,7 @@ test_that("csv_writer preserves file mode and cleans up on failure (POSIX only)"
 
 test_that("Zero-byte logs are rebuilt, unreadable logs are refused and left untouched",
           {
-             root_guard    <- clean_path(tempdir(), "slt_null_log_guard")
+             root_guard    <- make_test_root("slt_null_log_guard")
              roots_guard   <- list(root_a = clean_path(root_guard, "a"))
              central_guard <- clean_path(root_guard, "central")
              make_directory(roots_guard[["root_a"]])
@@ -326,7 +325,7 @@ test_that("Concurrent construction and querying never modifies the central log",
              skip_on_os("windows")   # forked workers (mclapply) unavailable
              skip_on_cran()
 
-             root_par    <- clean_path(tempdir(), "slt_parallel_smoke")
+             root_par    <- make_test_root("slt_parallel_smoke")
              roots_par   <- list(root_a = clean_path(root_par, "a"), root_b = clean_path(root_par, "b"))
              central_par <- clean_path(root_par, "central")
              lapply(c(unlist(roots_par), central_par), make_directory)
@@ -387,7 +386,7 @@ test_that("Concurrent construction and querying never modifies the central log",
 
 test_that("Symlink names passed as version_name resolve to the real version",
           {
-             root_res    <- clean_path(tempdir(), "slt_resolve_names")
+             root_res    <- make_test_root("slt_resolve_names")
              roots_res   <- list(root_a = clean_path(root_res, "a"))
              central_res <- clean_path(root_res, "central")
              lapply(c(unlist(roots_res), central_res), make_directory)
@@ -459,7 +458,7 @@ test_that("Symlink names passed as version_name resolve to the real version",
 
 test_that("A symlink name that points to different versions in different roots is refused",
           {
-             root_amb    <- clean_path(tempdir(), "slt_resolve_ambiguous")
+             root_amb    <- make_test_root("slt_resolve_ambiguous")
              roots_amb   <- list(root_a = clean_path(root_amb, "a"), root_b = clean_path(root_amb, "b"))
              central_amb <- clean_path(root_amb, "central")
              lapply(c(unlist(roots_amb), central_amb), make_directory)
@@ -505,7 +504,7 @@ test_that("A symlink name that points to different versions in different roots i
 
 test_that("Reserved symlink names are refused as version_name folders",
           {
-             root_rsv    <- clean_path(tempdir(), "slt_reserved_names")
+             root_rsv    <- make_test_root("slt_reserved_names")
              roots_rsv   <- list(root_a = clean_path(root_rsv, "a"))
              central_rsv <- clean_path(root_rsv, "central")
              lapply(c(unlist(roots_rsv), central_rsv), make_directory)
@@ -528,7 +527,7 @@ test_that("Reserved symlink names are refused as version_name folders",
 
 test_that("A real folder using a reserved symlink name blocks marking and is reported",
           {
-             root_occ    <- clean_path(tempdir(), "slt_reserved_occupied")
+             root_occ    <- make_test_root("slt_reserved_occupied")
              roots_occ   <- list(root_a = clean_path(root_occ, "a"))
              central_occ <- clean_path(root_occ, "central")
              lapply(c(unlist(roots_occ), central_occ), make_directory)
@@ -555,7 +554,7 @@ test_that("A real folder using a reserved symlink name blocks marking and is rep
 
 test_that("Marking one version never touches another version whose name ends the same way",
           {
-             root_sfx    <- clean_path(tempdir(), "slt_suffix_collision")
+             root_sfx    <- make_test_root("slt_suffix_collision")
              roots_sfx   <- list(root_a = clean_path(root_sfx, "a"))
              central_sfx <- clean_path(root_sfx, "central")
              lapply(c(unlist(roots_sfx), central_sfx), make_directory)
@@ -943,7 +942,7 @@ test_that("bad csv_reader option produces expected error",
 
 test_that("read.csv alternate CSV writer round-trips through the atomic wrapper",
           {
-             dir_atomic <- clean_path(tempdir(), "slt_atomic_writer_readcsv")
+             dir_atomic <- make_test_root("slt_atomic_writer_readcsv")
              make_directory(dir_atomic)
              on.exit(unlink(dir_atomic, recursive = TRUE), add = TRUE)
              fpath <- clean_path(dir_atomic, "test.csv")
@@ -986,7 +985,7 @@ test_that("Discrepancy report has expected structure after manual edits",
                 )
              ))
              # delete a log
-             system(paste("rm -f", fpaths_dv_logs$root_input[["1990_01_02"]]))
+             file.remove(fpaths_dv_logs$root_input[["1990_01_02"]])
              log_list[["1990_01_02"]] <- NULL
              # add a new column
              log_list[["1990_01_03"]] <- log_list[["1990_01_03"]][, bad_column := "This column was not created by the tool"]
@@ -1109,7 +1108,7 @@ test_that("Roundup by date works",
                              , version_name = c(rep(dv_list[[1]],3)
                                                 , rep(dv_list[[2]],2)
                                                 , rep(dv_list[[3]],1))
-                             , dir_name = clean_path( clean_path(root_list$root_input) # for Mac
+                             , dir_name = clean_path(root_list$root_input
                                                       , c(
                                                          dv_list[[1]]
                                                          , "bad_symlink"
@@ -1261,8 +1260,7 @@ test_that("get_common_new_version_name finds the max possible version across all
 test_that(
    "Cleanup is complete",
    {
-      # unlink(root_base, recursive = TRUE)
-      system(paste("rm -rf", root_base))
+      unlink(root_base, recursive = TRUE)
       expect_error(dir_tree(root_base), regexp = "Failed to search directory.*no such file or directory")
    }
 )

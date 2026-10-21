@@ -3,10 +3,9 @@
 # use clean_path() liberally for github/cran checks
 
 .user <- Sys.info()[['user']]
-make_directory <- function(path) dir.create(path, recursive = TRUE, showWarnings = FALSE)
 
 # Base directory for all SLC tests
-root_base <- clean_path(tempdir(), "slc")
+root_base <- make_test_root("slc")
 
 # Project A - two roots
 project_a_roots <- list(
@@ -321,7 +320,7 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    # Clean up --------------------------------------------------------------------
 
    test_that("Cleanup is complete", {
-      system(paste("rm -rf", root_base))
+      unlink(root_base, recursive = TRUE)
       expect_error(dir_tree(root_base), regexp = "Failed to search directory.*no such file or directory")
    })
 
