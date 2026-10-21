@@ -1,4 +1,4 @@
-# R/links.R - cross-platform link trio and helpers
+# R/links.R - cross-platform link primitives and helpers
 # One test per helper, one round trip. Runs on every CI OS; Windows uses
 # junctions on the (local) runner tempdir.
 

@@ -11,7 +11,47 @@
 # = one new registry entry + one row in the OS map. No `if`/`switch` on OS
 # anywhere else.
 #
-# Trio (public contract for the rest of the package):
+# Dispatch: one OS lookup at load time, none afterwards
+#
+#   library(vmTools)
+#         |
+#         v
+#   .onLoad()                    R/zzz.R
+#         |
+#         v
+#   link_set_backend()           Sys.info()[["sysname"]]
+#         |                        Linux   -> "symlink"
+#         |                        Darwin  -> "symlink"
+#         |                        Windows -> "junction"
+#         |                        other   -> stop()
+#         v
+#   .link_backends[[name]]       registry: one list of functions per mechanism
+#         |
+#         |   member                  $symlink (POSIX)        $junction (Windows)
+#         |   ----------------------  ----------------------  ------------------------
+#         |   name                    "symlink"               "junction"
+#         |   probe_failure_is_fatal  FALSE                   TRUE
+#         |   is_link(path)           Sys.readlink() != ""    normalizePath() differs
+#         |   get_target(path)        Sys.readlink()          normalizePath()
+#         |   create(target, link)    file.symlink()          Sys.junction()
+#         |   failure_reason(dir)     fixed text              drive letter + drive type
+#         |   drive_type(path)        "Unknown"               PowerShell DriveInfo
+#         |
+#         |   shape check: assert_x_in_y(.link_backend_members, names(backend))
+#         v
+#   .link_state$backend          stored once, never changed
+#         ^
+#         |   link_get_backend()   read on every call; stops if unset
+#         |
+#   public wrappers (OS-agnostic, same body on every platform):
+#   path_is_link(path) ->  backend$is_link(path)
+#   etc.
+#   link_resolve / link_list / link_remove / dir_supports_links build on these
+#
+#   wrappers validate arguments and clean_path() first; a backend function
+#   receives a cleaned path and performs only the OS-specific task.
+#
+# Link primitives (public contract for the rest of the package):
 #   link_resolve(path)          list(is_link, target, dangling)
 #   link_create(target, link)   never overwrites; cleans up after a failed attempt
 #   link_remove(link)           refuses anything that is not a link; never touches the target
@@ -21,15 +61,6 @@
 # because it follows the link; Sys.readlink() still returns the old target.
 # link_resolve() reports it so callers can warn or remove it; link_remove()
 # works on a dangling link. Windows cannot detect dangling junctions.
-#
-# Helpers:
-#   link_get_backend()
-#   dir_supports_links()
-#   path_is_link()
-#   link_get_target()
-#   link_list()
-#   link_failure_reason()
-#   windows_drive_type()
 #
 # Conventions:
 # - no system()/system2() except the junction backend's drive_type(), failure path only
