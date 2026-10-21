@@ -72,7 +72,12 @@ The constructor function.
 \describe{
 \item{\code{root_list}}{(list) Named list of root directories for
 pipeline outputs. This is where \code{version_name} folders live - these
-are iterative runs of an analysis pipeline.}
+are iterative runs of an analysis pipeline.
+On Windows each root must be on a local disk (e.g. \verb{C:}): the tool
+makes junctions there, and network drives refuse them. The tool
+checks every root when it is built and stops with a plain message
+if one cannot hold links. Run from Linux for roots on a network
+drive.}
 
 \item{\code{central_log_root}}{(path) Root directory for the central log.
 If you have multiple roots in the \code{root_list}, you probably want

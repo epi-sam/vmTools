@@ -2270,6 +2270,11 @@ SLT <- R6::R6Class(
       #' @param root_list (list) Named list of root directories for
       #'   pipeline outputs. This is where `version_name` folders live - these
       #'   are iterative runs of an analysis pipeline.
+      #'   On Windows each root must be on a local disk (e.g. `C:`): the tool
+      #'   makes junctions there, and network drives refuse them. The tool
+      #'   checks every root when it is built and stops with a plain message
+      #'   if one cannot hold links. Run from Linux for roots on a network
+      #'   drive.
       #' @param central_log_root (path) Root directory for the central log.
       #'   If you have multiple roots in the `root_list`, you probably want
       #'   the central log to live one level above those roots.

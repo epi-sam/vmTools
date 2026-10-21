@@ -1,7 +1,7 @@
 ---
-title: "Symlink Tool — Technical Reference"
+title: "Symlink Tool - Technical Reference"
 
-# Interactive rendering — uncomment this block and comment out the vignette output below
+# Interactive rendering - uncomment this block and comment out the vignette output below
 # output:
 #   html_document:
 #     highlight: zenburn
@@ -13,7 +13,7 @@ title: "Symlink Tool — Technical Reference"
 output: rmarkdown::html_vignette
 Encoding: UTF-8
 vignette: >
- %\VignetteIndexEntry{Symlink Tool Technical Reference}
+ %\VignetteIndexEntry{Symlink Tool - Technical Reference}
  %\VignetteEngine{knitr::rmarkdown}
  %\VignetteEncoding{UTF-8}
 ---
@@ -69,16 +69,17 @@ This vignette assumes you've read the **Quick Start** guide and covers:
 2. Multiple roots per tool instance
 3. Custom symlink types via the plugin architecture
 4. Reports and discrepancy detection
+5. How links work on Windows
 
-Each section is self-contained — run them independently or in order.
+Each section is self-contained - run them independently or in order.
 
 ---
 
-# 1 — Symlink Composer (`SLC`)
+# 1 - Symlink Composer (`SLC`)
 
-When a production deliverable is assembled from several independent modeling pipelines — say, separate submodels for different geographic regions — each pipeline has its own SLT.  The **Symlink Composer** (`SLC`) lets you query across all of them at once: _"what is the current `best` set?"_
+When a production deliverable is assembled from several independent modeling pipelines - say, separate submodels for different geographic regions - each pipeline has its own SLT.  The **Symlink Composer** (`SLC`) lets you query across all of them at once: _"what is the current `best` set?"_
 
-Think of each pipeline as an **instrument** in an orchestra.  Each instrument practises independently and keeps its own sheet music (SLT logs).  The **composer** (SLC) runs in 'read only' mode — it looks across all its instruments to discover "is every instrument ready for the final concert?"
+Think of each pipeline as an **instrument** in an orchestra.  Each instrument practises independently and keeps its own sheet music (SLT logs).  The **composer** (SLC) runs in 'read only' mode - it looks across all its instruments to discover "is every instrument ready for the final concert?"
 
 ## Setup: three independent sub-model pipelines
 
@@ -104,7 +105,7 @@ tools <- lapply(setNames(regions, regions), function(r) {
 .opt_mc2 <- options(mc.cores = 1L)
 ```
 
-Run each pipeline independently — different dates reflect real-world asynchronous development.
+Run each pipeline independently - different dates reflect real-world asynchronous development.
 
 ```{r slc_runs, eval = flag_eval}
 run_dates <- c(north = "2024_09_01", central = "2024_09_08", south = "2024_09_15")
@@ -130,14 +131,14 @@ composer$list_tools()
 composer$roundup_all("best")
 ```
 
-One table, every sub-model's current `best` — a single view of the full production-ready set, spanning three different run dates.
+One table, every sub-model's current `best` - a single view of the full production-ready set, spanning three different run dates.
 
 ## Query `keep` or any other type
 
 Querying a full `best` or `latest` set is probably most common, but _any_ symlink type set can be 'composed' across all its instruments.
 
 ```{r slc_keep_setup, eval = flag_eval}
-# Archive the north run — it's being cited in a journal submission
+# Archive the north run - it's being cited in a journal submission
 north_best <- composer$roundup_all("best")[tool_name == "north", version_name]
 tools$north$mark_keep(
   version_name = north_best,
@@ -159,9 +160,9 @@ unlink(base_slc, recursive = TRUE)
 
 ---
 
-# 2 — Multiple Roots
+# 2 - Multiple Roots
 
-A single SLT instance can manage several root directories at once.  This is useful when one pipeline run produces outputs that land in different locations — e.g. pre-model inputs and post-model results — but you want them versioned in lockstep under the same `version_name`.
+A single SLT instance can manage several root directories at once.  This is useful when one pipeline run produces outputs that land in different locations - e.g. pre-model inputs and post-model results - but you want them versioned in lockstep under the same `version_name`.
 
 ## Setup
 
@@ -225,13 +226,13 @@ unlink(base, recursive = TRUE)
 
 ---
 
-# 3 — Custom Symlink Types (Plugin Architecture)
+# 3 - Custom Symlink Types (Plugin Architecture)
 
-The four built-in types — `best`, `latest`, `keep`, `remove` — cover most workflows.  But the registry is extensible: call `new_symlink_type()` to define your own, then use the generic `$mark()` and `$roundup()` methods.
+The four built-in types - `best`, `latest`, `keep`, `remove` - cover most workflows.  But the registry is extensible: call `new_symlink_type()` to define your own, then use the generic `$mark()` and `$roundup()` methods.
 
 ## Example: regulatory `hold` for clinical trials
 
-In clinical-trial data pipelines, a regulatory agency can issue a **clinical hold** — an order to freeze a dataset in place pending review.  No one may delete, overwrite, or re-process that data until the hold is lifted.  This is different from `keep` (an internal convenience) because a `hold` has legal weight and should be immediately visible to anyone browsing the output directory.
+In clinical-trial data pipelines, a regulatory agency can issue a **clinical hold** - an order to freeze a dataset in place pending review.  No one may delete, overwrite, or re-process that data until the hold is lifted.  This is different from `keep` (an internal convenience) because a `hold` has legal weight and should be immediately visible to anyone browsing the output directory.
 
 ### Register the type
 
@@ -242,7 +243,7 @@ get_symlink_registry()[["hold"]]
 
 `is_singleton = FALSE` because multiple datasets can be under hold simultaneously (each for a different regulatory inquiry).
 
-- By contrast, `best` is a singleton type — only one folder can hold it at a time.
+- By contrast, `best` is a singleton type - only one folder can hold it at a time.
 - Users may create singleton symlinks as well.
 - Users may create as many new symlink types as they like.
 
@@ -271,14 +272,14 @@ for (i in 1:3) {
 
 # Mark run .02 with a regulatory hold
 slt_trial$mark("hold", version_name = "2025_01_10.02",
-               user_entry = list(comment = "FDA clinical hold — trial xxxx"))
+               user_entry = list(comment = "FDA clinical hold - trial xxxx"))
 ```
 
 ```{r hold_tree, eval = flag_eval}
 print_tree(base_hold, level = 1)
 ```
 
-The `hold_2025_01_10.02` symlink is now visible on the filesystem — any team member who `ls`es the directory sees it immediately.
+The `hold_2025_01_10.02` symlink is now visible on the filesystem - any team member who `ls`es the directory sees it immediately.
 
 ### Roundup held datasets
 
@@ -290,14 +291,14 @@ When the hold is lifted, demote with `unmark()`:
 
 ```{r hold_unmark, eval = flag_eval}
 slt_trial$unmark(version_name = "2025_01_10.02",
-                 user_entry = list(comment = "Hold lifted — FDA clearance 2025-03-01"))
+                 user_entry = list(comment = "Hold lifted - FDA clearance 2025-03-01"))
 ```
 
 ```{r hold_tree_after, eval = flag_eval}
 print_tree(base_hold, level = 1)
 ```
 
-The audit trail lives in the versioned folder's log — when the hold was placed, by whom, and when it was released.
+The audit trail lives in the versioned folder's log - when the hold was placed, by whom, and when it was released.
 
 ```{r hold_log, eval = flag_eval}
 data.table::fread(
@@ -311,7 +312,7 @@ unlink(base_hold, recursive = TRUE)
 
 ---
 
-# 4 — Reports and Discrepancy Detection
+# 4 - Reports and Discrepancy Detection
 
 SLT auto-generates a `report_key_versions.csv` on every `mark` call.  Additional reports are available via `$make_reports()`.
 
@@ -365,7 +366,7 @@ data.table::fread(file.path(base_rpt, "report_key_versions.csv"))[, ..show_vars]
 
 ### Non-symlinked folders
 
-Folders that exist but have no active symlink — useful for identifying cleanup candidates.
+Folders that exist but have no active symlink - useful for identifying cleanup candidates.
 
 ```{r rpt_nonsym, eval = flag_eval}
 data.table::fread(file.path(base_rpt, "report_all_logs_non_symlink.csv"))[, ..show_vars]
@@ -384,6 +385,70 @@ try(data.table::fread(file.path(base_rpt, "REPORT_DISCREPANCIES.csv")))
 ```{r rpt_cleanup, include = FALSE, eval = flag_eval}
 unlink(base_rpt, recursive = TRUE)
 ```
+
+---
+
+# 5 - How Links Work on Windows
+
+The tool only ever links to **folders** - a `best/` or `keep_*/` link always
+points at a version folder, never at a file.  This allows native Windows
+support.
+
+## Junctions, not symlinks
+
+On Linux and macOS the tool makes ordinary symlinks with `file.symlink()`.
+On Windows it makes **junctions** with `Sys.junction()` instead.  A junction is
+an older, folder-only kind of Windows link that:
+
+- needs no special privilege - any account can make one,
+- is resolved by the file system itself, so every program follows it without
+  knowing it is a link, and
+- works only on local NTFS disks (e.g. `C:`) - shared network drives refuse
+  them.
+
+Because the tool never links to files, the folder-only restriction costs
+nothing.
+
+## Why not `file.symlink()` on Windows?
+
+Base R's own help page for `file.symlink()` describes the Windows symlink
+interface this way:
+
+> A version of symbolic linking to files/directories was implemented more
+> recently, and `file.symlink` makes use of that interface. However, it has
+> restrictions which are crippling. First, the user needs permission to make
+> symbolic links, and that permission is not normally granted except to
+> Administrator accounts (note: not users with Administrator rights): further
+> many users report that whereas the Policy Editor appears to be able to grant
+> such rights, the API still reports insufficient permissions. Second, the
+> interface needs to know if `from` is a file or a directory (and it need not
+> yet exist): we have implemented this to allow linking from a directory only
+> if it currently exists.
+
+A tool that only worked for administrators, or whose permissions could not be
+reliably granted, would be unusable on a typical managed computer.  Junctions
+sidestep both problems.
+
+## What this means in practice
+
+- **Roots must be on a local disk.**  The tool probes every root when it is
+  built (`SLT$new()`) and stops with a plain message naming the drive and its
+  type if one cannot hold junctions.  For roots on a network drive, run the
+  tool from Linux.
+- **Links made on Linux are not readable from Windows.**  A symlink written
+  from a Linux machine onto a network share shows up on Windows as a missing
+  path or a plain folder, depending on the mount.  Roundups run from Windows
+  against such a root would be silently wrong, which is why the probe is fatal
+  on Windows and merely informative on Linux/macOS.
+- **Dangling junctions are invisible.**  On Linux the tool can tell that a
+  `best/` link still exists but its target folder was deleted by hand, and
+  warns you.  Windows has no such view: a junction whose target is gone looks
+  like nothing at all.  Delete version folders through the tool
+  (`delete_version_folders()`), which unmarks first.
+- **Symlinks made by other programs are reported, never removed.**  If someone
+  creates a true Windows symlink inside a root by hand, the tool lists it in
+  roundups and discrepancy reports, but base R cannot delete it.  Remove it in
+  a command prompt with `rmdir`; the tool will tell you so.
 
 ---
 
