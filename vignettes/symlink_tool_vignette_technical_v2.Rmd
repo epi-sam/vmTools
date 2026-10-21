@@ -154,7 +154,7 @@ composer$roundup_all_unmarked()
 ```
 
 ```{r slc_cleanup, include = FALSE, eval = flag_eval}
-system(paste("rm -rf", base_slc))
+unlink(base_slc, recursive = TRUE)
 ```
 
 ---
@@ -220,7 +220,7 @@ print_tree(base, level = 1)
 ```
 
 ```{r multi_cleanup, include = FALSE, eval = flag_eval}
-system(paste("rm -rf", base))
+unlink(base, recursive = TRUE)
 ```
 
 ---
@@ -306,7 +306,7 @@ data.table::fread(
 ```
 
 ```{r hold_cleanup, include = FALSE, eval = flag_eval}
-system(paste("rm -rf", base_hold))
+unlink(base_hold, recursive = TRUE)
 ```
 
 ---
@@ -382,7 +382,7 @@ try(data.table::fread(file.path(base_rpt, "REPORT_DISCREPANCIES.csv")))
 ```
 
 ```{r rpt_cleanup, include = FALSE, eval = flag_eval}
-system(paste("rm -rf", base_rpt))
+unlink(base_rpt, recursive = TRUE)
 ```
 
 ---
@@ -390,7 +390,7 @@ system(paste("rm -rf", base_rpt))
 # Cleanup
 
 ```{r final_cleanup, include = FALSE, eval = TRUE}
-system(paste("rm -rf", file.path(tempdir(), "slt_tech")))
+unlink(file.path(tempdir(), "slt_tech"), recursive = TRUE)
 options(.opt_width)
 options(.opt_mc)
 ```

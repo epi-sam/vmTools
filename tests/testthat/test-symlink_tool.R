@@ -7,7 +7,6 @@
 # - Symlink Tool normalizes all paths internally
 
 .user <- Sys.info()[['user']]
-# system(paste("rm -rf", tempdir()))
 root_base      <- make_test_root("slt")
 root_list      <- list(
    root_input    = clean_path(root_base, "dir_1")
@@ -677,8 +676,8 @@ test_that("Key version report is empty after unmarking",
 test_that("Expected folders exist after marking, unmarking, and running reports",
           {
              expect_equal(
-                list.files(root_list[[1]])
-                , c(
+                sort(list.files(root_list[[1]]))   # sort both sides: list.files() order is locale-dependent
+                , sort(c(
                    "1990_01_01"
                    , "1990_01_02"
                    , "1990_01_03"
@@ -686,7 +685,7 @@ test_that("Expected folders exist after marking, unmarking, and running reports"
                    , "report_all_logs_non_symlink.csv"
                    , "report_all_logs_symlink.csv"
                    , "report_key_versions.csv"
-                )
+                ))
              )
           })
 

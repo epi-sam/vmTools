@@ -252,7 +252,7 @@ This walkthrough covers the core workflow.  The `symlink_tool_vignette_technical
 - all available private and public methods.
 
 ```{r cleanup, include = FALSE, eval = TRUE}
-system(paste("rm -rf", dirname(modeling_root)))
+unlink(dirname(modeling_root), recursive = TRUE)
 options(.opt_width)
 options(.opt_mc)
 ```
