@@ -202,11 +202,13 @@ get_valid_actions <- function(){
     # Symlink-based Finite State Machine
     #
     # State Transitions:
-    # [unmarked] ←→ [latest] ←→ [best]
-    #     ↕          ↕          ↕
-    #   [keep]     [keep]     [keep]
-    #     ↕          ↕          ↕
-    #  [remove]   [remove]   [remove]
+    # [unmarked] <-> [latest] <-> [best]
+    #     ^            ^           ^
+    #     v            v           v
+    #   [keep]       [keep]      [keep]
+    #     ^            ^           ^
+    #     v            v           v
+    #  [remove]     [remove]    [remove]
     #
     # Rules:
     # 1. Only ONE symlink per folder at any time
@@ -214,7 +216,7 @@ get_valid_actions <- function(){
     # 3. Only ONE 'latest' folder per project root (Highlander rule)
     # 4. Multiple 'keep' folders allowed
     # 5. Multiple 'remove' folders allowed
-    # 6. 'best' ←→ 'latest' transitions auto-demote the conflicting state
+    # 6. 'best' <-> 'latest' transitions auto-demote the conflicting state
     #
     # Symlink Naming Convention:
     # - 'best':   singleton symlink named "best" (no version in name)
