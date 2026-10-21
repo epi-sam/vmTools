@@ -23,7 +23,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 .opt_width  <- options(width = 120)
 hook_output <- knitr::knit_hooks$get("output")
-flag_eval   <- vmTools:::dir_supports_links(tempdir())
+flag_eval   <- vmTools::dir_supports_links(tempdir())
 
 knitr::knit_hooks$set(output = function(x, options) {
   if (!is.null(n <- options$out.lines)) {
@@ -449,6 +449,13 @@ sidestep both problems.
   creates a true Windows symlink inside a root by hand, the tool lists it in
   roundups and discrepancy reports, but base R cannot delete it.  Remove it in
   a command prompt with `rmdir`; the tool will tell you so.
+
+You can ask the same question the constructor asks, for any folder, before
+building a tool:
+
+```{r probe_demo}
+dir_supports_links(tempdir())
+```
 
 ---
 

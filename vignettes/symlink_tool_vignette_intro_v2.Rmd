@@ -23,7 +23,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 .opt_width    <- options(width = 120)
 hook_output   <- knitr::knit_hooks$get("output")
-flag_eval     <- vmTools:::dir_supports_links(tempdir())
+flag_eval     <- vmTools::dir_supports_links(tempdir())
 
 knitr::knit_hooks$set(output = function(x, options) {
   if (!is.null(n <- options$out.lines)) {

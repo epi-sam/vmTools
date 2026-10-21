@@ -18,6 +18,9 @@ link resolves, then remove both. Uniquely named so parallel jobs probing
 the same root never collide. Cleans up on exit, including the litter a
 failed junction leaves behind.
 }
+\examples{
+dir_supports_links(tempdir())
+}
 \seealso{
 Other links: 
 \code{\link{link_create}()},
@@ -32,4 +35,3 @@ Other links:
 \code{\link{windows_drive_type}()}
 }
 \concept{links}
-\keyword{internal}

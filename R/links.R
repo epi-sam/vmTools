@@ -338,7 +338,10 @@ link_list <- function(root){
 #'
 #' @return (lgl) TRUE if a link round-trip works in `dir`
 #' @family links
-#' @keywords internal
+#' @export
+#'
+#' @examples
+#' dir_supports_links(tempdir())
 dir_supports_links <- function(dir){
    assert_scalar_not_empty(dir)
    if (!dir.exists(dir)) return(FALSE)
