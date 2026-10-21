@@ -99,10 +99,18 @@ get_reserved_version_names <- function() {
 find_reserved_name_conflict <- function(version_name) {
     checkmate::assert_string(version_name)
     reserved <- get_reserved_version_names()
-    if (version_name %in% reserved$words) return(version_name)
-    conflicting_prefix <- reserved$prefixes[startsWith(version_name, reserved$prefixes)]
+    # compare ignoring case: Windows and macOS treat `Best` and `best` as the
+    # same folder, so a version folder `Best` would occupy the `best` link's slot
+    name_lc     <- tolower(version_name)
+    words_lc    <- tolower(reserved$words)
+    prefixes_lc <- tolower(reserved$prefixes)
+
+    if (name_lc %in% words_lc) return(reserved$words[match(name_lc, words_lc)])
+
+    conflicting_prefix <- reserved$prefixes[startsWith(name_lc, prefixes_lc)]
     if (length(conflicting_prefix)) return(conflicting_prefix[1])
-    NULL
+
+    return(NULL)
 }
 
 #' Stop if a version_name is a reserved folder name
@@ -115,8 +123,8 @@ assert_version_name_not_reserved <- function(version_name) {
     conflict <- find_reserved_name_conflict(version_name)
     if (is.null(conflict)) return(invisible(TRUE))
     reserved <- get_reserved_version_names()
-    what <- if (conflict == version_name) {
-        sprintf("the tool uses this name for its '%s' symlink (shortcut).", conflict)
+    what <- if (tolower(conflict) == tolower(version_name)) {
+        sprintf("the tool uses this name (ignoring case) for its '%s' symlink (shortcut).", conflict)
     } else {
         sprintf("the tool uses names starting with '%s' for its '%s' symlinks (shortcuts).", conflict, sub("_$", "", conflict))
     }
@@ -124,6 +132,8 @@ assert_version_name_not_reserved <- function(version_name) {
         sprintf("'%s' cannot be used as a version_name - %s", version_name, what)
         , "\n    - Reserved names:    ", toString(reserved$words)
         , "\n    - Reserved prefixes: ", toString(reserved$prefixes)
+        , sprintf("\n    - Names are compared ignoring case: Windows and macOS treat '%s' and '%s' as the same folder,", version_name, tolower(version_name))
+        , sprintf("\n      so a '%s' symlink (shortcut) would collide with an existing folder name.", sub("_$", "", conflict))
         , "\n    - Please choose a different folder name."
     )
 }
@@ -315,9 +325,26 @@ new_symlink_type <- function(
         , verbose = TRUE
 ) {
     checkmate::assert_flag(is_singleton)
-    checkmate::assert_string(symlink_type)
+    assert_scalar_not_empty(symlink_type)
+    checkmate::assert_string(symlink_type, min.chars = 1)
     if (tolower(symlink_type) %in% c("best", "latest", "keep", "remove")){
-        stop("Cannot overwrite built-in symlink type (case-insensitive): '", tolower(symlink_type), "'")
+        stop(
+            sprintf("Cannot overwrite built-in symlink type '%s' (you passed '%s').", tolower(symlink_type), symlink_type)
+            , "\n    - Built-in types: best, latest, keep, remove."
+            , "\n    - Type names are compared ignoring case: Windows and macOS treat 'BEST' and 'best' as the same folder name."
+            , "\n    - Choose a different name for your new type."
+        )
+    }
+    # a name that differs from a registered type only by case would share that
+    # type's folder names on Windows and macOS
+    registered <- get_symlink_types()
+    clash      <- registered[tolower(registered) == tolower(symlink_type) & registered != symlink_type]
+    if (length(clash)) {
+        stop(
+            sprintf("'%s' differs only by case from the registered symlink type '%s'.", symlink_type, clash[1])
+            , "\n    - Type names are compared ignoring case: Windows and macOS treat these as the same folder name."
+            , "\n    - Use the existing type '", clash[1], "', or choose a clearly different name."
+        )
     }
     # TODO - 2026 Mar 17 - probably want to allow user to re-write their own entries
     # if (exists(symlink_type, envir = .symlink_registry, inherits = FALSE)){

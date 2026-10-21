@@ -55,6 +55,20 @@ test_that("Overwriting a built-in type errors (case-insensitive)", {
    expect_error(new_symlink_type("keep", is_singleton = FALSE), regexp = "Cannot overwrite")
 })
 
+test_that("A type differing from a registered type only by case is refused", {
+   expect_error(new_symlink_type("In_Progress", is_singleton = TRUE), regexp = "differs only by case.*'in_progress'")
+   expect_error(new_symlink_type("FAILED", is_singleton = FALSE), regexp = "differs only by case.*'failed'")
+   expect_false("In_Progress" %in% vmTools:::get_symlink_types())
+})
+
+test_that("An empty, missing, blank or non-scalar type name is refused", {
+   expect_error(new_symlink_type("",            is_singleton = TRUE), regexp = "empty in some way")
+   expect_error(new_symlink_type(NA_character_, is_singleton = TRUE), regexp = "empty in some way")
+   expect_error(new_symlink_type(" ",           is_singleton = TRUE), regexp = "empty in some way")
+   expect_error(new_symlink_type(c("a", "b"),   is_singleton = TRUE), regexp = "length 1")
+   expect_error(new_symlink_type(1,             is_singleton = TRUE), regexp = "type 'string'")
+})
+
 test_that("Querying an unregistered type errors", {
    expect_error(vmTools:::get_symlink_registry_entry("nonexistent"), regexp = "not registered")
 })

@@ -1409,7 +1409,9 @@ SLT <- R6::R6Class(
          # a tool symlink must actually BE a symlink - a real folder named e.g.
          # `best` is a collision, not a mark, and is flagged separately
          folder_dt[, is_tool_symlink      := is_symlink & grepl(tool_symlink_regex, dir_leaf)]
-         folder_dt[, is_reserved_name_dir := !is_symlink & grepl(tool_symlink_regex, dir_leaf)]
+         # - ignore case: on Windows and macOS a real folder `Best` sits in the
+         #   `best` link's slot, so it is a collision there and worth reporting everywhere
+         folder_dt[, is_reserved_name_dir := !is_symlink & grepl(tool_symlink_regex, dir_leaf, ignore.case = TRUE)]
 
          # reporting requires logs to be in a consistent location
          has_bare_log <- file.exists(clean_path(folder_dt$dir_name_resolved, basename(private$DICT$log_name)))

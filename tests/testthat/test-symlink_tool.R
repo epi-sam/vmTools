@@ -506,6 +506,11 @@ test_that("Reserved symlink names are refused as version_name folders",
              expect_error(slt_rsv$make_new_version_folder(version_name = "best"), regexp = "cannot be used as a version_name")
              expect_false(dir.exists(clean_path(roots_rsv[["root_a"]], "best")))
 
+             # ... in any case: Windows and macOS would file `Best` in the `best` link's slot
+             expect_error(slt_rsv$make_new_version_folder(version_name = "Best"), regexp = "ignoring case.*'best'")
+             expect_error(slt_rsv$make_new_version_folder(version_name = "KEEP_1990_01_01"), regexp = "names starting with 'keep_'")
+             expect_false(any(dir.exists(clean_path(roots_rsv[["root_a"]], c("Best", "KEEP_1990_01_01")))))
+
              # passing a symlink name when no such symlink exists
              expect_error(
                 slt_rsv$mark_best(version_name = "latest", user_entry = list(comment = "c"))
@@ -535,6 +540,58 @@ test_that("A real folder using a reserved symlink name blocks marking and is rep
              suppressMessages(slt_occ$.__enclos_env__$private$report_discrepancies(roots_occ[["root_a"]], verbose = FALSE))
              disc <- data.table::fread(clean_path(roots_occ[["root_a"]], slt_occ$return_dictionaries()$report_fnames$discrepancies))
              expect_true(any(grepl("real folder is using a name reserved", disc$discrepancy)))
+          })
+
+test_that("A real folder using a reserved name in a different case is reported",
+          {
+             root_cas    <- make_test_root("slt_reserved_mixed_case")
+             roots_cas   <- list(root_a = clean_path(root_cas, "a"))
+             central_cas <- clean_path(root_cas, "central")
+             lapply(c(unlist(roots_cas), central_cas), make_directory)
+             on.exit(unlink(root_cas, recursive = TRUE), add = TRUE)
+             slt_cas <- suppressMessages(suppressWarnings(
+                SLT$new(root_list = roots_cas, central_log_root = central_cas, verbose = FALSE, verbose_startup = FALSE)
+             ))
+             slt_cas$make_new_version_folder(version_name = "1990_01_01")
+             dir.create(clean_path(roots_cas[["root_a"]], "Keep_1990_01_01"))   # hand-made, mixed case
+
+             suppressMessages(slt_cas$.__enclos_env__$private$report_discrepancies(roots_cas[["root_a"]], verbose = FALSE))
+             disc <- data.table::fread(clean_path(roots_cas[["root_a"]], slt_cas$return_dictionaries()$report_fnames$discrepancies))
+             expect_true(any(grepl("real folder is using a name reserved", disc$discrepancy)))
+             expect_identical(slt_cas$roundup_keep()$version_name, character(0))   # not mistaken for a mark
+          })
+
+
+# Case-insensitive filesystems --------------------------------------------------
+
+# Windows and macOS treat `RUN_A` and `run_a` as one folder. On Windows,
+# normalizePath() returns the on-disk spelling (checked by hand 2026-10-21), so
+# the version-name resolver corrects a user's case before anything is logged.
+# This block runs only where the filesystem is case-insensitive; CI on macOS
+# confirms it behaves the same way there.
+
+test_that("On a case-insensitive filesystem a mis-cased version_name resolves to the on-disk spelling",
+          {
+             root_ci    <- make_test_root("slt_case_insensitive")
+             roots_ci   <- list(root_a = clean_path(root_ci, "a"))
+             central_ci <- clean_path(root_ci, "central")
+             lapply(c(unlist(roots_ci), central_ci), make_directory)
+             on.exit(unlink(root_ci, recursive = TRUE), add = TRUE)
+             dir.create(clean_path(roots_ci[["root_a"]], "RUN_A"))
+             testthat::skip_if_not(dir.exists(clean_path(roots_ci[["root_a"]], "run_a")), "filesystem is case-sensitive")
+
+             slt_ci <- suppressMessages(suppressWarnings(
+                SLT$new(root_list = roots_ci, central_log_root = central_ci, verbose = FALSE, verbose_startup = FALSE)
+             ))
+             suppressMessages(slt_ci$mark_best(version_name = "run_a", user_entry = list(comment = "mis-cased on purpose")))
+
+             expect_identical(slt_ci$roundup_best()$version_name, "RUN_A")
+             expect_identical(
+                basename(vmTools:::link_get_target(clean_path(roots_ci[["root_a"]], "best")))
+                , "RUN_A"
+             )
+             log_ci <- data.table::fread(clean_path(roots_ci[["root_a"]], "RUN_A", "logs", slt_ci$return_dictionaries()$log_name))
+             expect_true(all(log_ci$version_name == "RUN_A"))
           })
 
 
