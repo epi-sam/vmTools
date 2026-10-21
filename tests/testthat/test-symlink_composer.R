@@ -44,13 +44,12 @@ ue_list <- list(
 
 # Integration Tests ------------------------------------------------------------
 
-# All integration tests will fail on Windows unless the R process runs with
-# administrative privileges, which is not possible on CRAN servers.
-# See description section of ?base::file.symlink for details.
+# Every integration test creates symlinks (shortcuts). Skip the file on a
+# machine that cannot make them in tempdir() (e.g. Windows without a local disk).
 
-if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FALSE){
+if(!vmTools:::dir_supports_links(tempdir())){
 
-   testthat::skip("Symbolic links are not supported on Windows without admin privileges")
+   testthat::skip("this machine cannot create symlinks (shortcuts) in tempdir()")
 
 } else {
 

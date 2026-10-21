@@ -16,22 +16,9 @@ dv <- list(
 )
 
 
-# Windows Guard ----------------------------------------------------------------
+# Link capability guard -------------------------------------------------------
 
-if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FALSE){
-
-   test_that(
-      "Windows non-admin startup produces correct error",
-      {
-         expect_error(
-            SLT$new(), regexp = "Symbolic links are not supported on Windows without admin privileges."
-         )
-      }
-   )
-
-   testthat::skip("Symbolic links are not supported on Windows without admin privileges")
-
-}
+testthat::skip_if_not(vmTools:::dir_supports_links(tempdir()), "this machine cannot create symlinks (shortcuts) in tempdir()")
 
 
 # Unit: Registry Accessors -----------------------------------------------------
@@ -43,7 +30,6 @@ test_that("Symlink registiry is well-formed", {
    for (entry in registry) {
       expect_type(entry$is_singleton, "logical")
       expect_true(is.function(entry$symlink_suffix_fn))
-      expect_true(is.function(entry$ls_regex_fn))
    }
 })
 
@@ -173,15 +159,3 @@ test_that("Registering a symlink type reserves its name for folders", {
 })
 
 
-# ls regex is anchored and escaped ---------------------------------------------
-
-test_that("ls regex matches only its own version: no suffix match, no wildcard dot", {
-   ls_line <- function(name, target) sprintf("lrwxrwxrwx 1 user group 46 Oct  1 20:20 %s -> /root/%s", name, target)
-   keep_regex <- vmTools:::make_ls_regex_fn(is_singleton = FALSE, "keep")("1990_01_01")
-   best_regex <- vmTools:::make_ls_regex_fn(is_singleton = TRUE,  "best")("2024_01_01.01")
-
-   expect_true( grepl(keep_regex, ls_line("keep_1990_01_01",  "1990_01_01")))
-   expect_false(grepl(keep_regex, ls_line("keep_x1990_01_01", "x1990_01_01")))   # suffix collision (E)
-   expect_true( grepl(best_regex, ls_line("best", "2024_01_01.01")))
-   expect_false(grepl(best_regex, ls_line("best", "2024_01_01x01")))             # wildcard dot (F)
-})

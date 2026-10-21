@@ -23,7 +23,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 .opt_width  <- options(width = 120)
 hook_output <- knitr::knit_hooks$get("output")
-flag_eval   <- .Platform$OS.type %in% c("unix", "linux") | vmTools:::is_windows_admin()
+flag_eval   <- vmTools:::dir_supports_links(tempdir())
 
 knitr::knit_hooks$set(output = function(x, options) {
   if (!is.null(n <- options$out.lines)) {
@@ -38,8 +38,8 @@ knitr::knit_hooks$set(output = function(x, options) {
 ```{r windows_note, echo = FALSE}
 if (!flag_eval) {
   knitr::asis_output(
-    "> **Note:** Symlink creation requires admin rights on Windows.
-    > Code is shown but not evaluated on this system."
+    "> **Note:** This machine cannot create symlinks (shortcuts) in its temp folder
+    > (on Windows that needs a local disk). Code is shown but not evaluated on this system."
   )
 }
 ```

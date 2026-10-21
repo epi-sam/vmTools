@@ -17,8 +17,9 @@ and 'remove' (marked for deletion).
 
 
 try(SLT$new()) # call with no arguments to see instructions
-# Tool will not instantiate on Windows unless running with Admin permissions
-# - requirement for symlink creation on Windows
+# On Windows, roots must be on a local disk (e.g. C:) - the tool makes
+# junctions there, and network drives refuse them. Run from Linux for
+# roots on a network drive.
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -114,8 +115,9 @@ central logs.
 \if{html}{\out{<div class="r example copy">}}
 \preformatted{
 try(SLT$new()) # call with no arguments to see instructions
-# Tool will not instantiate on Windows unless running with Admin permissions
-# - requirement for symlink creation on Windows
+# On Windows, roots must be on a local disk (e.g. C:) - the tool makes
+# junctions there, and network drives refuse them. Run from Linux for
+# roots on a network drive.
 }
 \if{html}{\out{</div>}}
 

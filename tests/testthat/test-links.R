@@ -9,7 +9,9 @@ test_that("link_set_backend picks by OS and link_get_backend returns it", {
    backend <- link_get_backend()
    expect_identical(backend$name, if (.Platform$OS.type == "windows") "junction" else "symlink")
    expect_setequal(names(backend), vmTools:::.link_backend_members)
-   expect_true(all(vapply(backend[setdiff(names(backend), "name")], is.function, logical(1))))
+   expect_type(backend$probe_failure_is_fatal, "logical")
+   fns <- setdiff(names(backend), c("name", "probe_failure_is_fatal"))
+   expect_true(all(vapply(backend[fns], is.function, logical(1))))
    expect_true(Sys.info()[["sysname"]] %in% c("Linux", "Darwin", "Windows"))
 })
 

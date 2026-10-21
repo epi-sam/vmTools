@@ -12,24 +12,6 @@
 # 2026 Mar 17 - These replace legacy hard-coded DICT entries within the symlink
 # tool
 
-#' used by `ls -l` to show symlinks
-#'
-#' @keywords internal
-arrow_regex <- function() "->"
-
-#' Escape a string so it matches literally inside a regular expression
-#'
-#' version_names are user-chosen and the package's own default scheme
-#' (`YYYY_MM_DD.VV`) contains a `.`, which is a regex wildcard. Anything
-#' interpolated into a pattern must go through this first.
-#'
-#' @param x (chr) literal string(s)
-#'
-#' @returns (chr) `x` with regex metacharacters backslash-escaped
-#' @keywords internal
-regex_escape <- function(x) {
-    gsub("([][{}()+*^$|\\\\?.])", "\\\\\\1", x)
-}
 
 
 # ---- Function Factories -----------------------------------------------------------------
@@ -59,45 +41,6 @@ make_symlink_suffix_fn <- function(is_singleton) {
     }
 }
 
-#' Make a function to create a regex pattern to find the symlink type when
-#' running `ls` system calls
-#'
-#' Matches one line of `ls -l` output, e.g.
-#' `"lrwxrwxrwx 1 user group 46 Oct  1 20:20 keep_1990_01_01 -> /root/1990_01_01"`.
-#' For a singleton type the pattern is `" best -> .*/<version>/?$"`; for a
-#' non-singleton type it is `" keep_<version> -> .*/<version>/?$"`.
-#'
-#' The version_name is regex-escaped (the default `YYYY_MM_DD.VV` scheme has a
-#' `.`), the symlink name is anchored on the leading space `ls -l` always
-#' emits, and the target is anchored on a path separator. Without those
-#' anchors `1990_01_01` also matched `x1990_01_01` and `2024_01_01.01` matched
-#' `2024_01_01x01`, so marking one version could delete another version's
-#' symlink.
-#'
-#' @param is_singleton (logical) whether this symlink type is a singleton (only
-#'   one per root)
-#' @param symlink_type (chr) the name of the symlink type, e.g. "best", "keep",
-#'   "remove", "latest". Used to build the regex pattern for `ls` system calls.
-#'
-#' @return (function) a function that takes a version_name argument (for
-#'   non-singleton types) and returns the appropriate regex pattern to find the
-#'   symlink type when running `ls`
-#'
-#'
-#' @keywords internal
-make_ls_regex_fn <- function(is_singleton, symlink_type) {
-    checkmate::assert_flag(is_singleton)
-    checkmate::assert_string(symlink_type)
-    if (is_singleton) {
-        function(version_name) {
-            sprintf(" %s %s .*/%s/?$", regex_escape(symlink_type), arrow_regex(), regex_escape(version_name))
-        }
-    } else {
-        function(version_name) {
-            sprintf(" %s_%s %s .*/%s/?$", regex_escape(symlink_type), regex_escape(version_name), arrow_regex(), regex_escape(version_name))
-        }
-    }
-}
 
 
 #' Make a regex pattern to find the symlink type when running `ls` system calls
@@ -297,7 +240,6 @@ get_valid_actions <- function(){
         symlink_name <- names(symlink_registry_builtins)[idx]
 
         entry$symlink_suffix_fn <- make_symlink_suffix_fn(entry$is_singleton)
-        entry$ls_regex_fn       <- make_ls_regex_fn(entry$is_singleton, symlink_name)
         entry$extract_regex     <- make_extract_regex(entry$is_singleton, symlink_name)
 
         symlink_registry_builtins[[idx]] <- entry
@@ -332,7 +274,6 @@ get_valid_actions <- function(){
 #' Expected entries are:
 #' - `is_singleton`: (logical) whether this symlink type is a singleton (only one per root)
 #' - `symlink_suffix_fn`: (function) function to create symlink name based on version name (for non-singleton symlink types)
-#' - `ls_regex_fn`: (function) function to find a symlink (by version_name for non-singletons) when running `ls` system calls
 #' - `extract_regex`: (function) function to get the regex pattern to find the symlink type
 #'
 #' @returns (list) the full symlink registry as a named list
@@ -384,7 +325,6 @@ new_symlink_type <- function(
     new_entry <- list(
         is_singleton        = is_singleton
         , symlink_suffix_fn = make_symlink_suffix_fn(is_singleton)
-        , ls_regex_fn       = make_ls_regex_fn(is_singleton, symlink_type)
         , extract_regex     = make_extract_regex(is_singleton, symlink_type)
     )
 

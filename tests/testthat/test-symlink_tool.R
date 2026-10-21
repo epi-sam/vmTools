@@ -33,45 +33,13 @@ ue_list <- list(
 )
 
 
-# Windows Guard ------------------------------------------------------------
+# Link capability guard -------------------------------------------------------
 
-# All integration tests will fail on Windows unless the R process runs with
-# administrative privileges, which is not possible on CRAN servers.
-# - Right click on Rstudio > "Run as administrator" > Yes
-#
-# See description section of ?base::file.symlink.
-#
-# Symbolic links on Windows
-# Symbolic links in the sense of POSIX file systems do not exist on Windows:
-# however, NTFS file systems support two similar concepts.
-#
-# ...
-#
-# A version of symbolic linking to files/directories was implemented more
-# recently, and file.symlink makes use of that interface. However, it has
-# restrictions which are crippling. First, the user needs permission to make
-# symbolic links, and that permission is not normally granted except to
-# Administrator accounts (note: not users with Administrator rights): further
-# many users report that whereas the Policy Editor appears to be able to grant
-# such rights, the API still reports insufficient permissions. Second, the
-# interface needs to know if from is a file or a directory (and it need not yet
-# exist): we have implemented this to allow linking from a directory only if it
-# currently exists.
+# Every integration test creates symlinks (shortcuts). Skip the file on a
+# machine that cannot make them in tempdir() (e.g. Windows without a local disk).
 
-if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FALSE){
+testthat::skip_if_not(vmTools:::dir_supports_links(tempdir()), "this machine cannot create symlinks (shortcuts) in tempdir()")
 
-   test_that(
-      "Windows non-admin startup produces correct error",
-      {
-         expect_error(
-            SLT$new(), regexp = "Symbolic links are not supported on Windows without admin privileges."
-         )
-      }
-   )
-
-   testthat::skip("Symbolic links are not supported on Windows without admin privileges")
-
-}
 
 # Create tool ------------------------------------------------------------------
 
@@ -473,8 +441,8 @@ test_that("A symlink name that points to different versions in different roots i
 
              # hand-repoint root_b's `latest` at v2 so the two roots disagree
              latest_b <- clean_path(roots_amb[["root_b"]], "latest", normalize = FALSE)
-             unlink(latest_b)
-             file.symlink(clean_path(roots_amb[["root_b"]], v2), latest_b)
+             vmTools:::link_remove(latest_b)
+             vmTools:::link_create(clean_path(roots_amb[["root_b"]], v2), latest_b)
 
              logs <- c(
                 clean_path(roots_amb[["root_a"]], v1, slt_amb$return_dictionaries()$log_path)

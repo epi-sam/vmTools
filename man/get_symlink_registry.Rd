@@ -15,7 +15,6 @@ Expected entries are:
 \itemize{
 \item \code{is_singleton}: (logical) whether this symlink type is a singleton (only one per root)
 \item \code{symlink_suffix_fn}: (function) function to create symlink name based on version name (for non-singleton symlink types)
-\item \code{ls_regex_fn}: (function) function to find a symlink (by version_name for non-singletons) when running \code{ls} system calls
 \item \code{extract_regex}: (function) function to get the regex pattern to find the symlink type
 }
 }

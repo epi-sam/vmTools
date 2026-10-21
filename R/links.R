@@ -42,6 +42,7 @@
 # every backend must provide exactly these members
 .link_backend_members <- c(
    "name"
+   , "probe_failure_is_fatal"
    , "is_link"
    , "get_target"
    , "create"
@@ -58,6 +59,14 @@
    symlink = list(
 
       name = "symlink"
+
+      # Why a failed probe is NOT fatal here: on POSIX the probe can only fail
+      # because the root is not writable (a colleague's folder, a read-only
+      # share). Symlinks in it are still readable with readlink(), so
+      # roundups and reports work - the SymlinkComposer use case: build a
+      # tool on roots you do not own, read-only. A mark on such a root fails
+      # later, at the moment it is attempted, with a plain message.
+      , probe_failure_is_fatal = FALSE
 
 
       # beware: .link_backends$symlink$is_link("/some/path/link/") with a
@@ -94,6 +103,13 @@
    , junction = list(
 
       name = "junction"
+
+      # Why a failed probe IS fatal here: a root that refuses junctions is a
+      # network drive, and Windows cannot READ links on those either - links
+      # made from Linux appear as missing (Qumulo) or as plain folders (some
+      # mounts). Roundups would be silently empty or wrong, so the tool
+      # refuses to build. Contrast the symlink backend above.
+      , probe_failure_is_fatal = TRUE
 
       # base R cannot read reparse-point tags, but normalizePath() follows
       # junctions and symlinks: a link is a path whose resolved form differs
@@ -143,7 +159,8 @@
             system2(
                "powershell"
                , c("-NoProfile", "-Command", shQuote(sprintf("([System.IO.DriveInfo]'%s:').DriveType", letter)))
-               , stdout = TRUE, stderr = FALSE
+               , stdout = TRUE
+               , stderr = FALSE
             )
             , error   = function(e) character(0)
             , warning = function(w) character(0)

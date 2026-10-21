@@ -47,6 +47,10 @@ SLT <- R6::R6Class(
 
          , ROOTS = NULL
 
+         # TRUE/FALSE per root: can the tool create symlinks (shortcuts) there?
+         # - filled by a probe at construction (see R/links.R dir_supports_links)
+         , ROOT_LINK_CAPABLE = NULL
+
 
          ## Logs
 
@@ -469,8 +473,8 @@ SLT <- R6::R6Class(
       #  @param version_name (chr) e.g. "2023_01_01"
       #  @param symlink_type (chr) e.g. "best"
       #
-      #  @return (list) two elements symlinks - symlink path names (unresolved)
-      #    and symlink_count of symlinks matching get_symlink_types()
+      #  @return (list) two elements: symlinks - symlink names (the link's own
+      #    name under root, e.g. "best" or "keep_1990_01_01") and symlink_count
       find_count_symlinks = function(root, version_name, symlink_type){
 
          # validate inputs
@@ -478,22 +482,17 @@ SLT <- R6::R6Class(
          assert_scalar(version_name)
          assert_scalar(symlink_type)
 
-         # Define all eligible symlink regex patterns by type
-         # We're ONLY monitoring symlinks of a certain pattern - users are free to make others
-         ls_regex_fn   <- get_symlink_registry_entry(symlink_type)[["ls_regex_fn"]]
-         symlink_regex <- ls_regex_fn(version_name)
+         # The tool's symlink for a type + version has exactly one name (e.g.
+         # `best`, `keep_1990_01_01`) and must point at that version folder.
+         # We're ONLY monitoring symlinks of that pattern - users are free to make others
+         leaf_expected <- basename(private$make_symlink_path(clean_path(root, version_name), symlink_type))
 
-         folder_contents <- system(paste("ls -l", root), intern = TRUE)
-         folder_contents <- folder_contents[-1] # remove "total xxx" header row
-         if(length(folder_contents) == 0) stop("No items found in your root folder - investigate: ", root)
-
-         symlinks           <- grep(symlink_regex, folder_contents, value = TRUE)
-         symlinks_found_lgl <- grepl(symlink_regex, folder_contents)
-         symlink_count      <- sum(as.integer(symlinks_found_lgl))
+         links_dt <- link_list(root)
+         links_dt <- links_dt[is_link == TRUE & leaf == leaf_expected & basename(target) == version_name, ]
 
          return(list(
-            symlinks      = symlinks,
-            symlink_count = symlink_count
+            symlinks      = links_dt$leaf,
+            symlink_count = nrow(links_dt)
          ))
       },
 
@@ -568,19 +567,28 @@ SLT <- R6::R6Class(
       },
 
 
-      #  Resolve a symlink to its full path
+      #  Resolve a symlink to the full path of its target
       #
-      #  @param path (chr) a path to a symlink
+      #  A dangling symlink (target folder gone) still resolves to that target
+      #  path, with a message, so callers can log and remove it. A real folder
+      #  resolves to its own normalized path.
       #
-      #  @return (chr) the full path of the symlink
+      #  @param path (chr) a path to a symlink (or a real folder)
+      #
+      #  @return (chr) the full path of the symlink's target
       resolve_symlink = function(path){
-         # path_resolved <- normalizePath(path, mustWork = FALSE)
-         path_resolved <- clean_path(path, normalize = TRUE, mustWork = FALSE)
-         if(file.exists(path_resolved)) {
-            return(path_resolved)
+         info <- link_resolve(path)
+
+         if (info$is_link && info$dangling) {
+            private$msg_sometimes("Dangling symlink (target folder is gone): ", path, " -> ", info$target, always_message = TRUE)
+            path_resolved <- info$target
+         } else if (info$is_link) {
+            path_resolved <- info$target
          } else {
-            private$msg_sometimes("Could not resolve symlink: ", path, always_message = TRUE)
+            path_resolved <- clean_path(path, normalize = TRUE, mustWork = FALSE)
          }
+
+         return(path_resolved)
       },
 
       #  Resolve a user-supplied `version_name` to the real folder name.
@@ -654,29 +662,6 @@ SLT <- R6::R6Class(
          return(clean_path(root, paste0(symlink_type, symlink_suffix), normalize = FALSE))
       },
 
-      #  Pull a symlink from a linux-style path string
-      #
-      #  e.g. pull "best" from:
-      #  "lrwxrwxrwx 1 USER Domain Users  63 Feb  6 17:04 best -> /mnt/share/some/path"
-      #
-      #  @param symlink_string (chr) a string from a linux path e.g. "lrwxrwxrwx 1 USER Domain Users  63 Feb  6 17:04 best -> /mnt/share/some/path"
-      #
-      #  @return (chr) the symlink string
-      extract_symlink = function(symlink_string){
-         if(!grepl(arrow_regex(), symlink_string)) stop("No arrow found in symlink_string: ", symlink_string)
-         match_idx <- regexpr(arrow_regex(), symlink_string)
-         str_pre_arrow <- substr(symlink_string, 1, match_idx - 1)
-         # grab the last string of non-whitespace characters
-         str_symlink <- tail(strsplit(str_pre_arrow, " ")[[1]], 1)
-         # validate against allowed patterns
-         symlink_regex <- get_symlink_regex_extract()
-         symlink_regex <- paste(unlist(symlink_regex), collapse = "|")
-         if(!grepl(symlink_regex, str_symlink)) {
-            stop("Invalid symlink found - inspect extract_symlink logic: ", str_symlink)
-         }
-         return(str_symlink)
-      },
-
       #  Remove one symlink and message about which type was removed, append to log
       #
       #  @param root (chr) path to the root folder
@@ -700,12 +685,11 @@ SLT <- R6::R6Class(
             version_name = version_name,
             symlink_type = symlink_type
          )
-         symlink <- unlist(symlink_list$symlinks)
+         symlinks <- symlink_list$symlinks
 
-         if(length(symlink) > 0){
-            symlink_clean <- private$extract_symlink(symlink_string = symlink)
-            # don't normalize - we want a symlink path
-            symlink_full  <- clean_path(root, symlink_clean, normalize = FALSE)
+         if(length(symlinks) > 0) {
+            # don't normalize - we want the symlink path itself, not its target
+            symlink_full  <- clean_path(root, symlinks, normalize = FALSE)
             path_real     <- private$resolve_symlink(path = symlink_full)
             version_name_to_remove <- basename(path_real)
             private$DYNAMIC$LOG$action       <- sprintf("demote_%s", symlink_type)
@@ -714,15 +698,26 @@ SLT <- R6::R6Class(
             private$msg_sometimes("   removing ", symlink_full)
 
             # Log only if the unlink succeeds (linux-style &&: act, then record the act)
-            if (system(paste("unlink", symlink_full)) == 0L) {
+            removed <- tryCatch(
+               link_remove(symlink_full)
+               , error = function(e) {
+                  private$msg_sometimes(
+                     "   unlink failed for: ", symlink_full, "\n   ", conditionMessage(e)
+                     , always_message = TRUE
+                  )
+                  return(FALSE)
+               }
+            )
+            if (isTRUE(removed)) {
                private$append_to_log(version_path = path_real, user_entry = user_entry)
                private$append_to_central_log(version_path = path_real, user_entry = user_entry)
-            } else {
-               private$msg_sometimes("   unlink failed for: ", symlink_full, always_message = TRUE)
             }
 
          } else {
-            private$msg_sometimes("     No symlink found for: ", version_name, " - ", symlink_type, always_message = TRUE)
+            private$msg_sometimes(
+               "     No symlink found for: ", version_name, " - ", symlink_type
+               , always_message = TRUE
+            )
          }
       },
 
@@ -830,7 +825,7 @@ SLT <- R6::R6Class(
                private$append_to_central_log(version_path = version_path, user_entry = user_entry)
                for(dir_name in dirnames_to_delete){
                   private$msg_sometimes("Deleting ", dir_name)
-                  system(sprintf("rm -rf %s", dir_name))
+                  private$delete_folder_or_link(dir_name)
                }
             }
 
@@ -846,7 +841,7 @@ SLT <- R6::R6Class(
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
             for(dir_name in dirnames_to_delete){
                private$msg_sometimes("Deleting ", dir_name, always_message = TRUE)
-               system(paste("rm -rf", dir_name))
+               private$delete_folder_or_link(dir_name)
             }
 
             ret_val_deleted_TF <- TRUE
@@ -857,6 +852,24 @@ SLT <- R6::R6Class(
 
          return(ret_val_deleted_TF)
 
+      },
+
+      #  Delete one version folder, or one of the tool's symlinks to it
+      #
+      #  A symlink is removed with `link_remove()`, which deletes the link only
+      #  and never follows it into the folder it points to. A real folder is
+      #  removed recursively. Used only by `delete_remove_folder()`.
+      #
+      #  @param path (chr) a real folder or a symlink directly under a root
+      #
+      #  @return (none) side effect of deletion
+      delete_folder_or_link = function(path){
+         assert_scalar(path)
+         if (path_is_link(path)) {
+            link_remove(path)
+         } else {
+            unlink(path, recursive = TRUE)
+         }
       },
 
 
@@ -1368,25 +1381,23 @@ SLT <- R6::R6Class(
       #
       #  @return (data.table) table of all version_name folders and their folder types (e.g. bare folder or symlink)
       query_root_folder_types = function(root){
-         # Find all first-level folders in the root (non-recursive)
-         dir_name <- list.dirs(root, full.names = TRUE, recursive = FALSE)
-         # final part of the path - implies symlink if active
-         dir_leaf <- basename(dir_name)
-         dir_name_resolved <- unlist(lapply(dir_name, private$resolve_symlink))
-         dir_name_resolved <- clean_path(dir_name_resolved)
+         # Find all first-level folders and symlinks in the root (non-recursive)
+         # - dangling symlinks (target folder gone) are left out, as `list.dirs()`
+         #   did before `link_list()` - see Follow-ups in the plan
+         # - the tool's own transient probe entries are left out
+         links_dt <- link_list(root)
+         links_dt <- links_dt[dangling == FALSE & !startsWith(leaf, ".vmtools_probe_"), ]
+
+         # resolved path: a symlink's target, or a real folder's own path
+         dir_name_resolved <- links_dt$target
+         non_link_mask <- !links_dt$is_link
+         dir_name_resolved[non_link_mask] <- clean_path(links_dt$path[non_link_mask], normalize = TRUE)
+
          # table of all folders, resolved paths, and last part of the path
-         tryCatch(
-            {
-               # I want this to be an error, not a warning
-               folder_dt <- data.table::as.data.table(
-                  cbind(
-                     dir_name,
-                     dir_name_resolved,
-                     dir_leaf
-                  )
-               )
-            },
-            warning = function(w) stop("cbind operation failed in query_root_folder_types - inspect logic.")
+         folder_dt <- data.table::data.table(
+            dir_name            = links_dt$path
+            , dir_name_resolved = dir_name_resolved
+            , dir_leaf          = links_dt$leaf
          )
          # also add on the resolved leaf version_name for later queries and roundups
          # - keep name distinct to avoid data.table conflicts with function args
@@ -1394,7 +1405,7 @@ SLT <- R6::R6Class(
          # define symlinks that could and couldn't have been created by this tool for later use
          tool_symlink_regex  <- get_symlink_regex_extract()
          tool_symlink_regex  <- paste(tool_symlink_regex, collapse = "|")
-         folder_dt[, is_symlink := dir_name != dir_name_resolved]
+         folder_dt[, is_symlink := links_dt$is_link]
          # a tool symlink must actually BE a symlink - a real folder named e.g.
          # `best` is a collision, not a mark, and is flagged separately
          folder_dt[, is_tool_symlink      := is_symlink & grepl(tool_symlink_regex, dir_leaf)]
@@ -2126,14 +2137,14 @@ SLT <- R6::R6Class(
 
          if(length(symlink) > 0) {
             private$msg_sometimes("Demoting existing symlink: ", symlink)
-            symlink                    <- private$extract_symlink(symlink)
-            symlink                    <- file.path(root, symlink)
+            # don't normalize - we want the symlink path itself, not its target
+            symlink                    <- clean_path(root, symlink, normalize = FALSE)
             private$DYNAMIC$LOG$action <- sprintf("demote_%s", symlink_type)
             private$append_to_log(version_path = version_path, user_entry = user_entry)
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
 
             # only unlink if logging is successful
-            system(sprintf("unlink %s", symlink))
+            link_remove(symlink)
          } else {
             private$msg_sometimes("No existing symlinks found - moving on")
          }
@@ -2194,7 +2205,7 @@ SLT <- R6::R6Class(
          private$DYNAMIC$LOG$action <- sprintf("promote_%s", symlink_type)
 
          if(dir.exists(path_symlink)){
-            if(nzchar(Sys.readlink(path_symlink))){
+            if(path_is_link(path_symlink)){
                private$msg_sometimes("  ", symlink_type, " symlink already exists - moving on: ", path_symlink)
                return(invisible(NULL))
             }
@@ -2208,11 +2219,22 @@ SLT <- R6::R6Class(
          }
 
          # Log only if the link succeeds (linux-style &&: act, then record the act)
-         if (file.symlink(version_path, path_symlink) == TRUE) {
+         link_created <- tryCatch(
+            {
+               link_create(version_path, path_symlink)
+               TRUE
+            }
+            , error = function(e) {
+               private$msg_sometimes(
+                  "   symlink creation failed for: ", path_symlink, "\n   ", conditionMessage(e)
+                  , always_message = TRUE
+               )
+               FALSE
+            }
+         )
+         if (link_created) {
             private$append_to_log(version_path = version_path, user_entry = user_entry)
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
-         } else {
-            private$msg_sometimes("   symlink creation failed for: ", path_symlink, always_message = TRUE)
          }
 
          return(invisible(NULL))
@@ -2282,8 +2304,9 @@ SLT <- R6::R6Class(
       #' @examples
       #'
       #' try(SLT$new()) # call with no arguments to see instructions
-      #' # Tool will not instantiate on Windows unless running with Admin permissions
-      #' # - requirement for symlink creation on Windows
+      #' # On Windows, roots must be on a local disk (e.g. C:) - the tool makes
+      #' # junctions there, and network drives refuse them. Run from Linux for
+      #' # roots on a network drive.
       initialize = function(
       root_list          = NULL
       , central_log_root = NULL
@@ -2307,21 +2330,6 @@ SLT <- R6::R6Class(
          if(!is.null(root_list) && is.null(central_log_root)){
             if(length(root_list) == 1){
                central_log_root <- data.table::copy(root_list)
-            }
-         }
-
-         # try to boost efficiency
-         try(n_cores <- data.table::setDTthreads(find_n_cores()))
-
-         if(tolower(.Platform$OS.type) == "windows") {
-            if(verbose_startup == TRUE) {
-               message("WARNING! you are running on Windows. \n",
-                       "  - symlinks may not function correctly on pre-NTFS file systems \n",
-                       "  - see ?file.symlink for more details.")
-            }
-            if(is_windows_admin() == FALSE){
-               stop("Symbolic links are not supported on Windows without admin privileges. \n",
-                       "  To enable SLT to work: Right click on Rstudio > Run as administrator > Yes")
             }
          }
 
@@ -2412,6 +2420,24 @@ SLT <- R6::R6Class(
 
          # set roots
          private$DICT$ROOTS <- root_list
+
+         # Can the tool create symlinks (shortcuts) in each root?
+         # - probed once per root here and cached for the life of the tool
+         # - whether a failed probe stops the tool is the link backend's call:
+         #   Windows: yes - a network drive cannot even be read reliably
+         #   Linux/macOS: no - links stay readable, so read-only use of roots
+         #   you do not own (the SymlinkComposer case) still works; a mark
+         #   fails later with a plain message if the root refuses it
+         #   See `probe_failure_is_fatal` in R/links.R for the full reasoning.
+         private$DICT$ROOT_LINK_CAPABLE <- vapply(root_list, dir_supports_links, logical(1))
+         if (link_get_backend()$probe_failure_is_fatal && !all(private$DICT$ROOT_LINK_CAPABLE)) {
+            bad_root <- root_list[[which(!private$DICT$ROOT_LINK_CAPABLE)[1]]]
+            stop(
+               "The Symlink Tool cannot create symlinks (shortcuts) in this root folder:\n  ", bad_root,
+               "\n  - Reason: ", link_failure_reason(bad_root),
+               "\n  - Nothing has been changed."
+            )
+         }
 
          ## Timezone
          private$DICT$TZ <- timezone
