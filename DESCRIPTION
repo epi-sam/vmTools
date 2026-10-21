@@ -20,7 +20,8 @@ Imports:
     R6 (>= 2.5.1),
     data.table (>= 1.10.0),
     checkmate (>= 2.0.0),
-    lifecycle
+    lifecycle,
+    utils
 Suggests: 
     devtools (>= 2.4.5),
     knitr (>= 1.46),

@@ -399,7 +399,7 @@ SLT <- R6::R6Class(
             if(any(coltype_success_mask == FALSE)){
                coltype_fail_mask <- !coltype_success_mask
                coltype_fails     <- coltypes_actual[coltype_fail_mask]
-               stop(my_dt_name, ": ", "Columns failing type-matching.  Actual column data-types are:", "\n    ", paste(capture.output(coltype_fails), collapse = "\n    "))
+               stop(my_dt_name, ": ", "Columns failing type-matching.  Actual column data-types are:", "\n    ", paste(utils::capture.output(coltype_fails), collapse = "\n    "))
             }
          }
 
@@ -552,13 +552,13 @@ SLT <- R6::R6Class(
             if(sum(symlink_counts) > n_sym) {
                stop("You have more than ", n_sym, " symlink(s) for ", version_path, "\n  ",
                     "Please run 'unmark()' to remove all symlinks, then try again.\n  ",
-                    paste(capture.output(symlink_counts), collapse = "\n  "))
+                    paste(utils::capture.output(symlink_counts), collapse = "\n  "))
             }
          } else {
             if(sum(symlink_counts) != n_sym) {
                stop("You do not have ", n_sym, " symlink(s) for ", version_path, "\n  ",
                     "Please run 'unmark()' to remove all symlinks, then try again.\n  ",
-                    paste(capture.output(symlink_counts), collapse = "\n  "))
+                    paste(utils::capture.output(symlink_counts), collapse = "\n  "))
             }
          }
 
@@ -1140,7 +1140,7 @@ SLT <- R6::R6Class(
          # Safely write first 'create' row if it doesn't exist
          dt_log <- private$ensure_log_creation_entry(version_path, dt_log)
 
-         last_row <- tail(dt_log, 1)
+         last_row <- utils::tail(dt_log, 1)
 
          log_entry <- data.table::data.table(
             log_id       = last_row$log_id + 1,
@@ -1272,7 +1272,7 @@ SLT <- R6::R6Class(
 
          if(!is.na(private$DYNAMIC$LOG$action)){
 
-            last_row <- tail(dt_log, 1)
+            last_row <- utils::tail(dt_log, 1)
 
             log_entry <- data.table::data.table(
                log_id       = last_row$log_id + 1,
@@ -1339,7 +1339,7 @@ SLT <- R6::R6Class(
       #
       #  @return (data.table) a data.table with the first row of each log
       query_logs_first_row = function(log_list){
-         dt_query <- data.table::rbindlist(lapply(log_list, function(x) head(x, 1)), fill = TRUE)
+         dt_query <- data.table::rbindlist(lapply(log_list, function(x) utils::head(x, 1)), fill = TRUE)
          setorderv(dt_query, private$DICT$log_sort_varname)
          return(dt_query)
       },
@@ -1353,7 +1353,7 @@ SLT <- R6::R6Class(
       #
       #  @return (data.table) a data.table with the last row of each log
       query_logs_last_row = function(log_list){
-         dt_query <- data.table::rbindlist(lapply(log_list, function(x) tail(x, 1)), fill = TRUE)
+         dt_query <- data.table::rbindlist(lapply(log_list, function(x) utils::tail(x, 1)), fill = TRUE)
          setorderv(dt_query, private$DICT$log_sort_varname)
          return(dt_query)
       },
@@ -1594,7 +1594,7 @@ SLT <- R6::R6Class(
          tryCatch({
             as.POSIXct(log_id_0_dt$timestamp2, format = private$DICT$datestamp_format, tz = private$DICT$TZ)
          }, warning = function(w) message("Some logs failed creation-date parsing (must be in %Y_%m_%d_%H%M%S format): \n  ",
-                                          paste(capture.output(dt_failed_parse), collapse = "\n"),
+                                          paste(utils::capture.output(dt_failed_parse), collapse = "\n"),
                                           "\n")
          )
 
