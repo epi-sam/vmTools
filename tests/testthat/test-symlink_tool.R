@@ -962,7 +962,7 @@ test_that("Discrepancy report has expected structure after manual edits",
                 fwrite(log_list[[log_name]], fpaths_dv_logs$root_input[[log_name]])
              })
              # make a bad symlink
-             file.symlink(
+             vmTools:::link_create(
                 path_list$root_input[["1990_01_01"]]
                 , clean_path(root_list$root_input, "bad_symlink")
              )
