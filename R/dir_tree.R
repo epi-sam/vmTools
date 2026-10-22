@@ -35,16 +35,19 @@ dir_tree <- function(path = ".", level = Inf, prefix = "") {
       is_last <- i == N
       connector <- if (is_last) "`-- " else "|-- "
 
-      # Determine if it's a symlink, folder, or file
-      link_target  <- Sys.readlink(files[i])
-      is_symlink   <- nzchar(link_target)
+      # link, folder, or file - link_resolve() knows about junctions on Windows,
+      # where Sys.readlink() returns "" and a junction would print (and expand)
+      # as a plain folder
+      info         <- link_resolve(files[i])
+      is_symlink   <- info$is_link
       is_folder    <- !is_symlink && isTRUE(file.info(files[i])$isdir)
       is_base_folder <- identical(path, ".")  # Check if it's the base folder
 
       # Apply color based on whether it's a symlink, folder, or file
       if (is_symlink) {
-         bold_cyan <- if (is_markdown) "" else "\033[1;36m"
-         colored_name <- paste0(bold_cyan, basename(files[i]), reset, " -> ", link_target)
+         bold_cyan    <- if (is_markdown) "" else "\033[1;36m"
+         missing_note <- if (info$dangling) " (target missing)" else ""
+         colored_name <- paste0(bold_cyan, basename(files[i]), reset, " -> ", info$target, missing_note)
       } else if (is_folder) {
          # Bold blue for top-level folders, bold purple for nested folders
          colored_name <- if (is_base_folder) {
