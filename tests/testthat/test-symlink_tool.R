@@ -587,7 +587,7 @@ test_that("On a case-insensitive filesystem a mis-cased version_name resolves to
 
              expect_identical(slt_ci$roundup_best()$version_name, "RUN_A")
              expect_identical(
-                basename(vmTools:::link_get_target(clean_path(roots_ci[["root_a"]], "best")))
+                basename(vmTools:::link_get_target(clean_path(roots_ci[["root_a"]], "best", normalize = FALSE)))   # normalize = TRUE would follow the link
                 , "RUN_A"
              )
              log_ci <- data.table::fread(clean_path(roots_ci[["root_a"]], "RUN_A", "logs", slt_ci$return_dictionaries()$log_name))
