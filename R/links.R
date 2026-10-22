@@ -146,20 +146,22 @@
       # junctions and symlinks: a link is a path whose resolved form differs
       # from its parent's resolved form plus its own leaf name.
       # Dangling junctions are invisible (nothing to resolve).
+      # `winslash = "/"` so both sides of the compare use the same separator;
+      # the public wrapper must already strip any trailing slash using
+      # clean_path().
       , is_link = function(path){
          if (!dir.exists(path)) return(FALSE)
-         resolved <- clean_path(path, normalize = TRUE)
-         expected <- clean_path(
-            clean_path(dirname(path), normalize = TRUE)
+         resolved <- normalizePath(path, winslash = "/", mustWork = FALSE)
+         expected <- file.path(
+            normalizePath(dirname(path), winslash = "/", mustWork = FALSE)
             , basename(path)
-            , normalize = FALSE
          )
          is_link  <- !identical(tolower(resolved), tolower(expected))
          return(is_link)
       }
 
       , get_target = function(path){
-         return(clean_path(path, normalize = TRUE))
+         return(normalizePath(path, winslash = "/", mustWork = FALSE))
       }
 
       # Sys.junction() exists only in Windows builds of R - fetch it by name
