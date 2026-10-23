@@ -182,6 +182,22 @@ get_symlink_regex_extract <- function() {
     lapply(registry, `[[`, "extract_regex")
 }
 
+#' Which registered symlink type does a link name belong to?
+#'
+#' `best` -> `"best"`, `keep_1990_01_01` -> `"keep"`, `1990_01_01` -> `NA`.
+#'
+#' @param name (chr) one leaf name as it appears in a root folder
+#'
+#' @returns (chr) the symlink type, or `NA` if the name is not a tool link name
+#' @keywords internal
+get_symlink_type_from_name <- function(name) {
+    checkmate::assert_string(name)
+    regexes <- get_symlink_regex_extract()
+    hits    <- vapply(regexes, function(rx) grepl(rx, name), logical(1))
+    if (!any(hits)) return(NA_character_)
+    return(names(regexes)[hits][1])
+}
+
 
 # TODO - 2026 Mar 17 - Remove? - not very useful and now prone to unpredictable behavior
 

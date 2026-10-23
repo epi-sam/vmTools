@@ -494,6 +494,23 @@ test_that("unmark() removes a dangling link and records it in the central log on
              expect_identical(row$version_name, v2)
              expect_identical(row$comment, sprintf("[vmTools auto] removed dangling symlink (shortcut) keep_%s pointing to missing folder %s.", v2, v2))
 
+             # --- by link name
+             v5 <- "1990_01_05"; v6 <- "1990_01_06"
+             suppressMessages(slt_dl$make_new_version_folder(version_name = v5))
+             suppressMessages(slt_dl$make_new_version_folder(version_name = v6))
+             suppressMessages(slt_dl$mark_best(version_name = v5, user_entry = list(comment = "setup")))
+             suppressMessages(slt_dl$mark_keep(version_name = v6, user_entry = list(comment = "setup")))
+             unlink(clean_path(root_a, v5), recursive = TRUE)
+             unlink(clean_path(root_a, v6), recursive = TRUE)
+             suppressMessages(slt_dl$unmark(version_name = "best", user_entry = list(comment = "by link name")))
+             row <- last_row()
+             expect_identical(c(row$action, row$version_name), c("remove_dangling_best", v5))
+             expect_false(vmTools:::path_is_link(clean_path(root_a, "best", normalize = FALSE)))
+             suppressMessages(slt_dl$unmark(version_name = paste0("keep_", v6), user_entry = list(comment = "")))
+             row <- last_row()
+             expect_identical(c(row$action, row$version_name), c("remove_dangling_keep", v6))
+             expect_false(dir.exists(clean_path(root_a, v6)))
+
              # --- target unreadable (Windows with PowerShell silent; no CI platform reaches this, so mock it):
              #     a per-version link still yields a hard path from its own name; a singleton cannot
              v3 <- "1990_01_03"
@@ -517,6 +534,41 @@ test_that("unmark() removes a dangling link and records it in the central log on
              suppressMessages(slt_dl$unmark(version_name = "1990_01_04", user_entry = list(comment = "")))
              expect_true(vmTools:::path_is_link(clean_path(root_a, "best", normalize = FALSE)))   # still there (file.exists follows the link, so it cannot see it)
              expect_identical(last_row()$action, "remove_dangling_keep")   # no new row
+             # ... but by its own name it goes: version unknown, no hard path, link path in the comment
+             suppressMessages(slt_dl$unmark(version_name = "best", user_entry = list(comment = "")))
+             expect_false(vmTools:::path_is_link(clean_path(root_a, "best", normalize = FALSE)))
+             row <- last_row()
+             expect_identical(c(row$action, row$version_name), c("remove_dangling_best", "unknown"))
+             expect_true(is.na(row$version_path) || !nzchar(row$version_path))
+             expect_match(row$comment, clean_path(root_a, "best", normalize = FALSE), fixed = TRUE)
+          })
+
+test_that("unmark() by link name refuses a link that is dead in one root and live in another, touching nothing",
+          {
+             testthat::skip_if_not(vmTools::dir_supports_links(tempdir()), "this machine cannot create symlinks (shortcuts) in tempdir()")
+             root_mx  <- make_test_root("slt_dangling_mixed")
+             roots_mx <- list(a = clean_path(root_mx, "a"), b = clean_path(root_mx, "b"))
+             lapply(unlist(roots_mx), make_directory)
+             on.exit(unlink(root_mx, recursive = TRUE), add = TRUE)
+             slt_mx <- suppressMessages(suppressWarnings(
+                SLT$new(root_list = roots_mx, central_log_root = root_mx, verbose = FALSE, verbose_startup = FALSE)
+             ))
+             v1 <- "1990_01_01"
+             suppressMessages(slt_mx$make_new_version_folder(version_name = v1))
+             suppressMessages(slt_mx$mark_best(version_name = v1, user_entry = list(comment = "setup")))
+             unlink(clean_path(roots_mx$a, v1), recursive = TRUE)   # dead in a, live in b
+             n_rows <- nrow(data.table::fread(slt_mx$return_dictionaries()$LOG_CENTRAL$path))
+
+             expect_error(suppressMessages(slt_mx$unmark(version_name = "best", user_entry = list(comment = "mixed"))), "ambiguous")
+             expect_true(vmTools:::path_is_link(clean_path(roots_mx$a, "best", normalize = FALSE)))   # dead link untouched
+             expect_true(vmTools:::path_is_link(clean_path(roots_mx$b, "best", normalize = FALSE)))
+             expect_identical(nrow(data.table::fread(slt_mx$return_dictionaries()$LOG_CENTRAL$path)), n_rows)
+
+             # by version name it is unambiguous: dead link removed in a, live link demoted in b
+             suppressMessages(slt_mx$unmark(version_name = v1, user_entry = list(comment = "exact")))
+             expect_false(vmTools:::path_is_link(clean_path(roots_mx$a, "best", normalize = FALSE)))
+             expect_false(vmTools:::path_is_link(clean_path(roots_mx$b, "best", normalize = FALSE)))
+             expect_false(dir.exists(clean_path(roots_mx$a, v1)))
           })
 
 test_that("A symlink name that points to different versions in different roots is refused",

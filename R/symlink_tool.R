@@ -613,7 +613,7 @@ SLT <- R6::R6Class(
       #  - A real version_name, or a name that does not exist, passes through
       #    unchanged so downstream "folder does not exist" errors still fire.
       #  - With several roots, the name must resolve to the SAME version in
-         # every root; otherwise the request is ambiguous & stop.
+      #    every root; otherwise the request is ambiguous & stop.
       #
       #  @param version_name (chr) user-supplied version_name or symlink name
       #
@@ -808,6 +808,54 @@ SLT <- R6::R6Class(
          if (isTRUE(reg[["is_singleton"]])) return("unknown")
          version_name <- sub(reg[["extract_regex"]], "", symlink_leaf)
          return(version_name)
+      },
+
+      #  Remove a dead link by its own name (the unmark() path for link names)
+      #
+      #  `unmark("best")` normally resolves "best" to the version it points at
+      #  and strips that version of every mark. A dead link may have no
+      #  readable version (Windows, PowerShell silent), so when the name the
+      #  user passed is a tool link that is dangling, it is removed by name
+      #  instead. Decide first, act second: this path is taken only when every
+      #  root that has the link has it dangling. Dead in one root and live in
+      #  another is ambiguous (which version did the user mean?), so nothing is
+      #  touched and the normal path raises its ambiguity error.
+      #
+      #  @param link_name (chr) what the user passed as version_name
+      #  @param user_entry (named list) the caller's log entry
+      #
+      #  @return (lgl) TRUE if the request was handled here; FALSE to continue
+      #    with normal resolution, nothing changed
+      remove_dangling_link_by_name = function(link_name, user_entry){
+
+         # not a tool link name (e.g. a plain version_name): nothing for this path to do
+         symlink_type <- get_symlink_type_from_name(link_name)
+         if (is.na(symlink_type)) return(FALSE)
+
+         roots    <- unlist(private$DICT$ROOTS)
+         info     <- lapply(roots, function(root) link_resolve(clean_path(root, link_name, normalize = FALSE)))
+         is_link  <- vapply(info, `[[`, logical(1), "is_link")
+         dangling <- vapply(info, `[[`, logical(1), "dangling")
+
+         # no dead link anywhere: normal resolution handles it
+         if (!any(dangling)) return(FALSE)
+
+         # dead in one root, live in another: ambiguous, so touch nothing and let
+         # the normal path raise its ambiguity error via `resolve_version_name()`
+         if (any(is_link & !dangling)) return(FALSE)
+
+         # unambiguous dead link in all roots - remove and log
+         for (root in roots[dangling]) {
+            private$remove_dangling_symlink(
+               root                  = root
+               , symlink_leaf        = link_name
+               , symlink_type        = symlink_type
+               , user_entry          = user_entry
+               , append_user_comment = TRUE
+            )
+         }
+         for (root in roots) private$report_all_logs_tool_symlink(root)
+         return(TRUE)
       },
 
       #  Remove a dangling tool symlink (shortcut) and record it in the central log only
@@ -2890,15 +2938,20 @@ SLT <- R6::R6Class(
       #' Remove all symlinks for a single `version_name` in all `roots`
       #'
       #' Writes:
-      #' - appends to a log file in the output folder with a date and time stamp
-      #' - does _not_ append to the central log file
+      #' - appends a `demote_<type>` row to the log file in the output folder
+      #' - appends the same row to the central log file
+      #'
+      #' A dangling symlink (shortcut), one whose version folder was deleted by
+      #' hand, is removed too, by version name or by its own name. That writes
+      #' a `remove_dangling_<type>` row to the central log only, with a comment
+      #' prefixed `[vmTools auto]`; the deleted folder is never re-created.
       #'
       #' @param version_name (chr) The directory name of the output folder that
       #'   lives directly under one of the `root`s you define when you
       #'   instantiate the tool.
       #'   You may also pass the name of an existing symlink (shortcut) such
       #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
-      #'   version_name folder it points to.
+      #'   version_name folder it points to, or removed directly if dangling.
       #' @param user_entry (list) Named list of user-defined fields to append to
       #'   the log.  After making a tool called e.g. slt, call
       #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
@@ -2911,6 +2964,10 @@ SLT <- R6::R6Class(
       #'
       #'
       unmark = function(version_name, user_entry){
+
+         # guard: edge case - a dead link passed by its own name has no version to resolve to
+         if (private$remove_dangling_link_by_name(version_name, user_entry)) return(invisible(NULL))
+
          version_name <- private$resolve_version_name(version_name)
 
          # 1. remove all symlinks associated with a version_name

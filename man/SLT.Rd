@@ -398,9 +398,14 @@ Remove all symlinks for a single \code{version_name} in all \code{roots}
 
 Writes:
 \itemize{
-\item appends to a log file in the output folder with a date and time stamp
-\item does \emph{not} append to the central log file
+\item appends a \verb{demote_<type>} row to the log file in the output folder
+\item appends the same row to the central log file
 }
+
+A dangling symlink (shortcut), one whose version folder was deleted by
+hand, is removed too, by version name or by its own name. That writes
+a \verb{remove_dangling_<type>} row to the central log only, with a comment
+prefixed \verb{[vmTools auto]}; the deleted folder is never re-created.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$unmark(version_name, user_entry)}\if{html}{\out{</div>}}
 }
@@ -413,7 +418,7 @@ lives directly under one of the \code{root}s you define when you
 instantiate the tool.
 You may also pass the name of an existing symlink (shortcut) such
 as \code{"latest"} or \code{"keep_1990_01_01"}; it is resolved to the real
-version_name folder it points to.}
+version_name folder it points to, or removed directly if dangling.}
 
 \item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call
