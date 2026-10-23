@@ -49,7 +49,6 @@ test_that("path_is_link and link_get_target tell links from real folders", {
 })
 
 test_that("link_resolve reports a dangling link", {
-   skip_if(link_get_backend()$name == "junction", "dangling junctions are invisible to base R on Windows")
    dir_d  <- make_test_root("links", "dangling")
    target <- make_test_root("links", "dangling", "target")
    lnk    <- file.path(dir_d, "lnk")
@@ -61,6 +60,22 @@ test_that("link_resolve reports a dangling link", {
    expect_identical(res$target, target)
    expect_true(link_remove(lnk))   # dangling links are still removable
    expect_false(path_is_link(lnk))
+})
+
+test_that("junction backend: dead junction detected and read back, real folder left alone", {
+   skip_if_not(link_get_backend()$name == "junction", "junction backend only")
+   dir_j  <- make_test_root("links", "junction_dead")
+   target <- make_test_root("links", "junction_dead", "target")
+   real   <- make_test_root("links", "junction_dead", "real")
+   lnk    <- file.path(dir_j, "lnk")
+   link_create(target, lnk)
+   expect_false(windows_junction_is_dead(lnk))
+   unlink(target, recursive = TRUE)
+   expect_true(windows_junction_is_dead(lnk))
+   expect_false(windows_junction_is_dead(real))
+   expect_identical(windows_junction_target(lnk), target)
+   expect_identical(windows_junction_target(real), "")
+   expect_false(path_is_link(real))
 })
 
 test_that("link_list returns one row per folder or link, files excluded", {

@@ -15,7 +15,7 @@ link_list(root)
 }
 \description{
 Replaces parsing \code{ls -l}. Files are excluded; dangling links are included
-(POSIX) so callers can report or remove them.
+so callers can report or remove them.
 }
 \seealso{
 Other links: 
@@ -28,7 +28,9 @@ Other links:
 \code{\link{link_resolve}()},
 \code{\link{link_set_backend}()},
 \code{\link{path_is_link}()},
-\code{\link{windows_drive_type}()}
+\code{\link{windows_drive_type}()},
+\code{\link{windows_junction_is_dead}()},
+\code{\link{windows_junction_target}()}
 }
 \concept{links}
 \keyword{internal}

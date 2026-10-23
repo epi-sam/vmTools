@@ -32,7 +32,6 @@ test_that("dir_tree prints a link with its target and does not expand it", {
 })
 
 test_that("dir_tree flags a dangling link", {
-   testthat::skip_on_os("windows")   # a dangling junction is invisible to the tool
    testthat::skip_if_not(vmTools::dir_supports_links(tempdir()), "this machine cannot create symlinks (shortcuts) in tempdir()")
    root <- make_test_root("dir_tree_dangling")
    on.exit(unlink(root, recursive = TRUE), add = TRUE)

@@ -31,11 +31,15 @@
 #         |   ----------------------  ----------------------  ------------------------
 #         |   name                    "symlink"               "junction"
 #         |   probe_failure_is_fatal  FALSE                   TRUE
-#         |   is_link(path)           Sys.readlink() != ""    normalizePath() differs
-#         |   get_target(path)        Sys.readlink()          normalizePath()
+#         |   is_link(path)           Sys.readlink() != ""    normalizePath() differs, or dead
+#         |   get_target(path)        Sys.readlink()          normalizePath(), or PowerShell
 #         |   create(target, link)    file.symlink()          Sys.junction()
 #         |   failure_reason(dir)     fixed text              drive letter + drive type
 #         |   drive_type(path)        "Unknown"               PowerShell DriveInfo
+#         |
+#         |   Windows-only free helpers used by the junction backend:
+#         |   windows_junction_is_dead(path)   dir.exists() but file.mtime() is NA
+#         |   windows_junction_target(path)    PowerShell (Get-Item).Target
 #         |
 #         |   shape check: assert_x_in_y(.link_backend_members, names(backend))
 #         v
@@ -43,7 +47,7 @@
 #         ^
 #         |   link_get_backend()   read on every call; stops if unset
 #         |
-#   public wrappers (OS-agnostic, same body on every platform):
+#   internal-public wrappers (OS-agnostic, same body on every platform):
 #   path_is_link(path) ->  backend$is_link(path)
 #   etc.
 #   link_resolve / link_list / link_remove / dir_supports_links build on these
@@ -51,7 +55,7 @@
 #   wrappers validate arguments and clean_path() first; a backend function
 #   receives a cleaned path and performs only the OS-specific task.
 #
-# Link primitives (public contract for the rest of the package):
+# Link primitives (internal-public contract for the rest of the package):
 #   link_resolve(path)          list(is_link, target, dangling)
 #   link_create(target, link)   never overwrites; cleans up after a failed attempt
 #   link_remove(link)           refuses anything that is not a link; never touches the target
@@ -60,10 +64,22 @@
 # version folder deleted by hand without unmarking). file.exists() says FALSE
 # because it follows the link; Sys.readlink() still returns the old target.
 # link_resolve() reports it so callers can warn or remove it; link_remove()
-# works on a dangling link. Windows cannot detect dangling junctions.
+# works on a dangling link.
+#
+# Windows: base R cannot read a junction's stored target (Sys.readlink() is
+# always ""), and a dead junction looks like a real empty folder to
+# dir.exists(), file.exists() and normalizePath(). The one base R tell is
+# file.mtime(): NA on a dead junction because Windows cannot open it, a date
+# on a real folder. The junction backend uses that as the detector and then
+# asks PowerShell for the stored target, on that rare branch only. Probed on
+# Windows 2026-10-22; history in .claude/DANGLING_MATRIX.md.
 #
 # Conventions:
-# - no system()/system2() except the junction backend's drive_type(), failure path only
+# - no system()/system2() except two PowerShell calls in the junction backend,
+#   both off the main path: drive_type() after a link has failed, and
+#   windows_junction_target() after a dead junction has been detected
+#   No base R altenatives exist for these two PowerShell calls, and this
+#   avoids an additional fs dependency (using libuv).
 # - link_remove() never recurses; link_create() never overwrites
 # - every stop() names the path, the cause, and what to do
 
@@ -145,7 +161,12 @@
       # base R cannot read reparse-point tags, but normalizePath() follows
       # junctions and symlinks: a link is a path whose resolved form differs
       # from its parent's resolved form plus its own leaf name.
-      # Dangling junctions are invisible (nothing to resolve).
+      # A dead junction has nothing to follow, so it resolves to itself like
+      # a real folder; windows_junction_is_dead() tells the two apart and
+      # windows_junction_target() reads the stored target. A blank answer from
+      # PowerShell means Windows does not call it a junction (a real folder R
+      # could not open), so the heuristic is overruled; no answer at all keeps
+      # the heuristic's verdict.
       # `winslash = "/"` so both sides of the compare use the same separator;
       # the public wrapper must already strip any trailing slash using
       # clean_path().
@@ -156,11 +177,20 @@
             normalizePath(dirname(path), winslash = "/", mustWork = FALSE)
             , basename(path)
          )
-         is_link  <- !identical(tolower(resolved), tolower(expected))
-         return(is_link)
+         if (!identical(tolower(resolved), tolower(expected))) return(TRUE)   # live: resolves elsewhere
+         if (!windows_junction_is_dead(path)) return(FALSE)                 # real folder
+         target <- windows_junction_target(path)
+         return(is.na(target) || nzchar(target))                            # dead junction, or unanswerable
       }
 
+      # dead junction: the stored target from PowerShell, NA if it cannot answer
+      # (is_link() is called first, so a blank answer never reaches here)
       , get_target = function(path){
+         if (windows_junction_is_dead(path)) {
+            target <- windows_junction_target(path)
+            if (is.na(target) || !nzchar(target)) return(NA_character_)
+            return(target)
+         }
          return(normalizePath(path, winslash = "/", mustWork = FALSE))
       }
 
@@ -183,8 +213,8 @@
          return(reason)
       }
 
-      # The one shell call in the package: PowerShell, failure path only,
-      # used to word an error message after a link has already failed.
+      # PowerShell, failure path only, used to word an error message after a
+      # link has already failed. The other shell call: windows_junction_target().
       , drive_type = function(path){
          letter <- toupper(substr(clean_path(path), 1, 1))
          if (!grepl("^[A-Z]$", letter)) return("Unknown")   # UNC path, no drive letter
@@ -267,7 +297,7 @@ link_get_backend <- function(){
 #' @param path (chr) one path
 #'
 #' @return (lgl) TRUE if `path` is a link; FALSE for real folders, files and
-#'   paths that do not exist (on Windows, also FALSE for dangling junctions)
+#'   paths that do not exist. Dangling links count as links on every OS
 #' @family links
 #' @keywords internal
 path_is_link <- function(path){
@@ -282,7 +312,8 @@ path_is_link <- function(path){
 #' @param path (chr) one path
 #'
 #' @return (chr) absolute path of the link's target, normalized when the target
-#'   exists, or `NA` if `path` is not a link
+#'   exists, or `NA` if `path` is not a link (also `NA` for a dead junction
+#'   whose stored target Windows could not report)
 #' @family links
 #' @keywords internal
 link_get_target <- function(path){
@@ -296,7 +327,7 @@ link_get_target <- function(path){
 #' List the folders and links directly under a root
 #'
 #' Replaces parsing `ls -l`. Files are excluded; dangling links are included
-#' (POSIX) so callers can report or remove them.
+#' so callers can report or remove them.
 #'
 #' @param root (chr) one existing folder
 #'
@@ -400,6 +431,8 @@ link_failure_reason <- function(dir){
 }
 
 
+# ---- Windows Backend Helpers -----------------------------------------------------------------
+
 #' What kind of drive is a path on?
 #'
 #' Windows answers `Fixed`, `Network` or `Removable` via the junction backend;
@@ -416,9 +449,67 @@ windows_drive_type <- function(path){
    return(type)
 }
 
+#' Is this Windows folder entry a junction whose target is gone?
+#'
+#' Base R's one tell for a dead junction: the entry passes `dir.exists()`
+#' (Windows lists its attributes without following it) but `file.mtime()` is
+#' `NA` because Windows cannot open it to read its times. A real folder and a
+#' live junction both report a date. Only meaningful under the junction
+#' backend; on POSIX a dead symlink fails `dir.exists()` first.
+#'
+#' @param path (chr) one path, already cleaned
+#'
+#' @return (lgl) TRUE for a dead junction (or, rarely, a real folder R cannot
+#'   open - `windows_junction_target()` settles that)
+#' @family links
+#' @keywords internal
+windows_junction_is_dead <- function(path){
+   assert_scalar_not_empty(path)
+   is_dead <- dir.exists(path) && is.na(suppressWarnings(file.mtime(path)))
+   return(is_dead)
+}
+
+#' Ask Windows where a junction points
+#'
+#' PowerShell reads the target stored inside the junction without following
+#' it, so a dead junction still answers. Called only after
+#' `windows_junction_is_dead()` fires, so the shell cost (about half a second)
+#' is paid once per dead junction, never during a normal scan.
+#'
+#' @param path (chr) one path, already cleaned
+#'
+#' @return (chr) the stored target with forward slashes; `""` when Windows says
+#'   the entry is not a junction; `NA` when PowerShell gave no usable answer
+#' @family links
+#' @keywords internal
+windows_junction_target <- function(path){
+   assert_scalar_not_empty(path)
+   path_win <- gsub("/", "\\", path, fixed = TRUE)
+   path_win <- gsub("'", "''", path_win, fixed = TRUE)   # PowerShell single-quote escape
+   cmd      <- sprintf("(Get-Item -LiteralPath '%s' -Force).Target", path_win)
+   out <- tryCatch(
+      system2(
+         "powershell"
+         , c("-NoProfile", "-NonInteractive", "-Command", shQuote(cmd))
+         , stdout = TRUE
+         , stderr = FALSE
+      )
+      , error   = function(e) NULL
+      , warning = function(w) NULL   # non-zero exit status arrives as a warning
+   )
+   if (is.null(out)) return(NA_character_)
+   status <- attr(out, "status")
+   if (!is.null(status) && status != 0) return(NA_character_)
+   out <- trimws(out)
+   out <- out[nzchar(out)]
+   if (length(out) == 0) return("")
+   target <- clean_path(out[1], normalize = FALSE)
+   return(target)
+}
 
 
-# ---- Public Funtions -----------------------------------------------------------------
+
+# ---- Internal-Public Primitives -----------------------------------------------------------------
 
 # Contracts with the rest of the package
 

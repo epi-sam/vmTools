@@ -26,7 +26,9 @@ Other links:
 \code{\link{link_remove}()},
 \code{\link{link_set_backend}()},
 \code{\link{path_is_link}()},
-\code{\link{windows_drive_type}()}
+\code{\link{windows_drive_type}()},
+\code{\link{windows_junction_is_dead}()},
+\code{\link{windows_junction_target}()}
 }
 \concept{links}
 \keyword{internal}

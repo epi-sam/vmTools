@@ -11,7 +11,7 @@ path_is_link(path)
 }
 \value{
 (lgl) TRUE if \code{path} is a link; FALSE for real folders, files and
-paths that do not exist (on Windows, also FALSE for dangling junctions)
+paths that do not exist. Dangling links count as links on every OS
 }
 \description{
 Is this path a symlink (shortcut) or junction?
@@ -27,7 +27,9 @@ Other links:
 \code{\link{link_remove}()},
 \code{\link{link_resolve}()},
 \code{\link{link_set_backend}()},
-\code{\link{windows_drive_type}()}
+\code{\link{windows_drive_type}()},
+\code{\link{windows_junction_is_dead}()},
+\code{\link{windows_junction_target}()}
 }
 \concept{links}
 \keyword{internal}

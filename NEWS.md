@@ -4,9 +4,20 @@
 
 - `make_new_version_folder()` returns the `version_name`
 
+## Cross-platform symlinks
+
+- New internal `R/links.R`: one link backend per operating system - symlinks on Linux and macOS, junctions on Windows. The tool no longer shells out to `ls`, `unlink` or `rm`.
+- Windows no longer needs admin rights. Roots must be on a local disk (e.g. `C:`); network drives refuse junctions, so the tool stops at construction with a plain message. Run from Linux for roots on a network drive.
+- The constructor no longer sets data.table threads - data.table's own default already respects the CPUs allocated to the job.
+- Symlink registry entries no longer carry `ls_regex_fn`.
+- Test suite runs on Linux, macOS and Windows CI.
+- `dir_supports_links(dir)` is exported: `TRUE` if a link round-trip works in `dir`. The constructor runs it on every root; call it yourself to check a folder first.
+
 ## Bug Fixes
 
 - `clean_path()` now drops a trailing slash (bare roots such as `/` and `C:/` are kept). Previously a trailing slash survived, which made symlink checks look through the link instead of at it.
+- A symlink whose target folder was deleted by hand no longer crashes the tool; it resolves to the missing target with a message.
+- `utils` is now a declared import and every `utils` call is namespaced (`head`, `tail`, `capture.output`, `menu`, CSV readers/writers), so the tool works in sessions where `utils` is loaded but not attached.
 
 
 
@@ -65,37 +76,37 @@ See new, simplified vignette documents.
 
 ```r
 new_symlink_type("production", is_singleton = TRUE)
-# One per root — promoting a new version demotes the previous one
+# One per root - promoting a new version demotes the previous one
 new_symlink_type("flagged", is_singleton = FALSE)
-# Many per root — flag several versions for QA review at once.
+# Many per root - flag several versions for QA review at once.
 ```
 
 - Type definitions now live in a package-level environment shared across all
   SLT/SLC instances in your R session. Adding a type with
-  `new_symlink_type()` takes effect immediately — no restart or object
+  `new_symlink_type()` takes effect immediately - no restart or object
   re-creation needed.
-- `new_symlink_type(symlink_type, is_singleton)` — the `is_singleton` flag
+- `new_symlink_type(symlink_type, is_singleton)` - the `is_singleton` flag
   controls the type's behaviour:
-   - `TRUE` — one folder per root ("Highlander rule"). Promoting a new folder
+   - `TRUE` - one folder per root ("Highlander rule"). Promoting a new folder
      automatically demotes the previous holder. For superlatives like `"best"`
      or `"latest"`.
-   - `FALSE` — many folders per root. For accumulating marks like `"keep"` or
+   - `FALSE` - many folders per root. For accumulating marks like `"keep"` or
      `"remove"`.
    - All derived patterns are generated automatically. Built-in types are locked
      ('best', 'latest', 'keep', 'remove').
 
 **Type-generic `mark()` and `roundup()` on SLT**
 
-- `slt$mark(symlink_type, version_name, user_entry)` — marks a version with any
+- `slt$mark(symlink_type, version_name, user_entry)` - marks a version with any
   built-in or custom type registered via `new_symlink_type()`.
-- `slt$roundup(symlink_type, type)` — lists all symlinks of a given type across
+- `slt$roundup(symlink_type, type)` - lists all symlinks of a given type across
   roots. Accepts any registered type.
 - Per-type methods (`mark_best()`, `roundup_keep()`, etc.) still work and are
   maintained indefinitely (see Superseded below).
 
 **Type-generic `roundup_all()` on SLC**
 
-- `slc$roundup_all(symlink_type)` — combines results across all Symlink 
+- `slc$roundup_all(symlink_type)` - combines results across all Symlink 
   Composer tools for any registered type. Replaces `roundup_all_symlinks()`.
 
 **`return_as` pass-through on SLC aggregates**

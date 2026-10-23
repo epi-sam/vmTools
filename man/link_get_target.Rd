@@ -11,7 +11,8 @@ link_get_target(path)
 }
 \value{
 (chr) absolute path of the link's target, normalized when the target
-exists, or \code{NA} if \code{path} is not a link
+exists, or \code{NA} if \code{path} is not a link (also \code{NA} for a dead junction
+whose stored target Windows could not report)
 }
 \description{
 Where does a link point?
@@ -27,7 +28,9 @@ Other links:
 \code{\link{link_resolve}()},
 \code{\link{link_set_backend}()},
 \code{\link{path_is_link}()},
-\code{\link{windows_drive_type}()}
+\code{\link{windows_drive_type}()},
+\code{\link{windows_junction_is_dead}()},
+\code{\link{windows_junction_target}()}
 }
 \concept{links}
 \keyword{internal}
