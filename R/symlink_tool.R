@@ -488,7 +488,17 @@ SLT <- R6::R6Class(
          leaf_expected <- basename(private$make_symlink_path(clean_path(root, version_name), symlink_type))
 
          links_dt <- link_list(root)
-         links_dt <- links_dt[is_link == TRUE & leaf == leaf_expected & basename(target) == version_name, ]
+         links_dt <- links_dt[is_link == TRUE & leaf == leaf_expected, ]
+         # A link whose target can be read must point at this version. A dead
+         # link whose target cannot be read (Windows, PowerShell silent) is
+         # matched by name alone, but only for per-version types: `keep_<v>`
+         # carries the version in its name, `best` does not and must never be
+         # attributed to a version by guesswork.
+         is_singleton   <- isTRUE(get_symlink_registry_entry(symlink_type)[["is_singleton"]])
+         target_missing <- is.na(links_dt$target)
+         keep_row       <- !target_missing & basename(links_dt$target) == version_name
+         keep_row[target_missing] <- !is_singleton
+         links_dt       <- links_dt[keep_row, ]
 
          return(list(
             symlinks      = links_dt$leaf,
@@ -510,7 +520,7 @@ SLT <- R6::R6Class(
          version_name <- basename(version_path)
 
          symlink_list <- private$find_count_symlinks(root = root, version_name = version_name, symlink_type = symlink_type)
-         ifelse(symlink_list$symlink_count > 0, TRUE, FALSE)
+         return(symlink_list$symlink_count > 0)
       },
 
       #  assert that some number of symlinks exist for some version_name - sums symlinks across all symlink_types specified
@@ -662,14 +672,32 @@ SLT <- R6::R6Class(
          return(clean_path(root, paste0(symlink_type, symlink_suffix), normalize = FALSE))
       },
 
-      #  Remove one symlink and message about which type was removed, append to log
+      #  Remove one tool symlink (shortcut) of one type for one version, and log it
+      #
+      #  Looks for the link this type would give this version (`best`,
+      #  `keep_<version>`) in one root. Three outcomes:
+      #  - not there: message, no log row, no error
+      #  - there but dangling (its folder was deleted by hand): the link is
+      #    removed and the central log alone gets a `remove_dangling_<type>`
+      #    row with a tool-authored comment plus the user's. The gone folder is
+      #    never re-created to hold a version log
+      #  - live: the link is removed and both the version log and the central
+      #    log get a `demote_<type>` row, but only if the delete succeeded
+      #
+      #  A dead link whose stored target cannot be read is matched by its own
+      #  name for per-version types only; a dead `best` is never attributed to
+      #  a version by guesswork.
+      #
+      #  Messages about removals and failures are always shown, even with
+      #  verbose off, because the tool is touching something the user did not
+      #  name in the call.
       #
       #  @param root (chr) path to the root folder
-      #  @param version_name (chr) version_name of the user's folder
-      #  @param symlink_type (chr) valid symlink type defined by class, e.g. 'best', 'keep', 'remove'
-      #  @param user_entry (named list) user entry from the user's folder
+      #  @param version_name (chr) resolved version_name the link should point at
+      #  @param symlink_type (chr) one registered type, e.g. 'best', 'keep', 'remove'
+      #  @param user_entry (named list) the caller's log entry
       #
-      #  @return (none) side effect of removing a symlink
+      #  @return (none) side effects on disk and in the logs as above
       remove_one_symlink = function(root, version_name, symlink_type, user_entry){
          assert_dir_exists(root)
          assert_scalar(version_name)
@@ -687,38 +715,56 @@ SLT <- R6::R6Class(
          )
          symlinks <- symlink_list$symlinks
 
-         if(length(symlinks) > 0) {
-            # don't normalize - we want the symlink path itself, not its target
-            symlink_full  <- clean_path(root, symlinks, normalize = FALSE)
-            path_real     <- private$resolve_symlink(path = symlink_full)
-            version_name_to_remove <- basename(path_real)
-            private$DYNAMIC$LOG$action       <- sprintf("demote_%s", symlink_type)
-            private$DYNAMIC$LOG$version_name <- version_name_to_remove
-
-            private$msg_sometimes("   removing ", symlink_full)
-
-            # Log only if the unlink succeeds (linux-style &&: act, then record the act)
-            removed <- tryCatch(
-               link_remove(symlink_full)
-               , error = function(e) {
-                  private$msg_sometimes(
-                     "   unlink failed for: ", symlink_full, "\n   ", conditionMessage(e)
-                     , always_message = TRUE
-                  )
-                  return(FALSE)
-               }
-            )
-            if (isTRUE(removed)) {
-               private$append_to_log(version_path = path_real, user_entry = user_entry)
-               private$append_to_central_log(version_path = path_real, user_entry = user_entry)
-            }
-
-         } else {
+         # nothing to do is not an error
+         if (length(symlinks) == 0) {
             private$msg_sometimes(
                "     No symlink found for: ", version_name, " - ", symlink_type
                , always_message = TRUE
             )
+            return(invisible(NULL))
          }
+
+         # don't normalize - we want the symlink path itself, not its target
+         symlink_full <- clean_path(root, symlinks, normalize = FALSE)
+
+         # Dead link: the version folder is gone, so there is no version log
+         # to write and nothing to re-create. Central-log row only.
+         # Must prevent creation of zombie folders by the append_to_log() route.
+         if (isTRUE(link_resolve(symlink_full)$dangling)) {
+            private$remove_dangling_symlink(
+               root                  = root
+               , symlink_leaf        = symlinks
+               , symlink_type        = symlink_type
+               , user_entry          = user_entry
+               , append_user_comment = TRUE
+            )
+            return(invisible(NULL))
+         }
+
+         # Live link: demote
+         path_real <- private$resolve_symlink(path = symlink_full)
+         private$DYNAMIC$LOG$action       <- sprintf("demote_%s", symlink_type)
+         private$DYNAMIC$LOG$version_name <- basename(path_real)
+
+         private$msg_sometimes("   removing ", symlink_full)
+
+         # Log only if the unlink succeeds (linux-style &&: act, then record the act)
+         removed <- tryCatch(
+            link_remove(symlink_full)
+            , error = function(e) {
+               private$msg_sometimes(
+                  "   unlink failed for: ", symlink_full, "\n   ", conditionMessage(e)
+                  , always_message = TRUE
+               )
+               return(FALSE)
+            }
+         )
+         if (isTRUE(removed)) {
+            private$append_to_log(version_path = path_real, user_entry = user_entry)
+            private$append_to_central_log(version_path = path_real, user_entry = user_entry)
+         }
+
+         return(invisible(NULL))
       },
 
       #  Remove all symlinks for a version_name
@@ -741,6 +787,124 @@ SLT <- R6::R6Class(
                user_entry   = user_entry
             )
          }
+      },
+
+      #  Which version did a dead link belong to?
+      #
+      #  From the target when it can be read. Otherwise from the link's own
+      #  name for per-version types (`keep_1990_01_01` -> `1990_01_01`), and
+      #  "unknown" for singletons (`best` says nothing about its version).
+      #  - "unknown" should be a rare failure path when a dangling windows junction
+      #    fails to find the junction target.
+      #
+      #  @param symlink_leaf (chr) the link's own name
+      #  @param symlink_type (chr) registered type
+      #  @param target (chr or NA) the link's target as reported by link_resolve()
+      #
+      #  @return (chr) a version_name, or "unknown"
+      dangling_version_name = function(symlink_leaf, symlink_type, target){
+         if (!is.na(target)) return(basename(target))
+         reg <- get_symlink_registry_entry(symlink_type)
+         if (isTRUE(reg[["is_singleton"]])) return("unknown")
+         version_name <- sub(reg[["extract_regex"]], "", symlink_leaf)
+         return(version_name)
+      },
+
+      #  Remove a dangling tool symlink (shortcut) and record it in the central log only
+      #
+      #  The target folder is gone, so there is no version log to append to, and
+      #  the tool never re-creates a folder to hold one. The central-log row is
+      #  the whole record. Its comment is machine-prefixed so a reader can tell
+      #  the tool wrote it:
+      #    [vmTools auto] removed dangling symlink (shortcut) <leaf> pointing to missing folder <target leaf>. <user comment>
+      #  No quotes, semicolons or commas in the generated text, so the csv
+      #  round-trips on any delimiter. They may exist in user comments - their repsonsibility.
+      #
+      #  @param root (chr) root folder
+      #  @param symlink_leaf (chr) the link's own name, e.g. `best`, `keep_1990_01_01`
+      #  @param symlink_type (chr) registered type
+      #  @param user_entry (named list) the caller's log entry
+      #  @param append_user_comment (lgl) TRUE when the user asked for this removal
+      #    (`unmark()`); FALSE when it is a side effect of clearing a dead
+      #    singleton slot during a mark, where the user's comment belongs on the
+      #    promote row instead & removing a dangling symlink is just housekeeping
+      #
+      #  @return (lgl) TRUE if the link was removed and logged
+      remove_dangling_symlink = function(root, symlink_leaf, symlink_type, user_entry, append_user_comment = TRUE){
+         assert_dir_exists(root)
+         assert_scalar(symlink_leaf)
+         assert_scalar(symlink_type)
+         assert_named_list(user_entry)
+         checkmate::assert_flag(append_user_comment)
+         if(!symlink_type %in% get_symlink_types()) stop("Invalid symlink_type: ", symlink_type)
+
+         path_link <- clean_path(root, symlink_leaf, normalize = FALSE)
+         info      <- link_resolve(path_link)
+         if (!(info$is_link && info$dangling)) {
+            stop(
+               "Not a dangling symlink (shortcut): ", path_link
+               , "\n  - remove_dangling_symlink() only removes links whose target folder is gone. Nothing has been changed."
+            )
+         }
+
+         # version_path is always the version folder's hard path, as on every
+         # demote row - the action column says what happened to the link, the
+         # version columns say which version it was about. The folder is gone;
+         # its address is still what the row is about.
+         version_name <- private$dangling_version_name(symlink_leaf, symlink_type, info$target)
+         if (!is.na(info$target)) {
+            version_path <- info$target
+            target_leaf  <- basename(info$target)
+            link_label   <- symlink_leaf
+         } else if (version_name != "unknown") {
+            version_path <- clean_path(root, version_name, normalize = FALSE)   # per-version link: name carries the version
+            target_leaf  <- version_name
+            link_label   <- symlink_leaf
+         } else {
+            # dead singleton whose stored target Windows could not report: no
+            # hard path to give. NA in the column; the full link path goes in
+            # the comment so the row still says which root it happened in.
+            version_path <- NA_character_
+            target_leaf  <- "unknown"
+            link_label   <- path_link
+         }
+
+         comment_auto <- sprintf(
+            "[vmTools auto] removed dangling symlink (shortcut) %s pointing to missing folder %s."
+            , link_label, target_leaf
+         )
+         user_comment <- if (append_user_comment) user_entry[["comment"]] else NULL
+         entry_auto   <- user_entry
+         entry_auto[["comment"]] <- if (length(user_comment) == 1L && nzchar(user_comment)) {
+            paste(comment_auto, user_comment)
+         } else {
+            comment_auto
+         }
+
+         private$DYNAMIC$LOG$action       <- sprintf("remove_dangling_%s", symlink_type)
+         private$DYNAMIC$LOG$version_name <- version_name
+
+         private$msg_sometimes(
+            "   removing dangling symlink (shortcut): ", path_link, " (target folder missing: ", target_leaf, ")"
+            , always_message = TRUE
+         )
+
+         # act, then record the act
+         removed <- tryCatch(
+            link_remove(path_link)
+            , error = function(e) {
+               private$msg_sometimes(
+                  "   unlink failed for: ", path_link, "\n   ", conditionMessage(e)
+                  , always_message = TRUE
+               )
+               return(FALSE)
+            }
+         )
+         if (isTRUE(removed)) {
+            private$append_to_central_log(version_path = version_path, user_entry = entry_auto)
+         }
+
+         return(isTRUE(removed))
       },
 
 
@@ -829,7 +993,7 @@ SLT <- R6::R6Class(
                }
             }
 
-            ret_val_deleted_TF <- ifelse(user_input == 2, TRUE, FALSE)
+            ret_val_deleted_TF <- user_input == 2
 
          } else if (require_user_input == FALSE) {
 

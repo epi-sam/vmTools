@@ -444,6 +444,81 @@ test_that("Symlink names passed as version_name resolve to the real version",
              )
           })
 
+# Dangling links --------------------------------------------------------------
+
+# A version folder deleted by hand leaves the tool's link pointing at nothing.
+# unmark() by version name removes the dead link, writes one tool-authored
+# central-log row, and never re-creates the folder.
+
+test_that("unmark() removes a dangling link and records it in the central log only",
+          {
+             testthat::skip_if_not(vmTools::dir_supports_links(tempdir()), "this machine cannot create symlinks (shortcuts) in tempdir()")
+             root_dl    <- make_test_root("slt_dangling")
+             roots_dl   <- list(root_a = clean_path(root_dl, "a"))
+             central_dl <- clean_path(root_dl, "central")
+             lapply(c(unlist(roots_dl), central_dl), make_directory)
+             on.exit(unlink(root_dl, recursive = TRUE), add = TRUE)
+
+             slt_dl <- suppressMessages(suppressWarnings(
+                SLT$new(root_list = roots_dl, central_log_root = central_dl, verbose = FALSE, verbose_startup = FALSE)
+             ))
+             root_a     <- roots_dl[["root_a"]]
+             fpath_clog <- slt_dl$return_dictionaries()$LOG_CENTRAL$path
+             last_row   <- function() utils::tail(data.table::fread(fpath_clog), 1)
+
+             v1 <- "1990_01_01"; v2 <- "1990_01_02"
+             suppressMessages(slt_dl$make_new_version_folder(version_name = v1))
+             suppressMessages(slt_dl$make_new_version_folder(version_name = v2))
+             suppressMessages(slt_dl$mark_best(version_name = v1, user_entry = list(comment = "setup")))
+             suppressMessages(slt_dl$mark_keep(version_name = v2, user_entry = list(comment = "setup")))
+             unlink(clean_path(root_a, v1), recursive = TRUE)   # by hand, behind the tool's back
+             unlink(clean_path(root_a, v2), recursive = TRUE)
+
+             expect_true(all(sprintf("remove_dangling_%s", get_symlink_types()) %in% get_valid_actions()))
+
+             # --- dead singleton, by version name
+             suppressMessages(slt_dl$unmark(version_name = v1, user_entry = list(comment = "cleaning up")))
+             expect_false(file.exists(clean_path(root_a, "best", normalize = FALSE)))
+             expect_false(dir.exists(clean_path(root_a, v1)))   # not re-created
+             row <- last_row()
+             expect_identical(row$action, "remove_dangling_best")
+             expect_identical(row$version_name, v1)
+             expect_identical(row$comment, sprintf("[vmTools auto] removed dangling symlink (shortcut) best pointing to missing folder %s. cleaning up", v1))
+
+             # --- dead per-version link, by version name
+             suppressMessages(slt_dl$unmark(version_name = v2, user_entry = list(comment = "")))
+             expect_false(file.exists(clean_path(root_a, paste0("keep_", v2), normalize = FALSE)))
+             expect_false(dir.exists(clean_path(root_a, v2)))
+             row <- last_row()
+             expect_identical(row$action, "remove_dangling_keep")
+             expect_identical(row$version_name, v2)
+             expect_identical(row$comment, sprintf("[vmTools auto] removed dangling symlink (shortcut) keep_%s pointing to missing folder %s.", v2, v2))
+
+             # --- target unreadable (Windows with PowerShell silent; no CI platform reaches this, so mock it):
+             #     a per-version link still yields a hard path from its own name; a singleton cannot
+             v3 <- "1990_01_03"
+             suppressMessages(slt_dl$make_new_version_folder(version_name = v3))
+             suppressMessages(slt_dl$mark_keep(version_name = v3, user_entry = list(comment = "setup")))
+             suppressMessages(slt_dl$make_new_version_folder(version_name = "1990_01_04"))
+             suppressMessages(slt_dl$mark_best(version_name = "1990_01_04", user_entry = list(comment = "setup")))
+             unlink(clean_path(root_a, v3), recursive = TRUE)
+             unlink(clean_path(root_a, "1990_01_04"), recursive = TRUE)
+             link_resolve_real <- vmTools:::link_resolve
+             testthat::local_mocked_bindings(
+                link_resolve = function(path){ info <- link_resolve_real(path); if (info$is_link) info$target <- NA_character_; info }
+                , .package = "vmTools"
+             )
+             suppressMessages(slt_dl$unmark(version_name = v3, user_entry = list(comment = "")))
+             row <- last_row()
+             expect_identical(row$action, "remove_dangling_keep")
+             expect_identical(row$version_name, v3)
+             expect_identical(row$version_path, clean_path(root_a, v3, normalize = FALSE))
+             # a dead singleton with an unreadable target is not matched by version name (never attributed by guesswork)
+             suppressMessages(slt_dl$unmark(version_name = "1990_01_04", user_entry = list(comment = "")))
+             expect_true(vmTools:::path_is_link(clean_path(root_a, "best", normalize = FALSE)))   # still there (file.exists follows the link, so it cannot see it)
+             expect_identical(last_row()$action, "remove_dangling_keep")   # no new row
+          })
+
 test_that("A symlink name that points to different versions in different roots is refused",
           {
              root_amb    <- make_test_root("slt_resolve_ambiguous")

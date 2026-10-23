@@ -14,3 +14,7 @@ cran*
 .Rprofile
 INSTRUCTIONS*
 .claude
+
+# testthat scratch output from failed runs
+tests/testthat/_problems/
+tests/testthat/testthat-problems.rds

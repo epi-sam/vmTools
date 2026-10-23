@@ -200,6 +200,9 @@ get_valid_actions <- function(){
         c("create", "delete_remove_folder")
         , sprintf("promote_%s", symlink_types)
         , sprintf("demote_%s", symlink_types)
+        # tool removed a link whose target folder was deleted by another person/process
+        # - graceful handling of edge case e.g. dangling "best" with no existing target
+        , sprintf("remove_dangling_%s", symlink_types)
     )
 }
 
