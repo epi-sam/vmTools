@@ -489,7 +489,7 @@ SLT <- R6::R6Class(
 
          links_dt <- link_list(root)
          links_dt <- links_dt[is_link == TRUE & leaf == leaf_expected, ]
-         # A link whose target can be read must point at this version. A dead
+         # A link whose target can be read must point at this version. A dangling
          # link whose target cannot be read (Windows, PowerShell silent) is
          # matched by name alone, but only for per-version types: `keep_<v>`
          # carries the version in its name, `best` does not and must never be
@@ -684,8 +684,8 @@ SLT <- R6::R6Class(
       #  - live: the link is removed and both the version log and the central
       #    log get a `demote_<type>` row, but only if the delete succeeded
       #
-      #  A dead link whose stored target cannot be read is matched by its own
-      #  name for per-version types only; a dead `best` is never attributed to
+      #  A dangling link whose stored target cannot be read is matched by its own
+      #  name for per-version types only; a dangling `best` is never attributed to
       #  a version by guesswork.
       #
       #  Messages about removals and failures are always shown, even with
@@ -727,7 +727,7 @@ SLT <- R6::R6Class(
          # don't normalize - we want the symlink path itself, not its target
          symlink_full <- clean_path(root, symlinks, normalize = FALSE)
 
-         # Dead link: the version folder is gone, so there is no version log
+         # Dangling link: the version folder is gone, so there is no version log
          # to write and nothing to re-create. Central-log row only.
          # Must prevent creation of zombie folders by the append_to_log() route.
          if (isTRUE(link_resolve(symlink_full)$dangling)) {
@@ -789,7 +789,7 @@ SLT <- R6::R6Class(
          }
       },
 
-      #  Which version did a dead link belong to?
+      #  Which version did a dangling link belong to?
       #
       #  From the target when it can be read. Otherwise from the link's own
       #  name for per-version types (`keep_1990_01_01` -> `1990_01_01`), and
@@ -810,14 +810,14 @@ SLT <- R6::R6Class(
          return(version_name)
       },
 
-      #  Remove a dead link by its own name (the unmark() path for link names)
+      #  Remove a dangling link by its own name (the unmark() path for link names)
       #
       #  `unmark("best")` normally resolves "best" to the version it points at
-      #  and strips that version of every mark. A dead link may have no
+      #  and strips that version of every mark. A dangling link may have no
       #  readable version (Windows, PowerShell silent), so when the name the
       #  user passed is a tool link that is dangling, it is removed by name
       #  instead. Decide first, act second: this path is taken only when every
-      #  root that has the link has it dangling. Dead in one root and live in
+      #  root that has the link has it dangling. Dangling in one root and live in
       #  another is ambiguous (which version did the user mean?), so nothing is
       #  touched and the normal path raises its ambiguity error.
       #
@@ -837,14 +837,14 @@ SLT <- R6::R6Class(
          is_link  <- vapply(info, `[[`, logical(1), "is_link")
          dangling <- vapply(info, `[[`, logical(1), "dangling")
 
-         # no dead link anywhere: normal resolution handles it
+         # no dangling link anywhere: normal resolution handles it
          if (!any(dangling)) return(FALSE)
 
-         # dead in one root, live in another: ambiguous, so touch nothing and let
+         # dangling in one root, live in another: ambiguous, so touch nothing and let
          # the normal path raise its ambiguity error via `resolve_version_name()`
          if (any(is_link & !dangling)) return(FALSE)
 
-         # unambiguous dead link in all roots - remove and log
+         # unambiguous dangling link in all roots - remove and log
          for (root in roots[dangling]) {
             private$remove_dangling_symlink(
                root                  = root
@@ -873,7 +873,7 @@ SLT <- R6::R6Class(
       #  @param symlink_type (chr) registered type
       #  @param user_entry (named list) the caller's log entry
       #  @param append_user_comment (lgl) TRUE when the user asked for this removal
-      #    (`unmark()`); FALSE when it is a side effect of clearing a dead
+      #    (`unmark()`); FALSE when it is a side effect of clearing a dangling
       #    singleton slot during a mark, where the user's comment belongs on the
       #    promote row instead & removing a dangling symlink is just housekeeping
       #
@@ -909,7 +909,7 @@ SLT <- R6::R6Class(
             target_leaf  <- version_name
             link_label   <- symlink_leaf
          } else {
-            # dead singleton whose stored target Windows could not report: no
+            # dangling singleton whose stored target Windows could not report: no
             # hard path to give. NA in the column; the full link path goes in
             # the comment so the row still says which root it happened in.
             version_path <- NA_character_
@@ -2367,12 +2367,60 @@ SLT <- R6::R6Class(
       },
 
 
+      #  Check a chosen 'mark' slot before anything is changed
+      #
+      #  `mark()` should demote the version's other links first (e.g. 'best'),
+      #  then promote. If the slot the new link needs is blocked, the promote
+      #  fails after the demote has already run and the version is left with no
+      #  mark at all. So the slot is checked up front:
+      #  - a dangling link in the slot is removed and logged (auto comment only; the
+      #    user's comment goes on the promote row that follows)
+      #  - a real folder in the slot stops the mark before anything changes
+      #    (e.g. the user created a real folder called 'best')
+      #  - a live link is left alone for the normal mark path to handle
+      #
+      #  @param version_path (chr) version folder being marked
+      #  @param symlink_type (chr) registered type
+      #  @param user_entry (named list) the caller's log entry
+      #
+      #  @return (NULL) may remove a dangling link and write its central-log row
+      validate_symlink_slot = function(version_path, symlink_type, user_entry){
+         assert_scalar(version_path)
+         path_symlink <- private$make_symlink_path(version_path, symlink_type)
+         info         <- link_resolve(path_symlink)
+
+         if (info$is_link && info$dangling) {
+            private$remove_dangling_symlink(
+               root                  = dirname(path_symlink)
+               , symlink_leaf        = basename(path_symlink)
+               , symlink_type        = symlink_type
+               , user_entry          = user_entry
+               , append_user_comment = FALSE
+            )
+            private$DYNAMIC$LOG$version_name <- basename(version_path)  # restore to the incoming version
+            return(invisible(NULL))
+         }
+
+         if (!info$is_link && dir.exists(path_symlink)) {
+            # A real directory, not a symlink, is using the name the symlink needs
+            stop(
+               "Cannot mark '", basename(version_path), "' as '", symlink_type, "'.",
+               "\nThe tool needs to create a symlink (shortcut) named '", basename(path_symlink), "' here:\n  ", path_symlink,
+               "\nbut a real folder with that name already exists.",
+               "\nPlease move or rename that folder, then try again. Nothing has been changed."
+            )
+         }
+
+         return(invisible(NULL))
+      },
+
       demote_previous_singleton = function(version_path, version_name, user_entry, symlink_type) {
          assert_scalar(version_path)
          root         <- dirname(clean_path(version_path))
          path_symlink <- private$make_symlink_path(version_path, symlink_type)
 
-         if (dir.exists(path_symlink)) {
+         # a dangling link was already cleared by validate_symlink_slot(), so only a live link lands here
+         if (path_is_link(path_symlink)) {
             old_version_name <- basename(private$resolve_symlink(path_symlink))
             private$remove_one_symlink(root, old_version_name, symlink_type, user_entry)
             private$DYNAMIC$LOG$version_name <- version_name  # restore to the incoming version
@@ -2418,18 +2466,10 @@ SLT <- R6::R6Class(
          private$msg_sometimes("Promoting to '", symlink_type, "': ", path_symlink)
          private$DYNAMIC$LOG$action <- sprintf("promote_%s", symlink_type)
 
-         if(dir.exists(path_symlink)){
-            if(path_is_link(path_symlink)){
-               private$msg_sometimes("  ", symlink_type, " symlink already exists - moving on: ", path_symlink)
-               return(invisible(NULL))
-            }
-            # A real directory, not a symlink, is using the name the symlink needs
-            stop(
-               "Cannot mark '", version_name, "' as '", symlink_type, "'.",
-               "\nThe tool needs to create a symlink (shortcut) named '", basename(path_symlink), "' here:\n  ", path_symlink,
-               "\nbut a real folder with that name already exists.",
-               "\nPlease move or rename that folder, then try again. Nothing has been changed."
-            )
+         # a real folder or dangling link in the slot was handled by validate_symlink_slot() before any demotion
+         if(path_is_link(path_symlink)){
+            private$msg_sometimes("  ", symlink_type, " symlink already exists - moving on: ", path_symlink)
+            return(invisible(NULL))
          }
 
          # Log only if the link succeeds (linux-style &&: act, then record the act)
@@ -2772,6 +2812,13 @@ SLT <- R6::R6Class(
                next()
             }
 
+            # check the slot first so a blocked promote cannot leave the version unmarked
+            private$validate_symlink_slot(
+               version_path   = version_path,
+               symlink_type   = symlink_type,
+               user_entry     = user_entry
+            )
+
             private$demote_existing_symlinks(
                version_path = version_path,
                version_name = version_name,
@@ -2965,7 +3012,7 @@ SLT <- R6::R6Class(
       #'
       unmark = function(version_name, user_entry){
 
-         # guard: edge case - a dead link passed by its own name has no version to resolve to
+         # guard: edge case - a dangling link passed by its own name has no version to resolve to
          if (private$remove_dangling_link_by_name(version_name, user_entry)) return(invisible(NULL))
 
          version_name <- private$resolve_version_name(version_name)
