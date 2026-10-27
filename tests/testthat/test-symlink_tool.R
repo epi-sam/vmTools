@@ -595,10 +595,12 @@ test_that("Dangling tool symlinks are reported and rounded up, and never counted
              expect_identical(sum(disc$discrepancy == "tool symlink (shortcut) points to a missing folder"), 2L)
              expect_identical(nrow(disc), 2L)
 
-             # --- cleaned up: nothing dangling, report gone
+             # --- cleaned up: nothing dangling, report gone; empty results are chr, never list
              suppressMessages(slt_dr$unmark(version_name = "best", user_entry = list(comment = "")))
              suppressMessages(slt_dr$unmark(version_name = v2, user_entry = list(comment = "")))
              expect_identical(nrow(slt_dr$roundup_dangling()), 0L)
+             expect_identical(slt_dr$roundup_dangling()$version_name, character(0))
+             expect_identical(slt_dr$roundup_dangling(return_as = "version_name"), character(0))
              suppressMessages(slt_dr$make_reports())
              expect_false(file.exists(fpath_disc))
           })
@@ -656,6 +658,28 @@ test_that("mark() checks the slot before demoting: a dangling singleton is clear
              )
              expect_true(vmTools:::path_is_link(path_keep))   # keep untouched
              expect_identical(utils::tail(data.table::fread(slt_sl$return_dictionaries()$LOG_CENTRAL$path), 1)$action, "promote_keep")   # no new row
+          })
+
+test_that("roundup_dangling() combines a root with dangling links and a root without",
+          {
+             testthat::skip_if_not(vmTools::dir_supports_links(tempdir()), "this machine cannot create symlinks (shortcuts) in tempdir()")
+             root_tr    <- make_test_root("slt_dangling_two_roots")
+             roots_tr   <- list(a = clean_path(root_tr, "a"), b = clean_path(root_tr, "b"))
+             central_tr <- clean_path(root_tr, "central")
+             lapply(c(unlist(roots_tr), central_tr), make_directory)
+             on.exit(unlink(root_tr, recursive = TRUE), add = TRUE)
+             slt_tr <- suppressMessages(suppressWarnings(
+                SLT$new(root_list = roots_tr, central_log_root = central_tr, verbose = FALSE, verbose_startup = FALSE)
+             ))
+             v1 <- "1990_01_01"
+             suppressMessages(slt_tr$make_new_version_folder(version_name = v1))
+             suppressMessages(slt_tr$mark_best(version_name = v1, user_entry = list(comment = "setup")))
+             unlink(clean_path(roots_tr$a, v1), recursive = TRUE)   # dangling in a only; b stays live
+
+             dang <- slt_tr$roundup_dangling()
+             expect_identical(dang$root_name, "a")
+             expect_identical(dang$version_name, v1)
+             expect_identical(slt_tr$roundup_dangling(return_as = "version_name"), v1)
           })
 
 test_that("unmark() by link name refuses a link that is dangling in one root and live in another, touching nothing",

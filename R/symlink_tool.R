@@ -1825,13 +1825,17 @@ SLT <- R6::R6Class(
             result_dt <- folder_dt[is_tool_symlink == TRUE & is_dangling == TRUE, .(dir_leaf, dir_name, dir_name_resolved)]
          }
          result_dt[, symlink_type := vapply(dir_leaf, get_symlink_type_from_name, character(1), USE.NAMES = FALSE)]
-         result_dt[, version_name := mapply(
-            function(leaf, type, target) {
-               if (is.na(type)) return(basename(target))   # non-tool link: nothing to parse from its name
-               return(private$resolve_dangling_version_name(leaf, type, target))
-            }
-            , dir_leaf, symlink_type, dir_name_resolved, USE.NAMES = FALSE
-         )]
+         # vapply, not mapply: on a root with no dangling links mapply() returns list(),
+         # which breaks ordering in combine_roundup_results() and the return_as vector
+         result_dt[
+            , version_name := vapply(
+               seq_len(.N), function(i) {
+                  if (is.na(symlink_type[i])) return(basename(dir_name_resolved[i]))   # non-tool link: nothing to parse from its name
+                  return(private$resolve_dangling_version_name(dir_leaf[i], symlink_type[i], dir_name_resolved[i]))
+               }
+               , character(1)
+            )
+         ]
          return(result_dt[, .(version_name, dir_name, dir_name_resolved, symlink_type)])
       },
 
