@@ -39,6 +39,7 @@ try(SLT$new()) # call with no arguments to see instructions
 \item \href{#method-Symlink_Tool-roundup_keep}{\code{SLT$roundup_keep()}}
 \item \href{#method-Symlink_Tool-roundup_remove}{\code{SLT$roundup_remove()}}
 \item \href{#method-Symlink_Tool-roundup_unmarked}{\code{SLT$roundup_unmarked()}}
+\item \href{#method-Symlink_Tool-roundup_dangling}{\code{SLT$roundup_dangling()}}
 \item \href{#method-Symlink_Tool-roundup_by_date}{\code{SLT$roundup_by_date()}}
 \item \href{#method-Symlink_Tool-get_common_new_version_name}{\code{SLT$get_common_new_version_name()}}
 \item \href{#method-Symlink_Tool-make_new_version_folder}{\code{SLT$make_new_version_folder()}}
@@ -622,6 +623,55 @@ Table output schema
 
 \if{html}{\out{<div class="sourceCode r">}}\preformatted{root_name version_name dir_name dir_name_resolved
    <char>       <char>   <char>            <char>
+}\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Symlink_Tool-roundup_dangling"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Tool-roundup_dangling}{}}}
+\subsection{Method \code{roundup_dangling()}}{
+Find all dangling tool symlinks (shortcuts) in all \code{roots}
+
+A dangling symlink points to a version folder that no longer exists
+(deleted by hand, or by \code{delete_version_folders()} on a folder that
+also carried another mark). The ordinary roundups never list these;
+this one does, so they can be cleaned up with \code{unmark()}, by version
+name or by the link's own name.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_dangling(
+  include_non_tool_symlinks = FALSE,
+  return_as = c("table", "version_name")
+)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{include_non_tool_symlinks}}{(lgl) Default \code{FALSE}. Also list
+dangling symlinks whose name matches no type this tool knows. Symlink
+types are registered per session with \code{new_symlink_type()}, so a
+custom mark made by another tool looks like a hand-made link here;
+\code{TRUE} lists those too, with \code{symlink_type} \code{NA}.}
+
+\item{\code{return_as}}{(chr) Default \code{table}.  Whether to return a data.table with
+symlink and stored target paths (\code{table}) or just a vector of
+\code{version_name}s (\code{version_name}) for easier automated round-ups.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+(data.table/chr) A single data.table with results from all
+roots, with \code{root_name} as the first column, or a vector of
+\code{version_name}s if \code{return_as = version_name}. \code{dir_name_resolved}
+is the folder the link still points to, and is \code{NA} when it cannot
+be read; \code{version_name} is then parsed from a per-version link's own
+name, or \code{"unknown"} for a singleton such as \code{best}, or \code{NA} for a
+non-tool link.
+
+Table output schema
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{root_name version_name dir_name dir_name_resolved symlink_type
+   <char>       <char>   <char>            <char>       <char>
 }\if{html}{\out{</div>}}
 }
 }

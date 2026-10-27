@@ -1590,15 +1590,20 @@ SLT <- R6::R6Class(
       #  - Moves all logs to subfolders for a proper query
       #
       #  @param root (chr) path to a root folder defined at instantiation (`STL$new()`)
+      #  @param include_dangling (lgl) keep dangling symlinks (target folder gone)?
+      #    Default FALSE: every query and roundup sees only links it can follow.
+      #    TRUE is for the discrepancy report and `query_all_dangling()`, which
+      #    name them. A dangling row has `dir_name_resolved` = the stored target
+      #    (NA when it cannot be read) and `version_name` = its leaf (or NA).
       #
       #  @return (data.table) table of all version_name folders and their folder types (e.g. bare folder or symlink)
-      query_root_folder_types = function(root){
+      query_root_folder_types = function(root, include_dangling = FALSE){
+         checkmate::assert_flag(include_dangling)
          # Find all first-level folders and symlinks in the root (non-recursive)
-         # - dangling symlinks (target folder gone) are left out, as `list.dirs()`
-         #   did before `link_list()` - see Follow-ups in the plan
          # - the tool's own transient probe entries are left out
          links_dt <- link_list(root)
-         links_dt <- links_dt[dangling == FALSE & !startsWith(leaf, ".vmtools_probe_"), ]
+         links_dt <- links_dt[!startsWith(leaf, ".vmtools_probe_"), ]
+         if (!include_dangling) links_dt <- links_dt[dangling == FALSE, ]
 
          # resolved path: a symlink's target, or a real folder's own path
          dir_name_resolved <- links_dt$target
@@ -1618,6 +1623,7 @@ SLT <- R6::R6Class(
          tool_symlink_regex  <- get_symlink_regex_extract()
          tool_symlink_regex  <- paste(tool_symlink_regex, collapse = "|")
          folder_dt[, is_symlink := links_dt$is_link]
+         folder_dt[, is_dangling := links_dt$dangling]
          # a tool symlink must actually BE a symlink - a real folder named e.g.
          # `best` is a collision, not a mark, and is flagged separately
          folder_dt[, is_tool_symlink      := is_symlink & grepl(tool_symlink_regex, dir_leaf)]
@@ -1625,9 +1631,10 @@ SLT <- R6::R6Class(
          #   `best` link's slot, so it is a collision there and worth reporting everywhere
          folder_dt[, is_reserved_name_dir := !is_symlink & grepl(tool_symlink_regex, dir_leaf, ignore.case = TRUE)]
 
-         # reporting requires logs to be in a consistent location
-         has_bare_log <- file.exists(clean_path(folder_dt$dir_name_resolved, basename(private$DICT$log_name)))
-         catch        <- lapply(folder_dt[has_bare_log, dir_name_resolved], private$move_log_to_subdir)
+         # reporting requires logs to be in a consistent location (a dangling link has no folder to look in)
+         live_paths   <- folder_dt[is_dangling == FALSE, dir_name_resolved]
+         has_bare_log <- file.exists(clean_path(live_paths, basename(private$DICT$log_name)))
+         catch        <- lapply(live_paths[has_bare_log], private$move_log_to_subdir)
 
          return(folder_dt)
       },
@@ -1768,6 +1775,44 @@ SLT <- R6::R6Class(
          marked_dirs   <- folder_dt[is_symlink == TRUE, dir_name_resolved]
          unmarked_dirs <- folder_dt[!dir_name_resolved %in% marked_dirs, dir_name_resolved]
          return(folder_dt[dir_name_resolved %in% unmarked_dirs, .(version_name, dir_name, dir_name_resolved)])
+      },
+
+      #  Query all dangling symlinks (shortcuts) in one root
+      #
+      #  Find symlinks that no longer point to a valid target
+      #  - Finds only tool-created symlinks by default
+      #  - `include_non_tool_symlinks = TRUE` also finds links whose name matches
+      #    no registered type: symlink types are registered per session with
+      #    `new_symlink_type()`, so a custom mark made by another tool looks
+      #    like a hand-made link here
+      #
+      #  `version_name` follows the central-log rule for `remove_dangling_<type>`
+      #  rows: the target's leaf when it can be read, else the version parsed
+      #  from a per-version link's own name, else "unknown" for a singleton.
+      #  A non-tool link has no type to parse: `symlink_type` NA, version from
+      #  the target's leaf or NA.
+      #
+      #  @param root (chr) path to a root folder defined at instantiation
+      #  @param include_non_tool_symlinks (lgl) also list dangling non-tool links
+      #
+      #  @return (data.table) columns version_name, dir_name, dir_name_resolved, symlink_type
+      query_all_dangling = function(root, include_non_tool_symlinks = FALSE){
+         checkmate::assert_flag(include_non_tool_symlinks)
+         folder_dt <- private$query_root_folder_types(root, include_dangling = TRUE)
+         if (include_non_tool_symlinks) {
+            result_dt <- folder_dt[is_symlink == TRUE & is_dangling == TRUE, .(dir_leaf, dir_name, dir_name_resolved)]
+         } else {
+            result_dt <- folder_dt[is_tool_symlink == TRUE & is_dangling == TRUE, .(dir_leaf, dir_name, dir_name_resolved)]
+         }
+         result_dt[, symlink_type := vapply(dir_leaf, get_symlink_type_from_name, character(1), USE.NAMES = FALSE)]
+         result_dt[, version_name := mapply(
+            function(leaf, type, target) {
+               if (is.na(type)) return(basename(target))   # non-tool link: nothing to parse from its name
+               return(private$dangling_version_name(leaf, type, target))
+            }
+            , dir_leaf, symlink_type, dir_name_resolved, USE.NAMES = FALSE
+         )]
+         return(result_dt[, .(version_name, dir_name, dir_name_resolved, symlink_type)])
       },
 
       #  Query all logs in one root by a date selector
@@ -2058,8 +2103,15 @@ SLT <- R6::R6Class(
       #  @return none
       report_discrepancies = function(root, verbose = TRUE){
 
-         # find all folders in the `root` and their types
-         folder_dt <- private$query_root_folder_types(root)
+         # find all folders in the `root` and their types, dangling links included
+         folder_dt <- private$query_root_folder_types(root, include_dangling = TRUE)
+
+         # Tool symlinks whose target folder is gone (dir_name only) - a stale mark
+         dirs_dangling_dt       <- folder_dt[is_tool_symlink == TRUE & is_dangling == TRUE, .N, by = dir_name]
+         discrepant_dt_dangling <- private$make_report_schema_for_discrepant_paths(dirs_dangling_dt, "tool symlink (shortcut) points to a missing folder")
+
+         # every other check reads logs through the links, so only live rows from here on
+         folder_dt <- folder_dt[is_dangling == FALSE, ]
 
          # First and most important, tool-created symlinks with with no logs or malformed logs
 
@@ -2130,6 +2182,7 @@ SLT <- R6::R6Class(
          discrepancy_report_dt <- rbindlist(
             list(
                discrepant_dt_tool_symlink_no_logs = discrepant_dt_tool_symlink_no_logs
+               , discrepant_dt_dangling           = discrepant_dt_dangling
                , discrepant_dt_non_tool_symlinks  = discrepant_dt_non_tool_symlinks
                , discrepant_dt_reserved_name      = discrepant_dt_reserved_name
                , discrepant_dt_mult_symlinks      = discrepant_dt_mult_symlinks
@@ -3185,6 +3238,46 @@ SLT <- R6::R6Class(
          } else if (return_as == "version_name"){
             ret <- unique(private$combine_roundup_results(private$query_all_unmarked)$version_name)
          }
+         return(ret)
+      },
+
+      #' @description
+      #' Find all dangling tool symlinks (shortcuts) in all `roots`
+      #'
+      #' A dangling symlink points to a version folder that no longer exists
+      #' (deleted by hand, or by `delete_version_folders()` on a folder that
+      #' also carried another mark). The ordinary roundups never list these;
+      #' this one does, so they can be cleaned up with `unmark()`, by version
+      #' name or by the link's own name.
+      #'
+      #' @param include_non_tool_symlinks (lgl) Default `FALSE`. Also list
+      #'   dangling symlinks whose name matches no type this tool knows. Symlink
+      #'   types are registered per session with `new_symlink_type()`, so a
+      #'   custom mark made by another tool looks like a hand-made link here;
+      #'   `TRUE` lists those too, with `symlink_type` `NA`.
+      #' @param return_as (chr) Default `table`.  Whether to return a data.table with
+      #'   symlink and stored target paths (`table`) or just a vector of
+      #'   `version_name`s (`version_name`) for easier automated round-ups.
+      #'
+      #' @return (data.table/chr) A single data.table with results from all
+      #'   roots, with `root_name` as the first column, or a vector of
+      #'   `version_name`s if `return_as = version_name`. `dir_name_resolved`
+      #'   is the folder the link still points to, and is `NA` when it cannot
+      #'   be read; `version_name` is then parsed from a per-version link's own
+      #'   name, or `"unknown"` for a singleton such as `best`, or `NA` for a
+      #'   non-tool link.
+      #'
+      #' Table output schema
+      #'
+      #' ```r
+      #' root_name version_name dir_name dir_name_resolved symlink_type
+      #'    <char>       <char>   <char>            <char>       <char>
+      #' ```
+      #'
+      roundup_dangling = function(include_non_tool_symlinks = FALSE, return_as = c("table", "version_name")){
+         return_as <- match.arg(return_as)
+         ret <- private$combine_roundup_results(private$query_all_dangling, include_non_tool_symlinks = include_non_tool_symlinks)
+         if (return_as == "version_name") ret <- unique(ret$version_name)
          return(ret)
       },
 

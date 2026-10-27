@@ -543,6 +543,66 @@ test_that("unmark() removes a dangling link and records it in the central log on
              expect_match(row$comment, clean_path(root_a, "best", normalize = FALSE), fixed = TRUE)
           })
 
+# roundups skip dangling links; the discrepancy report and roundup_dangling() name them
+test_that("dangling tool symlinks are reported and rounded up, and never counted as marks",
+          {
+             testthat::skip_if_not(vmTools::dir_supports_links(tempdir()), "this machine cannot create symlinks (shortcuts) in tempdir()")
+             root_dr    <- make_test_root("slt_dangling_report")
+             roots_dr   <- list(root_a = clean_path(root_dr, "a"))
+             central_dr <- clean_path(root_dr, "central")
+             lapply(c(unlist(roots_dr), central_dr), make_directory)
+             on.exit(unlink(root_dr, recursive = TRUE), add = TRUE)
+             slt_dr <- suppressMessages(suppressWarnings(
+                SLT$new(root_list = roots_dr, central_log_root = central_dr, verbose = FALSE, verbose_startup = FALSE)
+             ))
+             root_a     <- roots_dr[["root_a"]]
+             fpath_disc <- clean_path(root_a, slt_dr$return_dictionaries()$report_fnames$discrepancies)
+
+             v1 <- "1990_01_01"; v2 <- "1990_01_02"; v3 <- "1990_01_03"
+             for (v in c(v1, v2, v3)) suppressMessages(slt_dr$make_new_version_folder(version_name = v))
+             suppressMessages(slt_dr$mark_best(version_name = v1, user_entry = list(comment = "setup")))
+             suppressMessages(slt_dr$mark_keep(version_name = v2, user_entry = list(comment = "setup")))
+             unlink(clean_path(root_a, v1), recursive = TRUE)   # by hand: best and keep_v2 are now dangling
+             unlink(clean_path(root_a, v2), recursive = TRUE)
+
+             # --- roundups: dangling links are not marks; v3 is the only folder and it is unmarked
+             expect_identical(slt_dr$roundup_best()$version_name, character(0))
+             expect_identical(slt_dr$roundup_keep()$version_name, character(0))
+             expect_identical(slt_dr$roundup_unmarked(return_as = "version_name"), v3)
+
+             # --- roundup_dangling() lists each with its type and stored target
+             dang <- slt_dr$roundup_dangling()
+             expect_identical(names(dang), c("root_name", "version_name", "dir_name", "dir_name_resolved", "symlink_type"))
+             expect_identical(dang$version_name, c(v1, v2))
+             expect_identical(dang$symlink_type, c("best", "keep"))
+             expect_identical(basename(dang$dir_name), c("best", paste0("keep_", v2)))
+             expect_identical(basename(dang$dir_name_resolved), c(v1, v2))
+             expect_identical(slt_dr$roundup_dangling(return_as = "version_name"), c(v1, v2))
+
+             # --- a dangling link of a type this tool never registered: hidden by default, listed on request with NA type
+             vmTools:::link_create(clean_path(root_a, v3), clean_path(root_a, "custom_mark"))
+             unlink(clean_path(root_a, v3), recursive = TRUE)
+             expect_identical(nrow(slt_dr$roundup_dangling()), 2L)
+             dang_all <- slt_dr$roundup_dangling(include_non_tool_symlinks = TRUE)
+             expect_identical(nrow(dang_all), 3L)
+             expect_identical(dang_all[is.na(symlink_type), version_name], v3)
+             unlink(clean_path(root_a, "custom_mark"))   # the tool never removes a link it does not own
+             suppressMessages(slt_dr$make_new_version_folder(version_name = v3))
+
+             # --- discrepancy report: one row per dangling link, and nothing else about them
+             suppressMessages(slt_dr$make_reports())
+             disc <- data.table::fread(fpath_disc)
+             expect_identical(sum(disc$discrepancy == "tool symlink (shortcut) points to a missing folder"), 2L)
+             expect_identical(nrow(disc), 2L)
+
+             # --- cleaned up: nothing dangling, report gone
+             suppressMessages(slt_dr$unmark(version_name = "best", user_entry = list(comment = "")))
+             suppressMessages(slt_dr$unmark(version_name = v2, user_entry = list(comment = "")))
+             expect_identical(nrow(slt_dr$roundup_dangling()), 0L)
+             suppressMessages(slt_dr$make_reports())
+             expect_false(file.exists(fpath_disc))
+          })
+
 # This is a test of validate_symlink_slot() under the hood
 test_that("mark() checks the slot before demoting: a dangling singleton is cleared, a real folder is refused",
           {
