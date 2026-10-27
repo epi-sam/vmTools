@@ -56,7 +56,7 @@ test_that("link_resolve reports a dangling link", {
    unlink(target, recursive = TRUE)
    res <- link_resolve(lnk)
    expect_true(res$is_link)
-   expect_true(res$dangling)
+   expect_true(res$is_dangling)
    expect_identical(res$target, target)
    expect_true(link_remove(lnk))   # dangling links are still removable
    expect_false(path_is_link(lnk))
@@ -84,7 +84,7 @@ test_that("link_list returns one row per folder or link, files excluded", {
    link_create(target, file.path(dir_l, "lnk"))
    writeLines("x", file.path(dir_l, "a_file.txt"))
    dt <- link_list(dir_l)
-   expect_identical(names(dt), c("leaf", "path", "is_link", "target", "dangling"))
+   expect_identical(names(dt), c("leaf", "path", "is_link", "target", "is_dangling"))
    expect_setequal(dt$leaf, c("target", "lnk"))
    expect_identical(dt[leaf == "lnk", target], target)
    expect_identical(dt[leaf == "target", is_link], FALSE)

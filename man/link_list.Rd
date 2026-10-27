@@ -11,7 +11,7 @@ link_list(root)
 }
 \value{
 (data.table) one row per entry: \code{leaf} (chr), \code{path} (chr),
-\code{is_link} (lgl), \code{target} (chr or NA), \code{dangling} (lgl)
+\code{is_link} (lgl), \code{target} (chr or NA), \code{is_dangling} (lgl)
 }
 \description{
 Replaces parsing \code{ls -l}. Files are excluded; dangling links are included

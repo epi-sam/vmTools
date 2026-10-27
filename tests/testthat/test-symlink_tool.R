@@ -544,7 +544,7 @@ test_that("unmark() removes a dangling link and records it in the central log on
           })
 
 # roundups skip dangling links; the discrepancy report and roundup_dangling() name them
-test_that("dangling tool symlinks are reported and rounded up, and never counted as marks",
+test_that("Dangling tool symlinks are reported and rounded up, and never counted as marks",
           {
              testthat::skip_if_not(vmTools::dir_supports_links(tempdir()), "this machine cannot create symlinks (shortcuts) in tempdir()")
              root_dr    <- make_test_root("slt_dangling_report")
@@ -603,7 +603,7 @@ test_that("dangling tool symlinks are reported and rounded up, and never counted
              expect_false(file.exists(fpath_disc))
           })
 
-# This is a test of validate_symlink_slot() under the hood
+# This is a test of handler_prepare_symlink_slot() under the hood
 test_that("mark() checks the slot before demoting: a dangling singleton is cleared, a real folder is refused",
           {
              testthat::skip_if_not(vmTools::dir_supports_links(tempdir()), "this machine cannot create symlinks (shortcuts) in tempdir()")

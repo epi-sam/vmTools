@@ -332,7 +332,7 @@ link_get_target <- function(path){
 #' @param root (chr) one existing folder
 #'
 #' @return (data.table) one row per entry: `leaf` (chr), `path` (chr),
-#'   `is_link` (lgl), `target` (chr or NA), `dangling` (lgl)
+#'   `is_link` (lgl), `target` (chr or NA), `is_dangling` (lgl)
 #' @family links
 #' @keywords internal
 link_list <- function(root){
@@ -353,7 +353,7 @@ link_list <- function(root){
          , path     = entries
          , is_link  = vapply(info, `[[`, logical(1),   "is_link")
          , target   = vapply(info, `[[`, character(1), "target")
-         , dangling = vapply(info, `[[`, logical(1),   "dangling")
+         , is_dangling = vapply(info, `[[`, logical(1), "is_dangling")
       )
    )
 }
@@ -517,7 +517,7 @@ windows_junction_target <- function(path){
 #'
 #' @param path (chr) one path
 #'
-#' @return (list) `is_link` (lgl), `target` (chr or NA), `dangling` (lgl)
+#' @return (list) `is_link` (lgl), `target` (chr or NA), `is_dangling` (lgl)
 #' @family links
 #' @keywords internal
 link_resolve <- function(path){
@@ -527,7 +527,7 @@ link_resolve <- function(path){
       list(
          is_link    = is_link
          , target   = target
-         , dangling = is_link && !file.exists(target)
+         , is_dangling = is_link && !file.exists(target)
       )
    )
 }

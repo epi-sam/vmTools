@@ -46,7 +46,7 @@ dir_tree <- function(path = ".", level = Inf, prefix = "") {
       # Apply color based on whether it's a symlink, folder, or file
       if (is_symlink) {
          bold_cyan    <- if (is_markdown) "" else "\033[1;36m"
-         missing_note <- if (info$dangling) " (target missing)" else ""
+         missing_note <- if (info$is_dangling) " (target missing)" else ""
          colored_name <- paste0(bold_cyan, basename(files[i]), reset, " -> ", info$target, missing_note)
       } else if (is_folder) {
          # Bold blue for top-level folders, bold purple for nested folders

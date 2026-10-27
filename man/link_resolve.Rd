@@ -10,7 +10,7 @@ link_resolve(path)
 \item{path}{(chr) one path}
 }
 \value{
-(list) \code{is_link} (lgl), \code{target} (chr or NA), \code{dangling} (lgl)
+(list) \code{is_link} (lgl), \code{target} (chr or NA), \code{is_dangling} (lgl)
 }
 \description{
 Describe a path: is it a link, where does it go, is the target missing?
