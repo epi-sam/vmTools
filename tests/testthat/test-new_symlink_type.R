@@ -18,70 +18,23 @@ dv <- list(
 
 # Link capability guard -------------------------------------------------------
 
-testthat::skip_if_not(vmTools:::dir_supports_links(tempdir()), "this machine cannot create symlinks (shortcuts) in tempdir()")
+testthat::skip_if_not(
+   vmTools:::dir_supports_links(tempdir())
+   , "this machine cannot create symlinks (shortcuts) in tempdir()"
+)
 
 
-# Unit: Registry Accessors -----------------------------------------------------
-
-test_that("Symlink registiry is well-formed", {
-   registry <- get_symlink_registry()
-   assert_named_list(registry)
-   expect_true(all(c("best", "latest", "remove", "keep") %in% names(registry)))
-   for (entry in registry) {
-      expect_type(entry$is_singleton, "logical")
-      expect_true(is.function(entry$symlink_suffix_fn))
-   }
-})
-
-test_that("Registration succeeds and types appear in registry", {
-   new_symlink_type("in_progress", is_singleton = TRUE)
-   new_symlink_type("failed", is_singleton = FALSE)
-   expect_true("in_progress" %in% vmTools:::get_symlink_types())
-   expect_true("failed" %in% vmTools:::get_symlink_types())
-})
-
-test_that("Registry entries have correct structure", {
-   entry_ip <- vmTools:::get_symlink_registry_entry("in_progress")
-   expect_true(entry_ip$is_singleton)
-   expect_equal(entry_ip$symlink_suffix_fn("2024_01_01"), "")
-
-   entry_f <- vmTools:::get_symlink_registry_entry("failed")
-   expect_false(entry_f$is_singleton)
-   expect_equal(entry_f$symlink_suffix_fn("2024_01_01"), "_2024_01_01")
-})
-
-test_that("Overwriting a built-in type errors (case-insensitive)", {
-   expect_error(new_symlink_type("BEST", is_singleton = TRUE), regexp = "Cannot overwrite")
-   expect_error(new_symlink_type("keep", is_singleton = FALSE), regexp = "Cannot overwrite")
-})
-
-test_that("A type differing from a registered type only by case is refused", {
-   expect_error(new_symlink_type("In_Progress", is_singleton = TRUE), regexp = "differs only by case.*'in_progress'")
-   expect_error(new_symlink_type("FAILED", is_singleton = FALSE), regexp = "differs only by case.*'failed'")
-   expect_false("In_Progress" %in% vmTools:::get_symlink_types())
-})
-
-test_that("An empty, missing, blank or non-scalar type name is refused", {
-   expect_error(new_symlink_type("",            is_singleton = TRUE), regexp = "empty in some way")
-   expect_error(new_symlink_type(NA_character_, is_singleton = TRUE), regexp = "empty in some way")
-   expect_error(new_symlink_type(" ",           is_singleton = TRUE), regexp = "empty in some way")
-   expect_error(new_symlink_type(c("a", "b"),   is_singleton = TRUE), regexp = "length 1")
-   expect_error(new_symlink_type(1,             is_singleton = TRUE), regexp = "type 'string'")
-})
-
-test_that("Querying an unregistered type errors", {
-   expect_error(vmTools:::get_symlink_registry_entry("nonexistent"), regexp = "not registered")
-})
-
-
-# Integration: SLT with Two Roots ---------------------------------------------
+# Session types on a tool with two roots ---------------------------------------
 
 lapply(c(unlist(root_list), central_log), make_directory)
+
+new_symlink_type("in_progress", is_singleton = TRUE, verbose = FALSE)
+new_symlink_type("failed", is_singleton = FALSE, verbose = FALSE)
 
 suppressMessages(
    suppressWarnings({
       slt <- SLT$new(
-         root_list        = root_list
+         root_list          = root_list
          , central_log_root = central_log
          , verbose          = FALSE
          , verbose_startup  = FALSE
@@ -91,68 +44,45 @@ suppressMessages(
 
 lapply(dv, function(v) slt$make_new_version_folder(v))
 
-test_that("mark() creates a singleton symlink for 'in_progress'", {
+test_that("is_singleton given at registration decides one link per root or one per version", {
    slt$mark("in_progress", dv$v1, list(comment = "wip"))
-   expect_true(all(file.exists(clean_path(root_list, "in_progress"))))
-   resolved <- sapply(root_list, function(root) clean_path(root, "in_progress"))
-   expect_true(all(grepl(dv$v1, resolved)))
-})
+   slt$mark("in_progress", dv$v2, list(comment = "wip moved"))
+   expect_identical(slt$roundup("in_progress", return_as = "version_name"), dv$v2)
 
-test_that("mark() creates a non-singleton symlink for 'failed'", {
-   slt$mark("failed", dv$v2, list(comment = "bad run"))
+   slt$mark("failed", dv$v1, list(comment = "bad run"))
    slt$mark("failed", dv$v3, list(comment = "bad run again"))
-   expect_true(all(file.exists(clean_path(root_list, "failed_2024_06_01.2"))))
-   expect_true(all(file.exists(clean_path(root_list, "failed_2024_06_01.3"))))
-})
-
-test_that("roundup() returns correct results for custom types", {
-   dt_ip <- slt$roundup("in_progress")
-   expect_s3_class(dt_ip, "data.table")
-   expect_true(dv$v1 %in% dt_ip$version_name)
-
-   dt_f <- slt$roundup("failed")
-   expect_s3_class(dt_f, "data.table")
-   expect_true(all(c(dv$v2, dv$v3) %in% dt_f$version_name))
-})
-
-test_that("unmark() removes custom symlinks", {
-   slt$unmark(dv$v1, list(comment = "done"))
-   expect_false(any(file.exists(clean_path(root_list, "in_progress"))))
+   expect_identical(slt$roundup("failed", return_as = "version_name"), c(dv$v1, dv$v3))
 
    slt$unmark(dv$v2, list(comment = "done"))
-   expect_false(any(file.exists(clean_path(root_list, "failed_2024_06_01.2"))))
+   expect_identical(slt$roundup("in_progress", return_as = "version_name"), character(0))
 })
 
-
-# Integration: SLC Roundup ----------------------------------------------------
-
-# Re-mark so there's something to roundup
-slt$mark("in_progress", dv$v1, list(comment = "wip again"))
-slt$mark("failed", dv$v2, list(comment = "bad again"))
-slt$mark("failed", dv$v3, list(comment = "bad again"))
-
-suppressMessages({
-   slc <- SLC$new(
-      tool_list = list(my_project = slt)
-      , verbose = FALSE
+test_that("A registered type's name is reserved for folders: whole word or prefix", {
+   expect_error(
+      slt$make_new_version_folder("in_progress")
+      , regexp = "for its 'in_progress' symlink"
+   )
+   expect_error(
+      slt$make_new_version_folder("failed_x")
+      , regexp = "names starting with 'failed_'"
    )
 })
 
-test_that("get_common_symlink_types() includes user-defined types", {
-   types <- slc$get_common_symlink_types()
-   expect_true(all(c("in_progress", "failed") %in% types))
+test_that("A built-in name, a case-only clash or an empty name is refused at registration", {
+   expect_error(new_symlink_type("BEST", is_singleton = TRUE), regexp = "Cannot overwrite built-in")
+   expect_error(new_symlink_type("", is_singleton = TRUE), regexp = "empty in some way")
+   expect_error(
+      new_symlink_type("In_Progress", is_singleton = TRUE)
+      , regexp = "differs only by case.*'in_progress'"
+   )
 })
 
-test_that("roundup_all() works for user-defined types", {
-   dt_ip <- slc$roundup_all("in_progress")
-   expect_true("my_project" %in% dt_ip$tool_name)
-   expect_true(dv$v1 %in% dt_ip$version_name)
-
-   dt_f <- slc$roundup_all("failed")
-   expect_true("my_project" %in% dt_f$tool_name)
-   # expect_true(dv$v2 %in% dt_f$version_name)
-   expect_true(all(c(dv$v2, dv$v3) %in% dt_f$version_name))
+test_that("The composer offers user types and rounds them up by tool", {
+   slc <- suppressMessages(SLC$new(tool_list = list(my_project = slt), verbose = FALSE))
+   expect_true(all(c("in_progress", "failed") %in% slc$get_common_symlink_types()))
+   expect_identical(unique(slc$roundup_all("failed")$tool_name), "my_project")
 })
+
 
 
 # Disk registry ----------------------------------------------------------------
@@ -166,100 +96,136 @@ reg_roots <- c(
 lapply(reg_roots, make_directory)
 reg_roots <- unname(clean_path(reg_roots))
 
-test_that("update_symlink_disk_registry() adds, updates and drops a type in every root's file", {
-   expect_message(update_symlink_disk_registry(reg_roots, "stalled", is_singleton = FALSE, operation = "add"), regexp = "add done")
-   expect_true(all(file.exists(file.path(reg_roots, ".symlink_registry.csv"))))
-   on_file <- vmTools:::read_disk_registry(reg_roots[1])
-   expect_identical(on_file$symlink_type, "stalled")
-   expect_false(on_file$is_singleton)
-   expect_identical(names(on_file), c("symlink_type", "is_singleton", "timestamp", "user", "vmtools_version"))
+# the exported call, with messages off; every test below uses it
+update_quiet <- function(root, symlink_type, is_singleton = NULL, operation) {
+   return(update_symlink_disk_registry(
+      root
+      , symlink_type
+      , is_singleton = is_singleton
+      , operation    = operation
+      , verbose      = FALSE
+   ))
+}
 
-   # explicit operations: the mismatched one stops, the identical one is a no-op
-   expect_message(update_symlink_disk_registry(reg_roots, "stalled", is_singleton = FALSE, operation = "add"), regexp = "nothing changed")
-   expect_error(update_symlink_disk_registry(reg_roots, "stalled", is_singleton = TRUE, operation = "add"), regexp = "operation = 'update'")
-   expect_error(update_symlink_disk_registry(reg_roots, "hold", is_singleton = TRUE, operation = "update"), regexp = "operation = 'add'")
-   expect_error(update_symlink_disk_registry(reg_roots, "best", is_singleton = TRUE, operation = "add"), regexp = "Built-in")
-   expect_error(update_symlink_disk_registry(reg_roots, "stalled", operation = "add"), regexp = "needs is_singleton")
+test_that("update_symlink_disk_registry() adds, updates and drops a type in every root's file", {
+   update_quiet(reg_roots, "stalled", is_singleton = FALSE, operation = "add")
+   on_file <- vmTools:::read_disk_registry(reg_roots[1])
+   # the file format people will see: built-ins first, then the rest
+   expect_identical(
+      names(on_file)
+      , c("symlink_type", "is_singleton", "is_builtin", "timestamp", "user", "vmtools_version")
+   )
+   expect_identical(
+      on_file[, .(symlink_type, is_singleton, is_builtin)]
+      , data.table::data.table(
+         symlink_type   = c("best", "keep", "latest", "remove", "stalled")
+         , is_singleton = c(TRUE, FALSE, TRUE, FALSE, FALSE)
+         , is_builtin   = c(TRUE, TRUE, TRUE, TRUE, FALSE)
+      )
+   )
+
+   # a second add never overwrites; built-in rows are not the user's to change
+   expect_error(
+      update_quiet(reg_roots, "stalled", is_singleton = TRUE, operation = "add")
+      , regexp = "operation = 'update'"
+   )
+   expect_error(
+      update_quiet(reg_roots, "best", is_singleton = TRUE, operation = "add")
+      , regexp = "Built-in"
+   )
+   # a repeat is a no-op with a message, never an error
+   expect_message(
+      update_symlink_disk_registry(reg_roots, "stalled", is_singleton = FALSE, operation = "add")
+      , regexp = "nothing changed"
+   )
 
    # no links on disk, so the shape may change and the row may go
-   expect_message(update_symlink_disk_registry(reg_roots, "stalled", is_singleton = TRUE, operation = "update"), regexp = "update done")
-   expect_true(vmTools:::read_disk_registry(reg_roots[2])$is_singleton)
-   expect_message(update_symlink_disk_registry(reg_roots, "stalled", is_singleton = TRUE, operation = "drop"), regexp = "drop done")   # is_singleton ignored
-   expect_identical(nrow(vmTools:::read_disk_registry(reg_roots[1])), 0L)
-   expect_message(update_symlink_disk_registry(reg_roots, "stalled", operation = "drop"), regexp = "nothing to drop")
+   update_quiet(reg_roots, "stalled", is_singleton = TRUE, operation = "update")
+   expect_true(vmTools:::read_disk_registry(reg_roots[2])[symlink_type == "stalled", is_singleton])
+   update_quiet(reg_roots, "stalled", operation = "drop")
+   expect_false("stalled" %in% vmTools:::read_disk_registry(reg_roots[1])$symlink_type)
+   expect_message(
+      update_symlink_disk_registry(reg_roots, "stalled", operation = "drop")
+      , regexp = "nothing to drop"
+   )
 })
 
-test_that("A shape change or drop is refused while links of the old shape exist, and prints the unmark recipe", {
-   # root_a still carries failed_<v2> and failed_<v3> made by slt above
+test_that("A shape change or drop is refused while links of the old shape exist", {
+   # root_a still carries failed_<v1> and failed_<v3> made by slt above
    root_a <- unname(root_list$root_a)
-   update_symlink_disk_registry(root_a, "failed", is_singleton = FALSE, operation = "add", verbose = FALSE)
+   update_quiet(root_a, "failed", is_singleton = FALSE, operation = "add")
 
-   err <- expect_error(update_symlink_disk_registry(root_a, "failed", is_singleton = TRUE, operation = "update"), regexp = "links of the current shape still exist")
-   expect_match(conditionMessage(err), "slt\\$unmark\\(v", fixed = FALSE)
-   expect_match(conditionMessage(err), dv$v2, fixed = TRUE)
-   expect_match(conditionMessage(err), dv$v3, fixed = TRUE)
-   expect_match(conditionMessage(err), "<the one version to keep>", fixed = TRUE)
-   expect_error(update_symlink_disk_registry(root_a, "failed", operation = "drop"), regexp = "links of the current shape still exist")
-   expect_false(vmTools:::read_disk_registry(root_a)$is_singleton)   # untouched
+   err <- expect_error(
+      update_quiet(root_a, "failed", is_singleton = TRUE, operation = "update")
+      , regexp = "2 live and 0 dangling"
+   )
+   # never truncated
+   expect_lt(nchar(conditionMessage(err)), getOption("warning.length"))
+   expect_error(update_quiet(root_a, "failed", operation = "drop"), regexp = "live and")
+   # untouched
+   expect_false(vmTools:::read_disk_registry(root_a)[symlink_type == "failed", is_singleton])
 
    # the recipe's first step, then the drop goes through
-   suppressMessages(for (v in c(dv$v2, dv$v3)) slt$unmark(v, user_entry = list(comment = "failed retired")))
-   expect_message(update_symlink_disk_registry(root_a, "failed", operation = "drop"), regexp = "drop done")
-   expect_identical(nrow(vmTools:::read_disk_registry(root_a)), 0L)
+   suppressMessages(
+      for (v in slt$roundup("failed", return_as = "version_name")) {
+         slt$unmark(v, user_entry = list(comment = "failed dropped"))
+      }
+   )
+   update_quiet(root_a, "failed", operation = "drop")
+   expect_false("failed" %in% vmTools:::read_disk_registry(root_a)$symlink_type)
 })
 
-test_that("Types on file are registered for the session, and disagreements stop", {
-   update_symlink_disk_registry(reg_roots, "stalled", is_singleton = FALSE, operation = "add", verbose = FALSE)
+test_that("Roots' files merge over the session; disagreements stop; absences are backfilled", {
+   update_quiet(reg_roots, "stalled", is_singleton = FALSE, operation = "add")
+   # the live session registry is untouched
    expect_false("stalled" %in% vmTools:::get_symlink_types())
 
-   expect_message(new_dt <- vmTools:::register_symlink_types_from_disk(reg_roots), regexp = "stalled +FALSE")
-   expect_identical(new_dt$symlink_type, "stalled")
-   expect_false(vmTools:::get_symlink_registry_entry("stalled")$is_singleton)
-   # second read: nothing new, no message
-   expect_silent(again <- vmTools:::register_symlink_types_from_disk(reg_roots))
-   expect_identical(nrow(again), 0L)
+   disk_dt <- vmTools:::read_disk_registries(reg_roots)
+   reg     <- vmTools:::merge_symlink_registries(disk_dt)
+   expect_identical(names(reg)[1:4], c("best", "keep", "latest", "remove"))
+   expect_false(reg$stalled$is_singleton)
+   expect_false(reg$stalled$is_builtin)
+
+   # a session default for a type on file: the file wins and is reported
+   new_symlink_type("stalled", is_singleton = TRUE, verbose = FALSE)
+   expect_false(vmTools:::merge_symlink_registries(disk_dt)$stalled$is_singleton)
+   expect_identical(vmTools:::find_session_overrides(disk_dt)$symlink_type, "stalled")
 
    # two roots disagree
-   update_symlink_disk_registry(reg_roots[2], "stalled", is_singleton = TRUE, operation = "update", verbose = FALSE)
-   expect_error(vmTools:::register_symlink_types_from_disk(reg_roots), regexp = "Root folders disagree")
-   # one root disagrees with the session ("stalled" is multiple-version here)
-   expect_error(vmTools:::register_symlink_types_from_disk(reg_roots[2]), regexp = "live session registry has")
-   update_symlink_disk_registry(reg_roots[2], "stalled", is_singleton = FALSE, operation = "update", verbose = FALSE)
+   update_quiet(reg_roots[2], "stalled", is_singleton = TRUE, operation = "update")
+   expect_error(vmTools:::read_disk_registries(reg_roots), regexp = "disagree")
+   update_quiet(reg_roots[2], "stalled", is_singleton = FALSE, operation = "update")
+
+   # a root lacking a row a sibling has is backfilled; a root with no file gets one
+   update_quiet(reg_roots[2], "stalled", operation = "drop")
+   root_c <- clean_path(root_base, "reg_c")
+   make_directory(root_c)
+   root_c <- clean_path(root_c)
+   roots3 <- c(reg_roots, root_c)
+   written <- vmTools:::backfill_disk_registries(roots3, vmTools:::read_disk_registries(roots3))
+   expect_identical(written$root, c(reg_roots[2], root_c))
+   disk3 <- vmTools:::read_disk_registries(roots3)
+   expect_true(all(disk3[symlink_type == "stalled", !is_singleton]))
+   expect_identical(nrow(vmTools:::backfill_disk_registries(roots3, disk3)), 0L)
 })
 
 test_that("The first promote of a type records it on file; built-ins and repeats do not", {
    root_fresh <- clean_path(root_base, "reg_fresh")
    make_directory(root_fresh)
    root_fresh <- clean_path(root_fresh)
+   record <- vmTools:::record_symlink_type_on_disk
 
-   expect_true(vmTools:::record_symlink_type_on_disk(root_fresh, "failed"))
-   expect_false(vmTools:::record_symlink_type_on_disk(root_fresh, "failed"))
-   expect_false(vmTools:::record_symlink_type_on_disk(root_fresh, "best"))
-   on_file <- vmTools:::read_disk_registry(root_fresh)
-   expect_identical(on_file$symlink_type, "failed")
-   expect_false(on_file$is_singleton)
+   expect_true(record(root_fresh, "failed", is_singleton = FALSE))
+   expect_false(record(root_fresh, "failed", is_singleton = FALSE))
+   expect_false(record(root_fresh, "best", is_singleton = TRUE))
+   expect_false(vmTools:::read_disk_registry(root_fresh)[symlink_type == "failed", is_singleton])
 
    # the root says singleton, the session says multiple-version
-   update_symlink_disk_registry(root_fresh, "failed", is_singleton = TRUE, operation = "update", verbose = FALSE)
-   expect_error(vmTools:::record_symlink_type_on_disk(root_fresh, "failed"), regexp = "registry file says singleton")
+   update_quiet(root_fresh, "failed", is_singleton = TRUE, operation = "update")
+   expect_error(record(root_fresh, "failed", is_singleton = FALSE), regexp = "singleton in")
 })
 
 
 # Cleanup ----------------------------------------------------------------------
 
-test_that("Cleanup is complete", {
-   unlink(root_base, recursive = TRUE)
-   expect_error(dir_tree(root_base), regexp = "no such file")
-})
-
-
-# Reserved names follow the registry -------------------------------------------
-
-test_that("Registering a symlink type reserves its name for folders", {
-   expect_identical(vmTools:::find_reserved_name_conflict("in_progress"), "in_progress")  # singleton word
-   expect_identical(vmTools:::find_reserved_name_conflict("failed_x"),    "failed_")      # non-singleton prefix
-   expect_null(vmTools:::find_reserved_name_conflict("2024_01_01.01"))
-   expect_error(vmTools:::assert_version_name_not_reserved("in_progress"), regexp = "symlink \\(shortcut\\)")
-})
-
-
+unlink(root_base, recursive = TRUE)

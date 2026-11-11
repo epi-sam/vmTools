@@ -18,6 +18,8 @@ test_that("assertion messages name the caller's variable, not the wrapper's argu
    expect_error(assert_dir_exists(my_arg),       regexp = "^my_arg is NULL")
    my_arg <- ""
    expect_error(assert_scalar_not_empty(my_arg), regexp = "^my_arg is empty in some way")
+   my_arg <- " "
+   expect_error(assert_scalar_not_empty(my_arg), regexp = "^my_arg is empty in some way")
    my_arg <- 1L
    expect_error(assert_type(my_arg, "character"), regexp = "^my_arg must be of type character")
 })
