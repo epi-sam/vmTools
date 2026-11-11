@@ -4,7 +4,11 @@
 \alias{get_valid_actions}
 \title{Get the valid actions for marking folders}
 \usage{
-get_valid_actions()
+get_valid_actions(registry = get_symlink_registry())
+}
+\arguments{
+\item{registry}{(named list) a symlink registry; default the session
+registry}
 }
 \value{
 (chr) vector of valid actions for marking folders, including

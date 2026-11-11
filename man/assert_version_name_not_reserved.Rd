@@ -4,10 +4,16 @@
 \alias{assert_version_name_not_reserved}
 \title{Stop if a version_name is a reserved folder name}
 \usage{
-assert_version_name_not_reserved(version_name)
+assert_version_name_not_reserved(
+  version_name,
+  registry = get_symlink_registry()
+)
 }
 \arguments{
 \item{version_name}{(chr) a candidate folder name}
+
+\item{registry}{(named list) a symlink registry; default the session
+registry}
 }
 \value{
 (invisible TRUE) or stops with a plain-language message

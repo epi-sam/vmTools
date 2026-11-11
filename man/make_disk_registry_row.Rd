@@ -4,15 +4,18 @@
 \alias{make_disk_registry_row}
 \title{One disk registry row for a symlink type}
 \usage{
-make_disk_registry_row(symlink_type, is_singleton)
+make_disk_registry_row(symlink_type, is_singleton, is_builtin = FALSE)
 }
 \arguments{
 \item{symlink_type}{(chr) the type}
 
 \item{is_singleton}{(lgl) singleton or multiple-version}
+
+\item{is_builtin}{(lgl) one of the four package built-ins?}
 }
 \value{
-(data.table) one row, columns per \code{.disk_registry_schema}
+(data.table) one row, columns per the \code{schema} of
+\code{get_disk_registry_dictionary()}
 }
 \description{
 One disk registry row for a symlink type

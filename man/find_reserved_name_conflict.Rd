@@ -4,13 +4,17 @@
 \alias{find_reserved_name_conflict}
 \title{Find the reserved folder name a version_name collides with, if any}
 \usage{
-find_reserved_name_conflict(version_name)
+find_reserved_name_conflict(version_name, registry = get_symlink_registry())
 }
 \arguments{
 \item{version_name}{(chr) a candidate folder name}
+
+\item{registry}{(named list) a symlink registry; default the session
+registry}
 }
 \value{
-(chr) the reserved word or prefix it collides with, or \code{NULL} if it is free
+(chr) the reserved word or prefix it collides with, or \code{NULL} if it
+is free
 }
 \description{
 Find the reserved folder name a version_name collides with, if any

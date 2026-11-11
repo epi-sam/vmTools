@@ -2,20 +2,12 @@
 % Please edit documentation in R/registry_disk.R
 \name{format_unmark_recipe}
 \alias{format_unmark_recipe}
-\title{The unmark / re-register / re-mark recipe printed when a registry change is refused}
+\title{The unmark / re-mark recipe printed when a registry change is refused}
 \usage{
-format_unmark_recipe(
-  version_names,
-  roots,
-  symlink_type,
-  is_singleton,
-  operation
-)
+format_unmark_recipe(blocking, symlink_type, is_singleton, operation)
 }
 \arguments{
-\item{version_names}{(chr) versions carrying links of the old shape}
-
-\item{roots}{(chr) the roots passed by the caller}
+\item{blocking}{(data.table) \code{find_links_of_shape()} rows for every root}
 
 \item{symlink_type}{(chr) the type}
 
@@ -24,9 +16,12 @@ format_unmark_recipe(
 \item{operation}{(chr) \code{"update"} or \code{"drop"}}
 }
 \value{
-(chr) one string of R code lines, indented for a message
+(chr) one string of R code lines, flush left, pastable
 }
 \description{
-The unmark / re-register / re-mark recipe printed when a registry change is refused
+Short by design: an error longer than \code{getOption("warning.length")} (1000
+characters by default) is truncated, so live links are addressed through a
+roundup rather than listed, and only dangling links, which a roundup does
+not return, are named.
 }
 \keyword{internal}

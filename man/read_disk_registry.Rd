@@ -10,12 +10,13 @@ read_disk_registry(root)
 \item{root}{(chr) one root folder}
 }
 \value{
-(data.table) one row per symlink type, columns per
-\code{.disk_registry_schema}, sorted by \code{symlink_type}
+(data.table) one row per symlink type, columns per the \code{schema} of
+\code{get_disk_registry_dictionary()}, built-ins first, each group alphabetical
 }
 \description{
 A missing file reads as an empty table. A file whose columns do not match
-the schema, or that lists one type with two \code{is_singleton} values, stops:
-both mean the file was edited by hand.
+the schema, that lists one type with two \code{is_singleton} values, or that
+gives a built-in type the wrong shape, stops: all mean the file was edited
+by hand.
 }
 \keyword{internal}

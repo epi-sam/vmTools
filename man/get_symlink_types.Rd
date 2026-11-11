@@ -4,7 +4,11 @@
 \alias{get_symlink_types}
 \title{Get the names of all registered symlink types}
 \usage{
-get_symlink_types()
+get_symlink_types(registry = get_symlink_registry())
+}
+\arguments{
+\item{registry}{(named list) a symlink registry; default the session
+registry}
 }
 \value{
 (chr) vector of names of all registered symlink types, e.g.

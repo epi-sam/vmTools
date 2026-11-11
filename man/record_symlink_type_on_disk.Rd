@@ -4,12 +4,14 @@
 \alias{record_symlink_type_on_disk}
 \title{Add a symlink type to a root's disk registry if it is not there yet}
 \usage{
-record_symlink_type_on_disk(root, symlink_type)
+record_symlink_type_on_disk(root, symlink_type, is_singleton)
 }
 \arguments{
 \item{root}{(chr) one root folder}
 
 \item{symlink_type}{(chr) the type being promoted}
+
+\item{is_singleton}{(lgl) its shape in the tool's registry}
 }
 \value{
 (lgl) TRUE invisibly if a row was written, FALSE invisibly otherwise

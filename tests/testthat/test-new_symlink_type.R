@@ -150,6 +150,17 @@ test_that("update_symlink_disk_registry() adds, updates and drops a type in ever
    )
 })
 
+test_that("A registry file edited by hand is refused on read", {
+   root_edited <- make_test_root("new_types", "reg_edited")
+   update_quiet(root_edited, "stalled", is_singleton = FALSE, operation = "add")
+   fpath   <- vmTools:::get_disk_registry_path(root_edited)
+   on_file <- utils::read.csv(fpath)
+   on_file$is_builtin[on_file$symlink_type == "stalled"] <- TRUE
+   utils::write.csv(on_file, fpath, row.names = FALSE)
+
+   expect_error(vmTools:::read_disk_registry(root_edited), regexp = "is_builtin column wrongly")
+})
+
 test_that("A shape change or drop is refused while links of the old shape exist", {
    # root_a still carries failed_<v1> and failed_<v3> made by slt above
    root_a <- unname(root_list$root_a)

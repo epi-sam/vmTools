@@ -40,8 +40,8 @@ writes the file itself the first time a type is promoted in a root; this
 function is the explicit way to edit it.
 }
 \details{
-The live session registry is never changed by this function. To use a type in
-the current session, call \code{new_symlink_type()} or construct a new tool.
+The live session registry is never changed by this function. To use a type
+in the current session, call \code{new_symlink_type()} or construct a new tool.
 
 Changing a type's shape, or dropping it, is refused while links of the old
 shape exist in a root: afterwards those links would belong to no registered
@@ -51,7 +51,9 @@ first, with the affected version names.
 }
 \examples{
 \dontrun{
-update_symlink_disk_registry("/path/to/root", "stalled", is_singleton = FALSE, operation = "add")
+update_symlink_disk_registry(
+   "/path/to/root", "stalled", is_singleton = FALSE, operation = "add"
+)
 update_symlink_disk_registry("/path/to/root", "stalled", operation = "drop")
 }
 }

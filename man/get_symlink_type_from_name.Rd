@@ -4,10 +4,13 @@
 \alias{get_symlink_type_from_name}
 \title{Which registered symlink type does a link name belong to?}
 \usage{
-get_symlink_type_from_name(name)
+get_symlink_type_from_name(name, registry = get_symlink_registry())
 }
 \arguments{
 \item{name}{(chr) one leaf name as it appears in a root folder}
+
+\item{registry}{(named list) a symlink registry; default the session
+registry}
 }
 \value{
 (chr) the symlink type, or \code{NA} if the name is not a tool link name

@@ -4,7 +4,11 @@
 \alias{get_reserved_version_names}
 \title{Reserved folder names, derived from the symlink registry}
 \usage{
-get_reserved_version_names()
+get_reserved_version_names(registry = get_symlink_registry())
+}
+\arguments{
+\item{registry}{(named list) a symlink registry; default the session
+registry. A tool passes its own (built-ins plus its roots' disk registries)}
 }
 \value{
 (list) \code{words} (chr) exact names that are reserved; \code{prefixes}

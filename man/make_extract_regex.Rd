@@ -7,7 +7,7 @@
 make_extract_regex(is_singleton, symlink_type)
 }
 \arguments{
-\item{is_singleton}{(logical) whether this symlink type is a singleton (only
+\item{is_singleton}{(lgl) whether this symlink type is a singleton (only
 one per root)}
 
 \item{symlink_type}{(chr) the name of the symlink type, e.g. "best", "keep",

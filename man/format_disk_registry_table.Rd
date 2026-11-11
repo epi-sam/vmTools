@@ -2,7 +2,7 @@
 % Please edit documentation in R/registry_disk.R
 \name{format_disk_registry_table}
 \alias{format_disk_registry_table}
-\title{Format symlink types and their shape as a small two-column table for messages}
+\title{Format symlink types and their shape as a two-column table for messages}
 \usage{
 format_disk_registry_table(dt)
 }
@@ -13,6 +13,6 @@ format_disk_registry_table(dt)
 (chr) one string, one line per type
 }
 \description{
-Format symlink types and their shape as a small two-column table for messages
+Format symlink types and their shape as a two-column table for messages
 }
 \keyword{internal}

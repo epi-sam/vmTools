@@ -4,7 +4,11 @@
 \alias{get_symlink_regex_extract}
 \title{Get the regex patterns for extracting symlink types from \code{ls} system calls}
 \usage{
-get_symlink_regex_extract()
+get_symlink_regex_extract(registry = get_symlink_registry())
+}
+\arguments{
+\item{registry}{(named list) a symlink registry; default the session
+registry}
 }
 \value{
 (list) named list of regex patterns for extracting symlink types

@@ -7,15 +7,20 @@
 get_symlink_registry()
 }
 \value{
-(list) the full symlink registry as a named list
+(list) the full symlink registry as a named list, the four
+built-ins first and then the other types, each group alphabetical
 }
 \description{
-Returns the named list of symlink types and their associated properties/functions.
-Expected entries are:
+Returns the named list of symlink types and their associated properties and
+functions. Expected entries are:
 \itemize{
-\item \code{is_singleton}: (logical) whether this symlink type is a singleton (only one per root)
-\item \code{symlink_suffix_fn}: (function) function to create symlink name based on version name (for non-singleton symlink types)
-\item \code{extract_regex}: (function) function to get the regex pattern to find the symlink type
+\item \code{is_singleton}: (lgl) whether this symlink type is a singleton (only one
+per root)
+\item \code{is_builtin}: (lgl) one of the four package built-ins (best, keep, latest,
+remove)
+\item \code{symlink_suffix_fn}: (function) creates the symlink name from a version
+name (for non-singleton symlink types)
+\item \code{extract_regex}: (chr) the regex pattern that finds the symlink type
 }
 }
 \examples{

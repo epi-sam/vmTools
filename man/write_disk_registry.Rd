@@ -9,7 +9,8 @@ write_disk_registry(root, dt)
 \arguments{
 \item{root}{(chr) one root folder}
 
-\item{dt}{(data.table) the table to write, columns per \code{.disk_registry_schema}}
+\item{dt}{(data.table) the table to write, columns per the \code{schema} of
+\code{get_disk_registry_dictionary()}}
 }
 \value{
 (chr) the file path, invisibly
@@ -17,6 +18,7 @@ write_disk_registry(root, dt)
 \description{
 Atomic: temp file in the same folder, then rename, so a parallel reader sees
 the old file or the new one, never a partial one (same rule as the tool's
-log writer). Existing permissions are kept.
+log writer). Existing permissions are kept. Any built-in type missing from
+\code{dt} is added, so every file lists all four.
 }
 \keyword{internal}

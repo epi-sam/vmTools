@@ -7,7 +7,8 @@
 make_empty_disk_registry()
 }
 \value{
-(data.table) zero rows, columns per \code{.disk_registry_schema}
+(data.table) zero rows, columns per the \code{schema} of
+\code{get_disk_registry_dictionary()}
 }
 \description{
 An empty disk registry table with the right columns and types

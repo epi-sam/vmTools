@@ -7,7 +7,7 @@
 make_symlink_suffix_fn(is_singleton)
 }
 \arguments{
-\item{is_singleton}{(logical) whether this symlink type is a singleton (only
+\item{is_singleton}{(lgl) whether this symlink type is a singleton (only
 one per root)}
 }
 \value{

@@ -1,30 +1,48 @@
-# ---- Disk registry ----------------------------------------------------------
-# The session registry (R/registry_session.R) forgets every user-defined type when R restarts.
-# Each root carries a small file recording the types ever used there, so a new
-# tool on that root starts with the same types (see `SLT$new()`), and typed
-# roundups work without re-registering every session.
+# started: 2026 Nov 10 19:47:56
+# Disk registry ----------------------------------------------------------------
+# The session registry (R/registry_session.R) forgets every user-defined type
+# when R restarts. Each root carries a small file recording the types ever used
+# there, so a new tool on that root starts with the same types (see
+# `SLT$new()`), and typed roundups work without re-registering every session.
 #
 # - one row per symlink type: current state, not history
-# - built-in types are never written: they can never be absent from a session
-# - a file edit never changes the live session registry; `new_symlink_type()` does
+# - the four built-in types are written too, so a person reading the file sees
+#   every type the root uses; their shape is fixed by the package, never by
+#   the file
+# - a file edit never changes the live session registry; `new_symlink_type()`
+#   does
+# - a tool's registry = built-ins + the union of its roots' files (+ session
+#   defaults while `new_symlink_type()` lives); see `merge_symlink_registries()`
 
-# file name at the top of each root; a dotfile so `list.files()` without
-# `all.files` skips it. It must stay a FILE: `link_list()` lists every folder
-# in a root, so a dot folder would be reported as a version folder
-.disk_registry_fname <- ".symlink_registry.csv"
 
-# column names and types; `timestamp` and `user` match the log schema
-.disk_registry_schema <- list(
-    symlink_type      = "character"
-    , is_singleton    = "logical"
-    , timestamp       = "character"
-    , user            = "character"
-    , vmtools_version = "character"
-)
+# Dictionary and small helpers -------------------------------------------------
 
-# same shape as the tool's `datestamp_format`; kept here because the disk
-# registry is written outside the SLT class
-.disk_registry_timestamp_format <- "%Y_%m_%d_%H%M%S"
+#' Fixed names and formats of the disk registry file
+#'
+#' - `fname`: a dotfile, so `list.files()` without `all.files` skips it. It
+#'   must stay a FILE: `link_list()` lists every folder in a root, so a dot
+#'   folder would be reported as a version folder
+#' - `schema`: column name and type; `timestamp` and `user` match the log schema
+#' - `timestamp_format`: same shape as the tool's `datestamp_format`; kept here
+#'   because the disk registry is written outside the SLT class
+#'
+#' @returns (list) `fname` (chr), `schema` (named list of chr),
+#'   `timestamp_format` (chr)
+#' @keywords internal
+get_disk_registry_dictionary <- function() {
+   return(list(
+      fname = ".symlink_registry.csv"
+      , schema = list(
+         symlink_type      = "character"
+         , is_singleton    = "logical"
+         , is_builtin      = "logical"
+         , timestamp       = "character"
+         , user            = "character"
+         , vmtools_version = "character"
+      )
+      , timestamp_format = "%Y_%m_%d_%H%M%S"
+   ))
+}
 
 
 #' Path of a root's disk registry file
@@ -34,96 +52,48 @@
 #' @returns (chr) the file path, whether or not the file exists
 #' @keywords internal
 get_disk_registry_path <- function(root) {
-    assert_scalar_not_empty(root)
-    return(clean_path(root, .disk_registry_fname, normalize = FALSE))
+   assert_scalar_not_empty(root)
+   fname <- get_disk_registry_dictionary()$fname
+   return(clean_path(root, fname, normalize = FALSE))
 }
 
+
+#' Is this one of the built-in symlink types?
+#'
+#' Compared ignoring case, as `new_symlink_type()` does.
+#'
+#' @param symlink_type (chr) a type name
+#'
+#' @returns (lgl) TRUE for best, latest, keep, remove in any case
+#' @keywords internal
+is_builtin_symlink_type <- function(symlink_type) {
+   return(tolower(symlink_type) %in% names(get_builtin_symlink_types()))
+}
+
+
+#' Words for `is_singleton` in messages
+#'
+#' @param is_singleton (lgl)
+#'
+#' @returns (chr) "singleton" or "multiple-version"
+#' @keywords internal
+describe_singleton <- function(is_singleton) {
+   if (isTRUE(is_singleton)) return("singleton")
+   return("multiple-version")
+}
+
+
+# Rows and tables --------------------------------------------------------------
 
 #' An empty disk registry table with the right columns and types
 #'
-#' @returns (data.table) zero rows, columns per `.disk_registry_schema`
+#' @returns (data.table) zero rows, columns per the `schema` of
+#'   `get_disk_registry_dictionary()`
 #' @keywords internal
 make_empty_disk_registry <- function() {
-    cols <- lapply(.disk_registry_schema, function(type) vector(type, 0L))
-    return(data.table::as.data.table(cols))
-}
-
-
-#' Read one root's disk registry
-#'
-#' A missing file reads as an empty table. A file whose columns do not match
-#' the schema, or that lists one type with two `is_singleton` values, stops:
-#' both mean the file was edited by hand.
-#'
-#' @param root (chr) one root folder
-#'
-#' @returns (data.table) one row per symlink type, columns per
-#'   `.disk_registry_schema`, sorted by `symlink_type`
-#' @keywords internal
-read_disk_registry <- function(root) {
-    fpath <- get_disk_registry_path(root)
-    if (!file.exists(fpath)) return(make_empty_disk_registry())
-
-    dt <- data.table::setDT(utils::read.csv(
-        fpath
-        , colClasses       = unlist(.disk_registry_schema)
-        , stringsAsFactors = FALSE
-    ))
-    if (!identical(sort(names(dt)), sort(names(.disk_registry_schema)))) {
-        stop(
-            "The symlink (shortcut) type registry file has unexpected columns: ", fpath
-            , "\n    - Expected: ", toString(names(.disk_registry_schema))
-            , "\n    - Found:    ", toString(names(dt))
-            , "\n    - Was it edited by hand? Fix or delete the file. Nothing has been changed."
-        )
-    }
-    data.table::setcolorder(dt, names(.disk_registry_schema))
-    dt <- unique(dt, by = c("symlink_type", "is_singleton"))
-    dup <- dt[duplicated(symlink_type), symlink_type]
-    if (length(dup)) {
-        stop(
-            "The symlink (shortcut) type registry file lists a type as both singleton and multiple-version: ", fpath
-            , "\n    - Type(s): ", toString(dup)
-            , "\n    - Was it edited by hand? Fix or delete the file. Nothing has been changed."
-        )
-    }
-    data.table::setorder(dt, symlink_type)
-    return(dt)
-}
-
-
-#' Write one root's disk registry
-#'
-#' Atomic: temp file in the same folder, then rename, so a parallel reader sees
-#' the old file or the new one, never a partial one (same rule as the tool's
-#' log writer). Existing permissions are kept.
-#'
-#' @param root (chr) one root folder
-#' @param dt (data.table) the table to write, columns per `.disk_registry_schema`
-#'
-#' @returns (chr) the file path, invisibly
-#' @keywords internal
-write_disk_registry <- function(root, dt) {
-    fpath     <- get_disk_registry_path(root)
-    fpath_tmp <- tempfile(pattern = paste0(.disk_registry_fname, "."), tmpdir = dirname(fpath), fileext = ".tmp")
-    on.exit(if (file.exists(fpath_tmp)) unlink(fpath_tmp), add = TRUE)
-
-    dt <- data.table::copy(dt)
-    data.table::setcolorder(dt, names(.disk_registry_schema))
-    data.table::setorder(dt, symlink_type)
-    utils::write.csv(dt, fpath_tmp, row.names = FALSE)
-
-    if (file.exists(fpath)) {
-        Sys.chmod(fpath_tmp, mode = file.mode(fpath), use_umask = FALSE)
-    }
-    if (!isTRUE(file.rename(fpath_tmp, fpath))) {
-        stop(
-            "Could not write the symlink (shortcut) type registry file: ", fpath
-            , "\n    - The original file (if any) was left untouched."
-            , "\n    - Common causes: no write permission on the folder, the file is locked, or the disk is full."
-        )
-    }
-    return(invisible(fpath))
+   schema <- get_disk_registry_dictionary()$schema
+   cols   <- lapply(schema, function(type) vector(type, 0L))
+   return(data.table::as.data.table(cols))
 }
 
 
@@ -131,17 +101,170 @@ write_disk_registry <- function(root, dt) {
 #'
 #' @param symlink_type (chr) the type
 #' @param is_singleton (lgl) singleton or multiple-version
+#' @param is_builtin (lgl) one of the four package built-ins?
 #'
-#' @returns (data.table) one row, columns per `.disk_registry_schema`
+#' @returns (data.table) one row, columns per the `schema` of
+#'   `get_disk_registry_dictionary()`
 #' @keywords internal
-make_disk_registry_row <- function(symlink_type, is_singleton) {
-    return(data.table::data.table(
-        symlink_type      = symlink_type
-        , is_singleton    = is_singleton
-        , timestamp       = format(Sys.time(), .disk_registry_timestamp_format)
-        , user            = Sys.info()[["user"]]
-        , vmtools_version = as.character(utils::packageVersion("vmTools"))
-    ))
+make_disk_registry_row <- function(symlink_type, is_singleton, is_builtin = FALSE) {
+   timestamp_format <- get_disk_registry_dictionary()$timestamp_format
+   return(data.table::data.table(
+      symlink_type      = symlink_type
+      , is_singleton    = is_singleton
+      , is_builtin      = is_builtin
+      , timestamp       = format(Sys.time(), timestamp_format)
+      , user            = Sys.info()[["user"]]
+      , vmtools_version = as.character(utils::packageVersion("vmTools"))
+   ))
+}
+
+
+#' Disk registry rows for the built-in types
+#'
+#' @returns (data.table) four rows, columns per the `schema` of
+#'   `get_disk_registry_dictionary()`
+#' @keywords internal
+make_builtin_disk_registry_rows <- function() {
+   builtin_types <- get_builtin_symlink_types()
+   rows <- Map(
+      make_disk_registry_row
+      , symlink_type = names(builtin_types)
+      , is_singleton = unname(builtin_types)
+      , is_builtin   = TRUE
+   )
+   return(data.table::rbindlist(rows))
+}
+
+
+# One root: read and write -----------------------------------------------------
+
+#' Read one root's disk registry
+#'
+#' A missing file reads as an empty table. A file whose columns do not match
+#' the schema, that lists one type with two `is_singleton` values, or that
+#' gives a built-in type the wrong shape, stops: all mean the file was edited
+#' by hand.
+#'
+#' @param root (chr) one root folder
+#'
+#' @returns (data.table) one row per symlink type, columns per the `schema` of
+#'   `get_disk_registry_dictionary()`, built-ins first, each group alphabetical
+#' @keywords internal
+read_disk_registry <- function(root) {
+   fpath <- get_disk_registry_path(root)
+   if (!file.exists(fpath)) return(make_empty_disk_registry())
+
+   schema        <- get_disk_registry_dictionary()$schema
+   builtin_types <- get_builtin_symlink_types()
+
+   dt <- data.table::setDT(utils::read.csv(fpath, colClasses = unlist(schema)))
+
+   nms_dt       <- names(dt)
+   nms_reg      <- names(schema)
+   nms_dt_sort  <- sort(nms_dt)
+   nms_reg_sort <- sort(nms_reg)
+
+   if (!identical(nms_dt_sort, nms_reg_sort)) {
+      stop(
+         "The symlink (shortcut) type registry file has unexpected columns: "
+         , fpath
+         , "\n    - Expected: ", toString(nms_reg)
+         , "\n    - Found:    ", toString(nms_dt)
+         , "\n    - Was it edited by hand? Fix or delete the file. "
+         , "Nothing has been changed."
+      )
+   }
+
+   data.table::setcolorder(dt, nms_reg)
+   dt  <- unique(dt, by = c("symlink_type", "is_singleton"))
+   dup <- dt[duplicated(symlink_type), symlink_type]
+   if (length(dup)) {
+      stop(
+         "The symlink (shortcut) type registry file lists a type as both "
+         , "singleton and multiple-version: ", fpath
+         , "\n    - Type(s): ", toString(dup)
+         , "\n    - Was it edited by hand? Fix or delete the file. "
+         , "Nothing has been changed."
+      )
+   }
+
+   builtin_rows <- dt[symlink_type %in% names(builtin_types)]
+   bad_builtin  <- builtin_rows[is_singleton != builtin_types[symlink_type], symlink_type]
+   if (length(bad_builtin)) {
+      stop(
+         "The symlink (shortcut) type registry file gives a built-in type the "
+         , "wrong shape: ", fpath
+         , "\n    - Type(s): ", toString(bad_builtin)
+         , "\n    - Built-ins are fixed: best and latest are singleton; "
+         , "keep and remove are multiple-version."
+         , "\n    - Was it edited by hand? Fix or delete the file. "
+         , "Nothing has been changed."
+      )
+   }
+
+   is_builtin_expected <- dt$symlink_type %in% names(builtin_types)
+   bad_flag            <- dt[is_builtin != is_builtin_expected, symlink_type]
+   if (length(bad_flag)) {
+      stop(
+         "The symlink (shortcut) type registry file marks a type's is_builtin "
+         , "column wrongly: ", fpath
+         , "\n    - Type(s): ", toString(bad_flag)
+         , "\n    - Only best, keep, latest and remove are built-in."
+         , "\n    - Was it edited by hand? Fix or delete the file. "
+         , "Nothing has been changed."
+      )
+   }
+
+   data.table::setorder(dt, -is_builtin, symlink_type)
+   return(dt)
+}
+
+
+#' Write one root's disk registry
+#'
+#' Atomic: temp file in the same folder, then rename, so a parallel reader sees
+#' the old file or the new one, never a partial one (same rule as the tool's
+#' log writer). Existing permissions are kept. Any built-in type missing from
+#' `dt` is added, so every file lists all four.
+#'
+#' @param root (chr) one root folder
+#' @param dt (data.table) the table to write, columns per the `schema` of
+#'   `get_disk_registry_dictionary()`
+#'
+#' @returns (chr) the file path, invisibly
+#' @keywords internal
+write_disk_registry <- function(root, dt) {
+   dictionary <- get_disk_registry_dictionary()
+   fpath      <- get_disk_registry_path(root)
+   fpath_tmp  <- tempfile(
+      pattern   = paste0(dictionary$fname, ".")
+      , tmpdir  = dirname(fpath)
+      , fileext = ".tmp"
+   )
+   on.exit(if (file.exists(fpath_tmp)) unlink(fpath_tmp), add = TRUE)
+
+   dt <- data.table::copy(dt)
+   missing_builtins <- setdiff(names(get_builtin_symlink_types()), dt$symlink_type)
+   if (length(missing_builtins)) {
+      builtin_rows <- make_builtin_disk_registry_rows()
+      dt <- rbind(dt, builtin_rows[symlink_type %in% missing_builtins])
+   }
+   data.table::setcolorder(dt, names(dictionary$schema))
+   data.table::setorder(dt, -is_builtin, symlink_type)
+   utils::write.csv(dt, fpath_tmp, row.names = FALSE)
+
+   if (file.exists(fpath)) {
+      Sys.chmod(fpath_tmp, mode = file.mode(fpath), use_umask = FALSE)
+   }
+   if (!isTRUE(file.rename(fpath_tmp, fpath))) {
+      stop(
+         "Could not write the symlink (shortcut) type registry file: ", fpath
+         , "\n    - The original file (if any) was left untouched."
+         , "\n    - Common causes: no write permission on the folder, "
+         , "the file is locked, or the disk is full."
+      )
+   }
+   return(invisible(fpath))
 }
 
 
@@ -155,138 +278,178 @@ make_disk_registry_row <- function(symlink_type, is_singleton) {
 #'
 #' @param root (chr) one root folder
 #' @param symlink_type (chr) the type being promoted
+#' @param is_singleton (lgl) its shape in the tool's registry
 #'
 #' @returns (lgl) TRUE invisibly if a row was written, FALSE invisibly otherwise
 #' @keywords internal
-record_symlink_type_on_disk <- function(root, symlink_type) {
-    if (is_builtin_symlink_type(symlink_type)) return(invisible(FALSE))
-    is_singleton <- isTRUE(get_symlink_registry_entry(symlink_type)[["is_singleton"]])
-    dt           <- read_disk_registry(root)
-    # a scalar named like the column would resolve to the column inside `[`
-    type_wanted  <- symlink_type
-    on_file      <- dt[symlink_type == type_wanted]
-    if (nrow(on_file) == 1L) {
-        if (identical(on_file$is_singleton, is_singleton)) return(invisible(FALSE))
-        stop(
-            "The live session registry has the symlink (shortcut) type '", symlink_type, "' as "
-            , describe_singleton(is_singleton), ", but the root's registry file says "
-            , describe_singleton(on_file$is_singleton), ": ", get_disk_registry_path(root)
-            , "\n    - Links of this type in that root are named the other way."
-            , "\n    - To change the root's registration: update_symlink_disk_registry(root, '", symlink_type
-            , "', is_singleton = ", is_singleton, ", operation = 'update')"
-            , "\n    - To follow the root instead: new_symlink_type('", symlink_type, "', is_singleton = ", on_file$is_singleton, ")"
-            , "\n    - Nothing has been changed."
-        )
-    }
-    write_disk_registry(root, rbind(dt, make_disk_registry_row(symlink_type, is_singleton)))
-    return(invisible(TRUE))
-}
-
-#' Is this one of the built-in symlink types?
-#'
-#' Compared ignoring case, as `new_symlink_type()` does.
-#'
-#' @param symlink_type (chr) a type name
-#'
-#' @returns (lgl) TRUE for best, latest, keep, remove in any case
-#' @keywords internal
-is_builtin_symlink_type <- function(symlink_type) {
-    return(tolower(symlink_type) %in% c("best", "latest", "keep", "remove"))
+record_symlink_type_on_disk <- function(root, symlink_type, is_singleton) {
+   checkmate::assert_flag(is_singleton)
+   if (is_builtin_symlink_type(symlink_type)) return(invisible(FALSE))
+   dt <- read_disk_registry(root)
+   # a scalar named like the column would resolve to the column inside `[`
+   .symlink_type <- symlink_type
+   on_file       <- dt[symlink_type == .symlink_type]
+   if (nrow(on_file) == 1L) {
+      if (identical(on_file$is_singleton, is_singleton)) return(invisible(FALSE))
+      stop(
+         "Symlink (shortcut) type '", symlink_type, "' is "
+         , describe_singleton(is_singleton)
+         , " in the live session registry but "
+         , describe_singleton(on_file$is_singleton)
+         , " in ", get_disk_registry_path(root)
+         , "\nChange one side: update_symlink_disk_registry() for the root, "
+         , "new_symlink_type() for the session. Nothing has been changed."
+      )
+   }
+   new_row <- make_disk_registry_row(symlink_type, is_singleton)
+   write_disk_registry(root, rbind(dt, new_row))
+   return(invisible(TRUE))
 }
 
 
-#' Words for `is_singleton` in messages
-#'
-#' @param is_singleton (lgl)
-#'
-#' @returns (chr) "singleton" or "multiple-version"
-#' @keywords internal
-describe_singleton <- function(is_singleton) {
-    if (isTRUE(is_singleton)) return("singleton")
-    return("multiple-version")
-}
+# Several roots: read, merge, backfill -----------------------------------------
 
-
-#' Read the disk registries of several roots and register what the session lacks
+#' Read the disk registries of several roots as one table
 #'
-#' Used by `SLT$new()`. Every type found on file is registered for the session
-#' with `new_symlink_type()`. Stops if two roots, or a root and the session,
-#' disagree about a type's `is_singleton`.
+#' Stops if two roots give one type different shapes: the roots must agree
+#' before a tool can span them. Absence is not a disagreement; see
+#' `backfill_disk_registries()`.
 #'
 #' @param root_list (chr or list) root folders
-#' @param verbose (lgl) message the newly registered types as a small table
 #'
-#' @returns (data.table) the rows that were newly registered, invisibly
-#'   (zero rows when the session already had them all)
+#' @returns (data.table) one row per root and type, columns per the `schema` of
+#'   `get_disk_registry_dictionary()` plus `root` (chr); zero rows if no root has a file
 #' @keywords internal
-register_symlink_types_from_disk <- function(root_list, verbose = TRUE) {
-    checkmate::assert_flag(verbose)
-    roots <- unlist(root_list, use.names = FALSE)
-    dt    <- data.table::rbindlist(lapply(roots, function(root) {
-        out <- read_disk_registry(root)
-        if (nrow(out)) out[, root := root]
-        return(out)
-    }), fill = TRUE)
-    if (nrow(dt) == 0L) return(invisible(make_empty_disk_registry()))
+read_disk_registries <- function(root_list) {
+   roots <- unlist(root_list, use.names = FALSE)
+   checkmate::assert_character(roots, min.len = 1, any.missing = FALSE)
+   dt <- data.table::rbindlist(
+      lapply(roots, function(x) read_disk_registry(x)[, root := x])
+   )
 
-    # two roots disagree
-    conflicts <- dt[, .(n_shapes = data.table::uniqueN(is_singleton)), by = symlink_type][n_shapes > 1L, symlink_type]
-    if (length(conflicts)) {
-        detail <- dt[symlink_type %in% conflicts, sprintf("%s: %s in %s", symlink_type, vapply(is_singleton, describe_singleton, character(1)), root)]
-        stop(
-            "Root folders disagree about a symlink (shortcut) type's shape:"
-            , "\n    - ", paste(detail, collapse = "\n    - ")
-            , "\n    - Fix one side with update_symlink_disk_registry(). Nothing has been changed."
-        )
-    }
-    dt <- unique(dt, by = "symlink_type")
-
-    # a root disagrees with the session
-    registered <- get_symlink_registry()
-    for (idx in seq_len(nrow(dt))) {
-        type <- dt$symlink_type[idx]
-        if (!type %in% names(registered)) next
-        session_shape <- isTRUE(registered[[type]][["is_singleton"]])
-        if (!identical(session_shape, dt$is_singleton[idx])) {
-            stop(
-                "The live session registry has the symlink (shortcut) type '", type, "' as ", describe_singleton(session_shape)
-                , ", but a root's registry file says ", describe_singleton(dt$is_singleton[idx]), ": ", get_disk_registry_path(dt$root[idx])
-                , "\n    - Fix one side: new_symlink_type() for the session, update_symlink_disk_registry() for the root."
-                , "\n    - Nothing has been changed."
-            )
-        }
-    }
-
-    new_dt <- dt[!symlink_type %in% names(registered)]
-    for (idx in seq_len(nrow(new_dt))) {
-        new_symlink_type(new_dt$symlink_type[idx], is_singleton = new_dt$is_singleton[idx], verbose = FALSE)
-    }
-    if (verbose && nrow(new_dt)) {
-        message(
-            "Registered symlink (shortcut) types found in the root folders:\n"
-            , format_disk_registry_table(new_dt)
-        )
-    }
-    new_dt[, root := NULL]
-    return(invisible(new_dt))
+   shapes    <- dt[, .(n_shapes = data.table::uniqueN(is_singleton)), by = symlink_type]
+   conflicts <- shapes[n_shapes > 1L, symlink_type]
+   if (length(conflicts)) {
+      detail <- dt[symlink_type %in% conflicts][order(symlink_type, -is_singleton, root)]
+      detail[, shape := vapply(is_singleton, describe_singleton, character(1))]
+      lines  <- detail[, sprintf("  %s: %s in %s", symlink_type, shape, root)]
+      stop(
+         "Root folders disagree about a symlink (shortcut) type's shape:\n"
+         , paste(lines, collapse = "\n")
+         , "\nPick the roots to change and run, for each:\n"
+         , "update_symlink_disk_registry(<root>, \"<type>\", "
+         , "is_singleton = <TRUE or FALSE>, operation = \"update\")"
+         , "\nNothing has been changed."
+      )
+   }
+   return(dt)
 }
 
 
-#' Format symlink types and their shape as a small two-column table for messages
+#' Merge the roots' disk registries with the session registry
 #'
-#' @param dt (data.table) with `symlink_type` and `is_singleton`
+#' Precedence: a root's file, then the session registry (built-ins locked in
+#' `.onLoad()` plus any `new_symlink_type()` default), so a session default is
+#' used only for a type on no root's file. Built-ins always come from the
+#' package. Order per `sort_symlink_registry()`.
 #'
-#' @returns (chr) one string, one line per type
+#' @param disk_dt (data.table) from `read_disk_registries()`
+#' @param session_registry (named list) default `get_symlink_registry()`
+#'
+#' @returns (named list) a symlink registry, entries per
+#'   `make_symlink_registry_entry()`
 #' @keywords internal
-format_disk_registry_table <- function(dt) {
-    width <- max(nchar(c("symlink_type", dt$symlink_type)))
-    lines <- c(
-        sprintf("  %-*s  is_singleton", width, "symlink_type")
-        , sprintf("  %-*s  %s", width, dt$symlink_type, dt$is_singleton)
-    )
-    return(paste(lines, collapse = "\n"))
+merge_symlink_registries <- function(disk_dt, session_registry = get_symlink_registry()) {
+   on_disk      <- unique(disk_dt[is_builtin == FALSE], by = "symlink_type")
+   disk_entries <- Map(
+      make_symlink_registry_entry
+      , symlink_type = on_disk$symlink_type
+      , is_singleton = on_disk$is_singleton
+   )
+   # built-ins are never among the disk entries, so they always come from the session
+   types_session_only <- setdiff(names(session_registry), names(disk_entries))
+   merged             <- c(session_registry[types_session_only], disk_entries)
+   return(sort_symlink_registry(merged))
 }
 
+
+#' Session defaults that a root's file overrides
+#'
+#' @param disk_dt (data.table) from `read_disk_registries()`
+#' @param session_registry (named list) default `get_symlink_registry()`
+#'
+#' @returns (data.table) `symlink_type` (chr), `session_is_singleton` (lgl),
+#'   `file_is_singleton` (lgl); zero rows if none
+#' @keywords internal
+find_session_overrides <- function(disk_dt, session_registry = get_symlink_registry()) {
+   on_disk <- unique(
+      disk_dt[is_builtin == FALSE, .(symlink_type, file_is_singleton = is_singleton)]
+      , by = "symlink_type"
+   )
+   in_session <- data.table::data.table(
+      symlink_type           = names(session_registry)
+      , session_is_singleton = vapply(session_registry, `[[`, logical(1), "is_singleton")
+   )
+   in_both <- in_session[on_disk, on = "symlink_type", nomatch = NULL]
+   return(in_both[session_is_singleton != file_is_singleton])
+}
+
+
+#' Rows a root's disk registry lacks and a sibling root's has
+#'
+#' Reads nothing and writes nothing: works from the table alone. A root with
+#' no file has no rows in `disk_dt`, so it lacks every type.
+#'
+#' @param roots (chr) root folders
+#' @param disk_dt (data.table) from `read_disk_registries()` over the same
+#'   roots
+#'
+#' @returns (data.table) one row per root and missing type: `root` (chr) plus
+#'   the sibling's row as-is, columns per the `schema` of
+#'   `get_disk_registry_dictionary()`; zero rows if nothing is missing
+#' @keywords internal
+find_disk_registry_gaps <- function(roots, disk_dt) {
+   rows_known <- unique(disk_dt[is_builtin == FALSE, !"root"], by = "symlink_type")
+   wanted     <- data.table::CJ(
+      root           = roots
+      , symlink_type = rows_known$symlink_type
+      , sorted       = FALSE
+   )
+   missing <- wanted[!disk_dt, on = c("root", "symlink_type")]
+   return(rows_known[missing, on = "symlink_type"])
+}
+
+
+#' Give every root every row a sibling root has
+#'
+#' The registry state machine's repair step: after `read_disk_registries()`
+#' has shown the roots agree, any type on one root's file and absent from
+#' another's is copied over as-is (original timestamp and user), so all roots
+#' of a tool carry the same rows. A root with no file gets one.
+#'
+#' @param root_list (chr or list) root folders
+#' @param disk_dt (data.table) from `read_disk_registries()` over the same
+#'   roots
+#'
+#' @returns (data.table) the rows written: `root` (chr), `symlink_type` (chr),
+#'   `is_singleton` (lgl); zero rows if nothing was missing
+#' @keywords internal
+backfill_disk_registries <- function(root_list, disk_dt) {
+   roots    <- unlist(root_list, use.names = FALSE)
+   gaps     <- find_disk_registry_gaps(roots, disk_dt)
+   has_file <- file.exists(vapply(roots, get_disk_registry_path, character(1)))
+
+   roots_to_write <- roots[roots %in% gaps$root | !has_file]
+   for (root_to_write in roots_to_write) {
+      rows_on_file <- read_disk_registry(root_to_write)
+      rows_missing <- gaps[root == root_to_write, !"root"]
+      write_disk_registry(root_to_write, rbind(rows_on_file, rows_missing))
+   }
+   return(gaps[, .(root, symlink_type, is_singleton)])
+}
+
+
+# Links that block a change ----------------------------------------------------
 
 #' Links in a root whose name follows a given type and shape
 #'
@@ -298,11 +461,162 @@ format_disk_registry_table <- function(dt) {
 #'   target's leaf, or the link's leaf when the target is unknown
 #' @keywords internal
 find_links_of_shape <- function(root, symlink_type, is_singleton) {
-    links <- link_list(root)[is_link == TRUE]
-    links <- links[grepl(make_extract_regex(is_singleton, symlink_type), leaf)]
-    links[, version_name := leaf]
-    links[!is.na(target) & nzchar(target), version_name := basename(target)]
-    return(links)
+   regex <- make_extract_regex(is_singleton, symlink_type)
+   links <- link_list(root)[is_link == TRUE][grepl(regex, leaf)]
+   links[, version_name := leaf]
+   links[!is.na(target) & nzchar(target), version_name := basename(target)]
+   return(links)
+}
+
+
+#' Links in several roots whose name follows a given type, in any of several shapes
+#'
+#' @param roots (chr) root folders
+#' @param symlink_type (chr) the type
+#' @param shapes (lgl) the `is_singleton` values to look for; `logical(0)`
+#'   finds nothing
+#'
+#' @returns (data.table) `find_links_of_shape()` rows plus `root` (chr); zero
+#'   rows if there are none
+#' @keywords internal
+find_links_of_shapes <- function(roots, symlink_type, shapes) {
+   grid  <- data.table::CJ(root = roots, is_singleton = shapes)
+   links <- Map(
+      function(root, is_singleton) {
+         find_links_of_shape(root, symlink_type, is_singleton)[, root := root]
+      }
+      , grid$root
+      , grid$is_singleton
+   )
+   return(data.table::rbindlist(links))
+}
+
+
+# Messages ---------------------------------------------------------------------
+
+#' Format symlink types and their shape as a two-column table for messages
+#'
+#' @param dt (data.table) with `symlink_type` and `is_singleton`
+#'
+#' @returns (chr) one string, one line per type
+#' @keywords internal
+format_disk_registry_table <- function(dt) {
+   width <- max(nchar(c("symlink_type", dt$symlink_type)))
+   lines <- c(
+      sprintf("  %-*s  is_singleton", width, "symlink_type")
+      , sprintf("  %-*s  %s", width, dt$symlink_type, dt$is_singleton)
+   )
+   return(paste(lines, collapse = "\n"))
+}
+
+
+#' The unmark / re-mark recipe printed when a registry change is refused
+#'
+#' Short by design: an error longer than `getOption("warning.length")` (1000
+#' characters by default) is truncated, so live links are addressed through a
+#' roundup rather than listed, and only dangling links, which a roundup does
+#' not return, are named.
+#'
+#' @param blocking (data.table) `find_links_of_shape()` rows for every root
+#' @param symlink_type (chr) the type
+#' @param is_singleton (lgl or NULL) the requested shape (NULL for drop)
+#' @param operation (chr) `"update"` or `"drop"`
+#'
+#' @returns (chr) one string of R code lines, flush left, pastable
+#' @keywords internal
+format_unmark_recipe <- function(blocking, symlink_type, is_singleton, operation) {
+   reason <- if (operation == "drop") "dropped" else "shape changed"
+   entry  <- sprintf("list(comment = \"%s %s\")", symlink_type, reason)
+   lines  <- character(0)
+   if (any(!blocking$is_dangling)) {
+      lines <- c(lines, paste0(
+         sprintf("for (v in slt$roundup(\"%s\", return_as = \"version_name\")) ", symlink_type)
+         , sprintf("slt$unmark(v, user_entry = %s)", entry)
+      ))
+   }
+   if (any(blocking$is_dangling)) {
+      leaves <- unique(blocking[is_dangling == TRUE, leaf])
+      lines  <- c(lines, sprintf(
+         "for (l in c(%s)) slt$unmark(l, user_entry = %s)"
+         , paste(sprintf("\"%s\"", leaves), collapse = ", ")
+         , entry
+      ))
+   }
+   if (operation == "update") {
+      placeholder <- if (isTRUE(is_singleton)) {
+         "<the one version to mark>"
+      } else {
+         "<each version to mark>"
+      }
+      lines <- c(
+         lines
+         , "# repeat this call, then re-mark:"
+         , sprintf("slt$mark(\"%s\", \"%s\", user_entry = %s)", symlink_type, placeholder, entry)
+      )
+   }
+   return(paste(lines, collapse = "\n"))
+}
+
+
+# Edit a root's registry -------------------------------------------------------
+
+#' Where a symlink type stands in one root's disk registry
+#'
+#' @param root (chr) one root folder
+#' @param symlink_type (chr) the type
+#' @param is_singleton (lgl or NULL) the requested shape; NULL (a drop) never
+#'   matches, so a type on file reads as `"other_shape"`
+#'
+#' @returns (chr) `"absent"`, `"same_shape"` or `"other_shape"`
+#' @keywords internal
+get_disk_registry_state <- function(root, symlink_type, is_singleton) {
+   # a scalar named like the column would resolve to the column inside `[`
+   .symlink_type <- symlink_type
+   on_file       <- read_disk_registry(root)[symlink_type == .symlink_type]
+   if (nrow(on_file) == 0L) return("absent")
+   if (identical(on_file$is_singleton, is_singleton)) return("same_shape")
+   return("other_shape")
+}
+
+
+#' What each registry operation does for each state of a type in a root
+#'
+#' The whole decision table of `update_symlink_disk_registry()`. `write`
+#' changes the file, `skip` leaves it and says why, `stop` refuses the whole
+#' call before any root is written.
+#'
+#' | operation | state       | action | note                                                           |
+#' |-----------|-------------|--------|----------------------------------------------------------------|
+#' | add       | absent      | write  | add done                                                       |
+#' | add       | same_shape  | skip   | already on file with that shape; nothing changed               |
+#' | add       | other_shape | stop   | already on file with the other shape; use operation = 'update' |
+#' | update    | absent      | stop   | not on file; use operation = 'add'                             |
+#' | update    | same_shape  | skip   | already on file with that shape; nothing changed               |
+#' | update    | other_shape | write  | update done                                                    |
+#' | drop      | absent      | skip   | not on file; nothing to drop                                   |
+#' | drop      | same_shape  | write  | drop done                                                      |
+#' | drop      | other_shape | write  | drop done                                                      |
+#'
+#' @returns (data.table) nine rows: `operation` (chr), `state` (chr) from
+#'   `get_disk_registry_state()`, `action` (chr), `note` (chr)
+#' @keywords internal
+get_disk_registry_outcomes <- function() {
+   no_change   <- "already on file with that shape; nothing changed"
+   other_shape <- "already on file with the other shape; use operation = 'update'"
+   rows <- list(
+      list("add",      "absent",      "write", "add done")
+      , list("add",    "same_shape",  "skip",  no_change)
+      , list("add",    "other_shape", "stop",  other_shape)
+      , list("update", "absent",      "stop",  "not on file; use operation = 'add'")
+      , list("update", "same_shape",  "skip",  no_change)
+      , list("update", "other_shape", "write", "update done")
+      , list("drop",   "absent",      "skip",  "not on file; nothing to drop")
+      , list("drop",   "same_shape",  "write", "drop done")
+      , list("drop",   "other_shape", "write", "drop done")
+   )
+   outcomes <- data.table::rbindlist(rows)
+   data.table::setnames(outcomes, c("operation", "state", "action", "note"))
+   return(outcomes)
 }
 
 
@@ -316,8 +630,8 @@ find_links_of_shape <- function(root, symlink_type, is_singleton) {
 #' writes the file itself the first time a type is promoted in a root; this
 #' function is the explicit way to edit it.
 #'
-#' The live session registry is never changed by this function. To use a type in
-#' the current session, call `new_symlink_type()` or construct a new tool.
+#' The live session registry is never changed by this function. To use a type
+#' in the current session, call `new_symlink_type()` or construct a new tool.
 #'
 #' Changing a type's shape, or dropping it, is refused while links of the old
 #' shape exist in a root: afterwards those links would belong to no registered
@@ -340,162 +654,104 @@ find_links_of_shape <- function(root, symlink_type, is_singleton) {
 #'
 #' @examples
 #' \dontrun{
-#' update_symlink_disk_registry("/path/to/root", "stalled", is_singleton = FALSE, operation = "add")
+#' update_symlink_disk_registry(
+#'    "/path/to/root", "stalled", is_singleton = FALSE, operation = "add"
+#' )
 #' update_symlink_disk_registry("/path/to/root", "stalled", operation = "drop")
 #' }
 update_symlink_disk_registry <- function(
-        root
-        , symlink_type
-        , is_singleton = NULL
-        , operation    = c("add", "update", "drop")
-        , verbose      = TRUE
+      root
+      , symlink_type
+      , is_singleton = NULL
+      , operation    = c("add", "update", "drop")
+      , verbose      = TRUE
 ) {
-    operation <- match.arg(operation)
-    checkmate::assert_character(root, min.len = 1, any.missing = FALSE)
-    lapply(root, assert_dir_exists)
-    assert_scalar_not_empty(symlink_type)
-    checkmate::assert_string(symlink_type, min.chars = 1)
-    checkmate::assert_flag(verbose)
-    if (operation != "drop") {
-        if (is.null(is_singleton)) stop("operation = '", operation, "' needs is_singleton (TRUE for singleton, FALSE for multiple-version).")
-        checkmate::assert_flag(is_singleton)
-    }
-    if (is_builtin_symlink_type(symlink_type)) {
-        stop(
-            "Built-in symlink (shortcut) types are never on file (you passed '", symlink_type, "')."
-            , "\n    - Built-in types: best, latest, keep, remove."
-            , "\n    - Nothing has been changed."
-        )
-    }
-    roots <- clean_path(root)
-    # a scalar named like the column would resolve to the column inside `[`
-    type_wanted <- symlink_type
+   operation <- match.arg(operation)
+   checkmate::assert_character(root, min.len = 1, any.missing = FALSE)
+   lapply(root, assert_dir_exists)
+   assert_scalar_not_empty(symlink_type)
+   checkmate::assert_string(symlink_type, min.chars = 1)
+   checkmate::assert_flag(verbose)
+   needs_shape <- operation != "drop"
+   if (needs_shape && is.null(is_singleton)) {
+      stop(
+         "operation = '", operation, "' needs is_singleton "
+         , "(TRUE for singleton, FALSE for multiple-version)."
+      )
+   }
+   if (needs_shape) checkmate::assert_flag(is_singleton)
+   if (is_builtin_symlink_type(symlink_type)) {
+      stop(
+         "Built-in symlink (shortcut) types are fixed by the package and "
+         , "cannot be added, updated or dropped (you passed '", symlink_type, "')."
+         , "\n    - Built-in types: best, latest, keep, remove."
+         , "\n    - Nothing has been changed."
+      )
+   }
+   roots <- clean_path(root)
 
-    # pass 1: decide per root; stop before writing to any root if one would stop
-    plans <- lapply(roots, function(one_root) {
-        dt      <- read_disk_registry(one_root)
-        on_file <- dt[symlink_type == type_wanted]
-        plan    <- list(root = one_root, dt = dt, write = FALSE, stop = NULL, note = NULL, blocking = NULL)
+   # every root is judged before any root is written
+   states <- vapply(
+      roots
+      , get_disk_registry_state
+      , character(1)
+      , symlink_type = symlink_type
+      , is_singleton = is_singleton
+   )
+   plans <- data.table::data.table(root = roots, operation = operation, state = states)
+   plans <- get_disk_registry_outcomes()[plans, on = c("operation", "state")]
 
-        if (operation == "add") {
-            if (nrow(on_file) == 0L) {
-                plan$write <- TRUE
-            } else if (identical(on_file$is_singleton, is_singleton)) {
-                plan$note <- "already on file with that shape; nothing changed"
-            } else {
-                plan$stop <- sprintf(
-                    "'%s' is already on file as %s in %s; use operation = 'update' to change its shape"
-                    , symlink_type, describe_singleton(on_file$is_singleton), one_root
-                )
-            }
-        } else if (operation == "update") {
-            if (nrow(on_file) == 0L) {
-                plan$stop <- sprintf("'%s' is not on file in %s; use operation = 'add'", symlink_type, one_root)
-            } else if (identical(on_file$is_singleton, is_singleton)) {
-                plan$note <- "already on file with that shape; nothing changed"
-            } else {
-                plan$blocking <- find_links_of_shape(one_root, symlink_type, on_file$is_singleton)
-                plan$write    <- TRUE
-            }
-        } else {
-            if (nrow(on_file) == 0L) {
-                plan$note <- "not on file; nothing to drop"
-            } else {
-                plan$blocking <- rbind(
-                    find_links_of_shape(one_root, symlink_type, TRUE)
-                    , find_links_of_shape(one_root, symlink_type, FALSE)
-                )
-                plan$write <- TRUE
-            }
-        }
-        return(plan)
-    })
+   stops <- plans[action == "stop", sprintf("%s: %s", root, note)]
+   if (length(stops)) {
+      stop(
+         "Cannot ", operation, " symlink (shortcut) type '", symlink_type, "':\n  "
+         , paste(stops, collapse = "\n  ")
+         , "\nNothing has been changed."
+      )
+   }
 
-    stops <- unlist(lapply(plans, `[[`, "stop"))
-    if (length(stops)) {
-        stop(
-            "Cannot ", operation, " the symlink (shortcut) type:"
-            , "\n    - ", paste(stops, collapse = "\n    - ")
-            , "\n    - Nothing has been changed."
-        )
-    }
+   # links of the shape on file would belong to no registered type afterwards
+   roots_to_write  <- plans[action == "write", root]
+   shapes_blocking <- switch_strict(
+      operation
+      , add    = logical(0)
+      , update = !is_singleton
+      , drop   = c(TRUE, FALSE)
+   )
+   blocking <- find_links_of_shapes(roots_to_write, symlink_type, shapes_blocking)
+   if (nrow(blocking)) {
+      n_live     <- sum(!blocking$is_dangling)
+      n_dangling <- sum(blocking$is_dangling)
+      n_roots    <- data.table::uniqueN(blocking$root)
+      stop(
+         "Cannot ", operation, " symlink (shortcut) type '", symlink_type, "': "
+         , n_live, " live and ", n_dangling, " dangling link(s) of its current "
+         , "shape exist in ", n_roots, " root(s)."
+         , "\nUnmark them first (slt = a tool on these roots), then repeat "
+         , "this call. Nothing has been changed.\n\n"
+         , format_unmark_recipe(blocking, symlink_type, is_singleton, operation)
+      )
+   }
 
-    blocking <- data.table::rbindlist(lapply(plans, function(plan) {
-        if (is.null(plan$blocking) || nrow(plan$blocking) == 0L) return(NULL)
-        return(plan$blocking[, root := plan$root])
-    }))
-    if (nrow(blocking)) {
-        old_shape <- if (operation == "update") describe_singleton(!is_singleton) else "either shape"
-        stop(
-            "Cannot ", operation, " the symlink (shortcut) type '", symlink_type, "': links of the current shape still exist."
-            , "\n    - Afterwards these links would belong to no registered type: roundups would skip them and"
-            , " delete_version_folders() would delete them without a log."
-            , "\n    - Links (", old_shape, "):"
-            , "\n        ", paste(sprintf("%s -> %s", blocking$path, blocking$target), collapse = "\n        ")
-            , "\n    - Run this first, where `slt` is a tool built on these roots, then repeat this call:"
-            , "\n"
-            , format_unmark_recipe(unique(blocking$version_name), roots, symlink_type, is_singleton, operation)
-            , "\n    - Nothing has been changed."
-        )
-    }
+   # a scalar named like the column would resolve to the column inside `[`
+   .symlink_type <- symlink_type
+   rows_new      <- make_empty_disk_registry()
+   if (needs_shape) rows_new <- make_disk_registry_row(symlink_type, is_singleton)
+   for (root_to_write in roots_to_write) {
+      rows_kept <- read_disk_registry(root_to_write)[symlink_type != .symlink_type]
+      write_disk_registry(root_to_write, rbind(rows_kept, rows_new))
+   }
 
-    # pass 2: write
-    for (plan in plans) {
-        if (plan$write) {
-            dt <- plan$dt[symlink_type != type_wanted]
-            if (operation != "drop") dt <- rbind(dt, make_disk_registry_row(symlink_type, is_singleton))
-            write_disk_registry(plan$root, dt)
-            plan$note <- sprintf("%s done", operation)
-        }
-        if (verbose) message(sprintf("%s: '%s' %s", plan$root, symlink_type, plan$note))
-    }
-    if (verbose && operation != "drop") {
-        message(
-            "The live session registry is unchanged. To use '", symlink_type, "' in this session: new_symlink_type('"
-            , symlink_type, "', is_singleton = ", is_singleton, ")"
-        )
-    }
-    return(invisible(NULL))
-}
-
-
-#' The unmark / re-register / re-mark recipe printed when a registry change is refused
-#'
-#' @param version_names (chr) versions carrying links of the old shape
-#' @param roots (chr) the roots passed by the caller
-#' @param symlink_type (chr) the type
-#' @param is_singleton (lgl or NULL) the requested shape (NULL for drop)
-#' @param operation (chr) `"update"` or `"drop"`
-#'
-#' @returns (chr) one string of R code lines, indented for a message
-#' @keywords internal
-format_unmark_recipe <- function(version_names, roots, symlink_type, is_singleton, operation) {
-    quote_vec <- function(x) {
-        if (length(x) == 1L) return(sprintf('"%s"', x))
-        return(sprintf("c(%s)", paste(sprintf('"%s"', x), collapse = ", ")))
-    }
-    comment <- sprintf('list(comment = "%s %s")', symlink_type, if (operation == "drop") "retired" else "shape changed")
-    unmark  <- if (length(version_names) == 1L) {
-        sprintf('slt$unmark(%s, user_entry = %s)', quote_vec(version_names), comment)
-    } else {
-        sprintf('for (v in %s) slt$unmark(v, user_entry = %s)', quote_vec(version_names), comment)
-    }
-    this_call <- if (operation == "drop") {
-        sprintf('update_symlink_disk_registry(%s, "%s", operation = "drop")', quote_vec(roots), symlink_type)
-    } else {
-        sprintf('update_symlink_disk_registry(%s, "%s", is_singleton = %s, operation = "update")', quote_vec(roots), symlink_type, is_singleton)
-    }
-    lines <- c(unmark, this_call)
-    if (operation == "update") {
-        lines <- c(
-            lines
-            , sprintf('new_symlink_type("%s", is_singleton = %s)', symlink_type, is_singleton)
-            , if (isTRUE(is_singleton)) {
-                sprintf('slt$mark("%s", "<the one version to keep>", user_entry = %s)', symlink_type, comment)
-            } else {
-                sprintf('for (v in %s) slt$mark("%s", v, user_entry = %s)', quote_vec(version_names), symlink_type, comment)
-            }
-        )
-    }
-    return(paste0("        ", lines, collapse = "\n"))
+   if (verbose) {
+      lines <- plans[, sprintf("%s: '%s' %s", root, symlink_type, note)]
+      for (line in lines) message(line)
+   }
+   if (verbose && operation != "drop") {
+      message(
+         "The live session registry is unchanged. To use '", symlink_type
+         , "' in this session: new_symlink_type('", symlink_type
+         , "', is_singleton = ", is_singleton, ")"
+      )
+   }
+   return(invisible(NULL))
 }
