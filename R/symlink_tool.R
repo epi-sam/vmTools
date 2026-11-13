@@ -135,6 +135,10 @@ SLT <- R6::R6Class(
 
          # Paths built from roots and intermediate path structures
          , VERS_PATHS = list()
+
+         # The tool's symlink types for the operation under way - built from
+         # the roots' registry files by `handler_reconcile_symlink_registry()`
+         , SYMLINK_REGISTRY = list()
       ),
 
 
@@ -2275,6 +2279,8 @@ SLT <- R6::R6Class(
          private$assert_schema_vs_user_entry(user_entry)
          for(user_entry_item in user_entry) assert_scalar_not_empty(user_entry_item)
 
+         private$handler_reconcile_symlink_registry()
+
          # This is the 'state machine' of the Symlink Tool
          # enforce one symlink per version_name
          # we do this to ensure users haven't hand-made symlinks
@@ -2331,6 +2337,7 @@ SLT <- R6::R6Class(
             private$report_all_logs_tool_symlink(root)
          }
 
+         private$handler_reset_dynamic_fields(field_types = "symlink_registry")
       },
 
       #  Update the `private$DYNAMIC$VERS_PATHS` fields
@@ -2370,7 +2377,7 @@ SLT <- R6::R6Class(
       handler_reset_dynamic_fields = function(field_types){
 
          # validate inputs
-         valid_field_types <- c("log", "vers_paths")
+         valid_field_types <- c("log", "vers_paths", "symlink_registry")
          if(!is.character(field_types)) stop("field_types must be character")
          field_types <- tolower(field_types)
          if(!all(field_types %in% valid_field_types)) stop("field_types must be one of: ", toString(valid_field_types))
@@ -2385,6 +2392,46 @@ SLT <- R6::R6Class(
          if("vers_paths" %in% field_types){
             private$DYNAMIC$VERS_PATHS = list()
          }
+
+         if("symlink_registry" %in% field_types){
+            private$DYNAMIC$SYMLINK_REGISTRY <- list()
+         }
+      },
+
+      #  Read the tool's symlink registry from its roots' registry files
+      #
+      #  Never writes, so it is safe at construction, in roundups and on roots
+      #  the user cannot write to. Stops if two roots give one symlink type a
+      #  different `is_singleton` (see `read_disk_registries()`).
+      #
+      #  @return (named list) a symlink registry: the built-in types plus the
+      #    types on the roots' files, entries per `make_symlink_registry_entry()`
+      read_symlink_registry = function(){
+         disk_dt  <- read_disk_registries(private$DICT$ROOTS)
+         registry <- merge_symlink_registries(disk_dt)
+         return(registry)
+      },
+
+      #  Repair the roots' registry files, then hold the tool's symlink registry
+      #
+      #  The start of every operation that writes to the roots (`mark()`,
+      #  `unmark()`, `delete_version_folders()`):
+      #  - a root with no registry file gets one
+      #  - a row one root has and a sibling root lacks is copied to the sibling
+      #  - the registry is stored in `private$DYNAMIC$SYMLINK_REGISTRY` until
+      #    `handler_post_mark()` clears it
+      #
+      #  Stops, before anything is written, if two roots give one symlink type
+      #  a different `is_singleton`.
+      #
+      #  @return (none) writes registry files; updates
+      #    `private$DYNAMIC$SYMLINK_REGISTRY`
+      handler_reconcile_symlink_registry = function(){
+         roots   <- private$DICT$ROOTS
+         disk_dt <- read_disk_registries(roots)
+         backfill_disk_registries(roots, disk_dt)
+         # backfilling copies rows between roots; it adds no symlink type
+         private$DYNAMIC$SYMLINK_REGISTRY <- merge_symlink_registries(disk_dt)
       },
 
 
@@ -2754,6 +2801,12 @@ SLT <- R6::R6Class(
          # set roots
          private$DICT$ROOTS <- root_list
 
+         # Do the roots' registry files agree on every symlink type?
+         # - read-only: construction never writes a registry file (many
+         #   parallel jobs may construct at once, and a root may not be
+         #   writable); the files are repaired at the next mark / unmark / delete
+         private$read_symlink_registry()
+
          # Can the tool create symlinks (shortcuts) in each root?
          # - probed once per root here and cached for the life of the tool
          # - whether a failed probe stops the tool is the link backend's call:
@@ -3085,6 +3138,8 @@ SLT <- R6::R6Class(
       #'
       #'
       unmark = function(version_name, user_entry){
+
+         private$handler_reconcile_symlink_registry()
 
          # guard: edge case - a dangling link passed by its own name has no version to resolve to
          if (private$remove_dangling_link_by_name(version_name, user_entry)) return(invisible(NULL))

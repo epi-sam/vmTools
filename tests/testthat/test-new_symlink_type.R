@@ -240,6 +240,41 @@ test_that("The first promote of a type records it on file; built-ins and repeats
 })
 
 
+# The tool and its roots' registry files -----------------------------------------
+
+tool_roots <- list(
+   root_x   = make_test_root("new_types", "tool_x")
+   , root_y = make_test_root("new_types", "tool_y")
+)
+make_tool_on_roots <- function() {
+   return(suppressMessages(suppressWarnings(SLT$new(
+      root_list          = tool_roots
+      , central_log_root = make_test_root("new_types", "tool_central")
+      , verbose          = FALSE
+      , verbose_startup  = FALSE
+   ))))
+}
+update_quiet(tool_roots$root_x, "stalled", is_singleton = FALSE, operation = "add")
+
+test_that("Building a tool writes no registry file; its first mark repairs every root's file", {
+   fpaths  <- vapply(tool_roots, vmTools:::get_disk_registry_path, character(1))
+   slt_reg <- make_tool_on_roots()
+   expect_identical(unname(file.exists(fpaths)), c(TRUE, FALSE))
+
+   slt_reg$make_new_version_folder(dv$v1)
+   slt_reg$mark_best(dv$v1, list(comment = "first mark"))
+   expect_identical(
+      vmTools:::read_disk_registry(tool_roots$root_y)[is_builtin == FALSE, symlink_type]
+      , "stalled"
+   )
+})
+
+test_that("A tool is refused on roots whose registry files disagree", {
+   update_quiet(tool_roots$root_y, "stalled", is_singleton = TRUE, operation = "update")
+   expect_error(make_tool_on_roots(), regexp = "disagree")
+})
+
+
 # Cleanup ----------------------------------------------------------------------
 
 unlink(root_base, recursive = TRUE)
