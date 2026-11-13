@@ -273,31 +273,23 @@ get_symlink_type_from_name <- function(name, registry = get_symlink_registry()) 
 }
 
 
-# TODO - 2026 Mar 17 - Remove? - not very useful and now prone to unpredictable
-# behavior
-
-#' Get the valid actions for marking folders
+#' Is a log action one the tool writes?
 #'
-#' Used mainly for the discrepancy report
+#' Used by the discrepancy report. An action is judged by its form, not
+#' against the current symlink types: a root's registry file can lose a type
+#' (`update_symlink_disk_registry(operation = "drop")`) while old log rows for
+#' it remain, and those rows are still the tool's own.
 #'
-#' @param registry (named list) a symlink registry; default the session
-#'   registry
+#' @param action (chr) log actions, e.g. `"promote_best"`
 #'
-#' @returns (chr) vector of valid actions for marking folders, including
-#'   "create", "delete_remove_folder", and the promote/demote actions for each
-#'   registered symlink type (e.g. "promote_best", "demote_best",
-#'   "promote_keep", "demote_keep", etc.)
+#' @returns (lgl) one value per action: TRUE for `create`,
+#'   `delete_remove_folder`, and anything of the form `promote_<type>`,
+#'   `demote_<type>` or `remove_dangling_<type>`
 #' @keywords internal
-get_valid_actions <- function(registry = get_symlink_registry()){
-   symlink_types <- names(registry)
-   return(c(
-      c("create", "delete_remove_folder")
-      , sprintf("promote_%s", symlink_types)
-      , sprintf("demote_%s", symlink_types)
-      # the tool removed a link whose target folder another person or process
-      # had deleted, e.g. a dangling "best"
-      , sprintf("remove_dangling_%s", symlink_types)
-   ))
+is_valid_action <- function(action) {
+   actions_fixed  <- c("create", "delete_remove_folder")
+   regex_per_type <- "^(promote|demote|remove_dangling)_[^_]"
+   return(action %in% actions_fixed | grepl(regex_per_type, action))
 }
 
 

@@ -474,8 +474,6 @@ test_that("unmark() removes a dangling link and records it in the central log on
              unlink(clean_path(root_a, v1), recursive = TRUE)   # by hand, behind the tool's back
              unlink(clean_path(root_a, v2), recursive = TRUE)
 
-             expect_true(all(sprintf("remove_dangling_%s", get_symlink_types()) %in% get_valid_actions()))
-
              # --- dangling singleton, by version name
              suppressMessages(slt_dl$unmark(version_name = v1, user_entry = list(comment = "cleaning up")))
              expect_false(file.exists(clean_path(root_a, "best", normalize = FALSE)))

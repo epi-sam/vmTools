@@ -498,7 +498,9 @@ SLT <- R6::R6Class(
          # matched by name alone, but only for per-version types: `keep_<v>`
          # carries the version in its name, `best` does not and must never be
          # attributed to a version by guesswork.
-         is_singleton   <- isTRUE(get_symlink_registry_entry(symlink_type)[["is_singleton"]])
+         registry       <- self$get_symlink_registry()
+         entry          <- get_symlink_registry_entry(symlink_type, registry)
+         is_singleton   <- isTRUE(entry[["is_singleton"]])
          target_missing <- is.na(links_dt$target)
          keep_row       <- !target_missing & basename(links_dt$target) == version_name
          keep_row[target_missing] <- !is_singleton
@@ -546,13 +548,13 @@ SLT <- R6::R6Class(
          if(!is.integer(n_sym)) stop("n_sym must be an integer")
          if(n_sym < 0L) stop("n_sym must be non-negative")
 
-         valid_symlink_types <- c(get_symlink_types(), "all")
+         valid_symlink_types <- c(get_symlink_types(self$get_symlink_registry()), "all")
          if(!symlink_type %in% valid_symlink_types) {
             stop("symlink_type must be one of: \n  ",
                  valid_symlink_types, collapse = "\n  ")
          }
 
-         if(symlink_type == "all") symlink_type <- get_symlink_types()
+         if(symlink_type == "all") symlink_type <- get_symlink_types(self$get_symlink_registry())
          names(symlink_type) <- symlink_type # names for lapply
 
          symlink_list <- lapply(symlink_type, function(x){
@@ -660,7 +662,7 @@ SLT <- R6::R6Class(
          # Still a reserved name after resolving?  Then no such symlink exists
          # (user meant e.g. "latest" but nothing is marked latest), or a real
          # folder is using the name.  Either way there is no version to act on.
-         if(!is.null(find_reserved_name_conflict(resolved))){
+         if(!is.null(find_reserved_name_conflict(resolved, self$get_symlink_registry()))){
             stop(
                "'", version_name, "' is the name of a symlink (shortcut), not a versioned folder, ",
                "and no symlink with that name currently exists in:\n  ", paste(roots, collapse = "\n  "),
@@ -685,11 +687,13 @@ SLT <- R6::R6Class(
       make_symlink_path = function(version_path, symlink_type){
          assert_scalar(version_path)
          assert_scalar(symlink_type)
-         if(!symlink_type %in% get_symlink_types()) stop("Invalid symlink_type: ", symlink_type)
+         registry <- self$get_symlink_registry()
+         if(!symlink_type %in% names(registry)) stop("Invalid symlink_type: ", symlink_type)
          root         <- dirname(clean_path(version_path))
          version_name <- basename(clean_path(version_path))
 
-         symlink_suffix_fn <- get_symlink_registry_entry(symlink_type)[["symlink_suffix_fn"]]
+         entry             <- get_symlink_registry_entry(symlink_type, registry)
+         symlink_suffix_fn <- entry[["symlink_suffix_fn"]]
          symlink_suffix    <- symlink_suffix_fn(version_name)
 
          # don't normalize - we want a symlink path
@@ -726,10 +730,10 @@ SLT <- R6::R6Class(
          assert_dir_exists(root)
          assert_scalar(version_name)
          assert_scalar(symlink_type)
-         if(!symlink_type %in% get_symlink_types())
+         if(!symlink_type %in% get_symlink_types(self$get_symlink_registry()))
          stop(
             "Invalid symlink_type; got - ", symlink_type
-            , " - expected - ", toString(get_symlink_types())
+            , " - expected - ", toString(get_symlink_types(self$get_symlink_registry()))
          )
 
          symlink_list <- private$find_count_symlinks(
@@ -803,7 +807,7 @@ SLT <- R6::R6Class(
       remove_all_symlinks = function(root, version_name, user_entry){
          assert_scalar(version_name)
          private$msg_sometimes("Removing symlinks for: ", version_name)
-         for(symlink_type in get_symlink_types()){
+         for(symlink_type in get_symlink_types(self$get_symlink_registry())){
             private$remove_one_symlink(
                root         = root,
                version_name = version_name,
@@ -828,7 +832,7 @@ SLT <- R6::R6Class(
       #  @return (chr) a version_name, or "unknown"
       resolve_dangling_version_name = function(symlink_leaf, symlink_type, target){
          if (!is.na(target)) return(basename(target))
-         reg <- get_symlink_registry_entry(symlink_type)
+         reg <- get_symlink_registry_entry(symlink_type, self$get_symlink_registry())
          if (isTRUE(reg[["is_singleton"]])) return("unknown")
          version_name <- sub(reg[["extract_regex"]], "", symlink_leaf)
          return(version_name)
@@ -853,7 +857,7 @@ SLT <- R6::R6Class(
       remove_dangling_link_by_name = function(link_name, user_entry){
 
          # not a tool link name (e.g. a plain version_name): nothing for this path to do
-         symlink_type <- get_symlink_type_from_name(link_name)
+         symlink_type <- get_symlink_type_from_name(link_name, self$get_symlink_registry())
          if (is.na(symlink_type)) return(FALSE)
 
          roots    <- unlist(private$DICT$ROOTS)
@@ -908,7 +912,8 @@ SLT <- R6::R6Class(
          assert_scalar(symlink_type)
          assert_named_list(user_entry)
          checkmate::assert_flag(append_user_comment)
-         if(!symlink_type %in% get_symlink_types()) stop("Invalid symlink_type: ", symlink_type)
+         registry <- self$get_symlink_registry()
+         if(!symlink_type %in% names(registry)) stop("Invalid symlink_type: ", symlink_type)
 
          path_link <- clean_path(root, symlink_leaf, normalize = FALSE)
          info      <- link_resolve(path_link)
@@ -1026,7 +1031,10 @@ SLT <- R6::R6Class(
          # Remove symlinks and base folders
          # ensure the folder is marked `remove_`
          # - the tool will not delete unmarked folders, that's the entire point of the tool
-         folder_dt_removes      <- folder_dt[is_tool_symlink == TRUE & grepl(get_symlink_regex_extract()[["remove"]], dir_leaf), ]
+         regex_extract          <- get_symlink_regex_extract(self$get_symlink_registry())
+         regex_remove           <- regex_extract[["remove"]]
+         is_remove_link         <- grepl(regex_remove, folder_dt$dir_leaf)
+         folder_dt_removes      <- folder_dt[is_tool_symlink == TRUE & is_remove_link, ]
          deletion_symlink_exact <- sprintf("remove_%s", version_name)
          deletion_dir_name      <- folder_dt[dir_leaf == deletion_symlink_exact, dir_name]
 
@@ -1644,7 +1652,7 @@ SLT <- R6::R6Class(
          # - keep name distinct to avoid data.table conflicts with function args
          folder_dt[, version_name := basename(dir_name_resolved)]
          # define symlinks that could and couldn't have been created by this tool for later use
-         tool_symlink_regex  <- get_symlink_regex_extract()
+         tool_symlink_regex  <- get_symlink_regex_extract(self$get_symlink_registry())
          tool_symlink_regex  <- paste(tool_symlink_regex, collapse = "|")
          folder_dt[, is_symlink := links_dt$is_link]
          folder_dt[, is_dangling := links_dt$is_dangling]
@@ -1782,8 +1790,8 @@ SLT <- R6::R6Class(
 
 
       query_all_symlink_type = function(root, symlink_type) {
-         checkmate::assert_choice(symlink_type, names(get_symlink_registry()))
-         symlink_reg <- get_symlink_registry_entry(symlink_type)
+         checkmate::assert_choice(symlink_type, names(self$get_symlink_registry()))
+         symlink_reg <- get_symlink_registry_entry(symlink_type, self$get_symlink_registry())
          folder_dt   <- private$query_root_folder_types(root)
          result_dt   <- unique(folder_dt[
             is_symlink == TRUE & grepl(symlink_reg$extract_regex, dir_leaf),
@@ -2202,7 +2210,7 @@ SLT <- R6::R6Class(
          discrepant_dt_log_id_non_seq <- private$add_discrepancy_to_dt(discrepant_dt_log_id_non_seq, "non-sequential log_ids")
 
          # Invalid log actions
-         log_list_invalid_actions      <- lapply(log_list_all, function(x) x[!(action %in% get_valid_actions())])
+         log_list_invalid_actions      <- lapply(log_list_all, function(x) x[!is_valid_action(action)])
          discrepant_dt_invalid_actions <- data.table::rbindlist(log_list_invalid_actions, fill = TRUE)
          discrepant_dt_invalid_actions <- private$add_discrepancy_to_dt(discrepant_dt_invalid_actions, "invalid actions")
 
@@ -2337,7 +2345,6 @@ SLT <- R6::R6Class(
             private$report_all_logs_tool_symlink(root)
          }
 
-         private$handler_reset_dynamic_fields(field_types = "symlink_registry")
       },
 
       #  Update the `private$DYNAMIC$VERS_PATHS` fields
@@ -2418,8 +2425,8 @@ SLT <- R6::R6Class(
       #  `unmark()`, `delete_version_folders()`):
       #  - a root with no registry file gets one
       #  - a row one root has and a sibling root lacks is copied to the sibling
-      #  - the registry is stored in `private$DYNAMIC$SYMLINK_REGISTRY` until
-      #    `handler_post_mark()` clears it
+      #  - the registry is stored in `private$DYNAMIC$SYMLINK_REGISTRY`; the
+      #    public method that started the operation clears it on exit
       #
       #  Stops, before anything is written, if two roots give one symlink type
       #  a different `is_singleton`.
@@ -2493,7 +2500,7 @@ SLT <- R6::R6Class(
          version_path
          , version_name
          , user_entry
-         , symlink_types = get_symlink_types()
+         , symlink_types = get_symlink_types(self$get_symlink_registry())
       ){
          assert_scalar(version_path)
          assert_scalar(version_name)
@@ -2571,7 +2578,7 @@ SLT <- R6::R6Class(
       ){
          assert_dir_exists(version_path)
 
-         symlink_reg  <- get_symlink_registry_entry(symlink_type)
+         symlink_reg  <- get_symlink_registry_entry(symlink_type, self$get_symlink_registry())
          path_symlink <- private$make_symlink_path(version_path, symlink_type)
 
          # Singleton types need Highlander demotion of the previous symlink
@@ -2903,6 +2910,24 @@ SLT <- R6::R6Class(
          return(return_list)
       },
 
+      #' @description
+      #' The symlink types this tool works with: the built-in types plus the
+      #' types recorded in its roots' `.symlink_registry.csv` files. Read from
+      #' the files each time it is called, so a type a teammate adds to a root
+      #' is seen at the next call.
+      #'
+      #' @return (named list) one entry per symlink type, in the same form as
+      #'   `get_symlink_registry()`: `is_singleton`, `is_builtin`,
+      #'   `symlink_suffix_fn`, `extract_regex`
+      #'
+      get_symlink_registry = function(){
+         # during mark / unmark / delete the registry is read once and held, so
+         # every step of the operation works from the same symlink types
+         registry_held <- private$DYNAMIC$SYMLINK_REGISTRY
+         if (length(registry_held) > 0L) return(registry_held)
+         return(private$read_symlink_registry())
+      },
+
       ## Marks and Symlinks ----------------------------------------------------
 
       #' @description Mark a version_name folder with a symlink of the specified
@@ -2922,8 +2947,9 @@ SLT <- R6::R6Class(
       #'
       #' @return (std_err) Messages about actions taken.
       mark = function(symlink_type, version_name, user_entry) {
+         on.exit(private$handler_reset_dynamic_fields(field_types = "symlink_registry"), add = TRUE)
          version_name <- private$resolve_version_name(version_name)
-         checkmate::assert_choice(symlink_type, names(get_symlink_registry()))
+         checkmate::assert_choice(symlink_type, names(self$get_symlink_registry()))
 
          private$handler_pre_mark(
             version_name = version_name,
@@ -3138,6 +3164,7 @@ SLT <- R6::R6Class(
       #'
       #'
       unmark = function(version_name, user_entry){
+         on.exit(private$handler_reset_dynamic_fields(field_types = "symlink_registry"), add = TRUE)
 
          private$handler_reconcile_symlink_registry()
 
@@ -3184,7 +3211,7 @@ SLT <- R6::R6Class(
       #' ```
       roundup = function(symlink_type, return_as = c("table", "version_name")) {
          return_as <- match.arg(return_as)
-         checkmate::assert_choice(symlink_type, names(get_symlink_registry()))
+         checkmate::assert_choice(symlink_type, names(self$get_symlink_registry()))
          if (return_as == "table") {
             ret <- private$combine_roundup_results(query_function = private$query_all_symlink_type, symlink_type)
          } else if (return_as == "version_name") {
@@ -3470,7 +3497,7 @@ SLT <- R6::R6Class(
       make_new_version_folder = function(version_name = self$get_common_new_version_name()){
 
          assert_scalar_not_empty(x = version_name)
-         assert_version_name_not_reserved(version_name)
+         assert_version_name_not_reserved(version_name, self$get_symlink_registry())
 
          private$handler_update_dynamic_fields(version_name = version_name)
 
@@ -3555,6 +3582,7 @@ SLT <- R6::R6Class(
       #'
       #'
       delete_version_folders = function(version_name, user_entry, require_user_input = TRUE){
+         on.exit(private$handler_reset_dynamic_fields(field_types = "symlink_registry"), add = TRUE)
          version_name <- private$resolve_version_name(version_name)
 
          private$handler_pre_mark(

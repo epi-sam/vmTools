@@ -27,6 +27,7 @@ try(SLT$new()) # call with no arguments to see instructions
 \item \href{#method-Symlink_Tool-new}{\code{SLT$new()}}
 \item \href{#method-Symlink_Tool-return_dictionaries}{\code{SLT$return_dictionaries()}}
 \item \href{#method-Symlink_Tool-return_dynamic_fields}{\code{SLT$return_dynamic_fields()}}
+\item \href{#method-Symlink_Tool-get_symlink_registry}{\code{SLT$get_symlink_registry()}}
 \item \href{#method-Symlink_Tool-mark}{\code{SLT$mark()}}
 \item \href{#method-Symlink_Tool-mark_best}{\code{SLT$mark_best()}}
 \item \href{#method-Symlink_Tool-mark_latest}{\code{SLT$mark_latest()}}
@@ -172,6 +173,24 @@ to see.}
 }
 \subsection{Returns}{
 (std_out) Print dynamic field values to std_out.
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Symlink_Tool-get_symlink_registry"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Tool-get_symlink_registry}{}}}
+\subsection{Method \code{get_symlink_registry()}}{
+The symlink types this tool works with: the built-in types plus the
+types recorded in its roots' \code{.symlink_registry.csv} files. Read from
+the files each time it is called, so a type a teammate adds to a root
+is seen at the next call.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{SLT$get_symlink_registry()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+(named list) one entry per symlink type, in the same form as
+\code{get_symlink_registry()}: \code{is_singleton}, \code{is_builtin},
+\code{symlink_suffix_fn}, \code{extract_regex}
 }
 }
 \if{html}{\out{<hr>}}

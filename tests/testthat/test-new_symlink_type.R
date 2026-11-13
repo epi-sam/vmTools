@@ -269,6 +269,15 @@ test_that("Building a tool writes no registry file; its first mark repairs every
    )
 })
 
+test_that("A symlink type on a root's file works in a tool, as a singleton if is_singleton", {
+   update_quiet(unname(unlist(tool_roots)), "review", is_singleton = TRUE, operation = "add")
+   slt_reg <- make_tool_on_roots()
+   slt_reg$make_new_version_folder(dv$v2)
+   slt_reg$mark("review", dv$v1, list(comment = "first"))
+   slt_reg$mark("review", dv$v2, list(comment = "moved"))
+   expect_identical(slt_reg$roundup("review", return_as = "version_name"), dv$v2)
+})
+
 test_that("A tool is refused on roots whose registry files disagree", {
    update_quiet(tool_roots$root_y, "stalled", is_singleton = TRUE, operation = "update")
    expect_error(make_tool_on_roots(), regexp = "disagree")
