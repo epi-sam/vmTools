@@ -86,9 +86,10 @@ List all tool names
 \subsection{Method \code{roundup_all()}}{
 Roundup symlinks of a given type across all tools
 
-Valid types are determined by the intersection of \code{symlink_types} from
-all SLT instances held by this composer. Use \verb{$get_common_symlink_types()}
-to inspect the valid set.
+Valid types are the union of the symlink types of all SLT instances held
+by this composer: any type that at least one tool holds. A tool that
+lacks the type contributes no rows. Use \verb{$get_common_symlink_types()} to
+inspect the valid set.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLC$roundup_all(symlink_type, return_as = c("table", "version_name"))}\if{html}{\out{</div>}}
 }
@@ -96,7 +97,7 @@ to inspect the valid set.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{symlink_type}}{(chr) One of the common symlink types across all tools,
+\item{\code{symlink_type}}{(chr) A symlink type held by at least one tool,
 e.g. "best", "keep", "remove", "latest"}
 
 \item{\code{return_as}}{(chr) \code{"table"} (default) or \code{"version_name"}}
@@ -111,15 +112,19 @@ e.g. "best", "keep", "remove", "latest"}
 \if{html}{\out{<a id="method-Symlink_Composer-get_common_symlink_types"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Composer-get_common_symlink_types}{}}}
 \subsection{Method \code{get_common_symlink_types()}}{
-Return the symlink types common to all held SLT instances
+Return the symlink types held by any SLT instance of this
+composer
 
-These are the valid values for the \code{symlink_type} argument of \code{roundup_all()}.
+The union of the tools' types, read from the tools each time: the
+built-in types first, then the rest, each group alphabetical. These are
+the valid values for the \code{symlink_type} argument of \code{roundup_all()}.
+Sends a message if some types are held by only some tools.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLC$get_common_symlink_types()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{
-(chr) Vector of common symlink type strings
+(chr) Vector of symlink type strings
 }
 }
 \if{html}{\out{<hr>}}

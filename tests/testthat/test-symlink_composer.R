@@ -316,6 +316,20 @@ if(!vmTools:::dir_supports_links(tempdir())){
    })
 
 
+   # Types only some tools hold ----------------------------------------------------
+
+   test_that("A type only one tool holds is announced, offered, and rounded up from that tool", {
+      slt_a$update_symlink_registry("parked", is_singleton = FALSE, operation = "add")
+      slt_a$mark("parked", "2024_03_01.2", list(comment = "waiting on inputs"))
+
+      expect_message(
+         slc_mixed <- SLC$new(tool_list = list(project_a = slt_a, project_b = slt_b))
+         , regexp = "parked: project_a"
+      )
+      expect_identical(unique(slc_mixed$roundup_all("parked")$tool_name), "project_a")
+   })
+
+
    # Clean up --------------------------------------------------------------------
 
    test_that("Cleanup is complete", {
