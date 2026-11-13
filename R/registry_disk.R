@@ -760,7 +760,7 @@ update_symlink_disk_registry <- function(
    }
    if (verbose && operation != "drop") {
       message(
-         "The live session registry is unchanged. To use '", symlink_type
+         "The live session registry is unchanged.\nTo use '", symlink_type
          , "' in this session: new_symlink_type('", symlink_type
          , "', is_singleton = ", is_singleton, ")"
       )

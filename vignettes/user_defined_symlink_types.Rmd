@@ -1,0 +1,261 @@
+---
+title: "User-defined symlink types"
+
+# For package builds
+output: rmarkdown::html_vignette
+Encoding: UTF-8
+vignette: >
+ %\VignetteIndexEntry{User-defined symlink types}
+ %\VignetteEngine{knitr::rmarkdown}
+ %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+
+.opt_width <- options(width = 120)
+flag_eval  <- vmTools::dir_supports_links(tempdir())
+```
+
+```{r windows_note, echo = FALSE}
+if (!flag_eval) {
+  knitr::asis_output(
+    "> **Note:** This machine cannot create symlinks (shortcuts) in its temp folder
+    > (on Windows that needs a local disk). Code is shown but not evaluated on this system."
+  )
+}
+```
+
+```{r helpers, include = FALSE}
+library(vmTools)
+library(data.table)
+
+print_tree <- function(x, level = Inf) vmTools:::dir_tree(x, level = level)
+```
+
+The Symlink Tool comes with four symlink types: `best`, `latest`, `keep` and
+`remove`. You can add your own, for example `stalled` for runs waiting on an
+input. A type you add is recorded in the root folder itself, so every user of
+that root sees it.
+
+| Built-in type | `is_singleton` | Symlink name in the root |
+|---|---|---|
+| `best` | `TRUE` | `best` |
+| `latest` | `TRUE` | `latest` |
+| `keep` | `FALSE` | `keep_<version_name>` |
+| `remove` | `FALSE` | `remove_<version_name>` |
+
+# Add a symlink type
+
+One call adds a type to a root folder:
+
+```{r setup_root, include = FALSE, eval = flag_eval}
+model_root <- file.path(tempdir(), "slt_types_demo", "model_root")
+dir.create(model_root, recursive = TRUE, showWarnings = FALSE)
+model_root <- clean_path(model_root)
+.opt_mc    <- options(mc.cores = 1L)
+```
+
+```{r add_type, eval = flag_eval}
+update_symlink_disk_registry(
+  root           = model_root
+  , symlink_type = "stalled"
+  , is_singleton = FALSE
+  , operation    = "add"
+)
+```
+
+## The arguments
+
+| Argument | What to pass |
+|---|---|
+| `root` | One or more root folders. Each gets the same change. |
+| `symlink_type` | The name of your type. It cannot be a built-in name, and names are compared ignoring case. |
+| `is_singleton` | `TRUE` or `FALSE`. See the next table. |
+| `operation` | `"add"` for a type the root does not have yet. `"update"` and `"drop"` are covered under Editing the registry. |
+| `verbose` | `TRUE` (default) prints what changed in each root. |
+
+## Choosing `is_singleton`
+
+`is_singleton` is the one decision a symlink type needs: can one version hold
+the mark, or many?
+
+| `is_singleton` | Symlink name in the root | Versions that can hold it | Built-in examples |
+|---|---|---|---|
+| `TRUE` | `<type>` | one per root; marking another version moves it | `best`, `latest` |
+| `FALSE` | `<type>_<version_name>` | as many as you mark | `keep`, `remove` |
+
+Once a type is added, its name is reserved in that way: a version folder
+cannot be called `stalled_anything`.
+
+## Use the type
+
+The call above records the type in the root. To use it in the current R
+session, register it with `new_symlink_type()` as well, as the message says,
+then mark with it like any built-in type. The last section explains why there
+are two steps.
+
+```{r use_type, eval = flag_eval}
+new_symlink_type("stalled", is_singleton = FALSE)
+
+slt <- SLT$new(
+  root_list          = list("model_root" = model_root)
+  , central_log_root = model_root
+  , verbose          = FALSE
+)
+
+slt$make_new_version_folder("2025_01_01.01")
+slt$make_new_version_folder("2025_01_01.02")
+
+slt$mark("stalled", "2025_01_01.01", user_entry = list(comment = "waiting on inputs"))
+slt$mark("stalled", "2025_01_01.02", user_entry = list(comment = "waiting on inputs"))
+
+slt$roundup("stalled", return_as = "version_name")
+```
+
+```{r use_type_tree, eval = flag_eval}
+print_tree(model_root, level = 1)
+```
+
+---
+
+# Editing the registry
+
+This section is for changing a type later, or for reading an error.
+
+## The registry file
+
+Each root carries one small file, `.symlink_registry.csv`, with one row per
+symlink type. The built-in types are listed first. The tool writes this file;
+it is not meant to be edited by hand, and a hand-edited file is refused when
+it is read.
+
+```{r show_file, eval = flag_eval}
+read.csv(file.path(model_root, ".symlink_registry.csv"))
+```
+
+## Change `is_singleton`, or drop a type
+
+The same function does both, with a different `operation`:
+
+```{r change_calls, eval = FALSE}
+# a type on file, with the other is_singleton
+update_symlink_disk_registry(model_root, "stalled", is_singleton = TRUE, operation = "update")
+
+# remove a type from the file
+update_symlink_disk_registry(model_root, "stalled", operation = "drop")
+```
+
+What happens depends on the `operation` argument and on the symlink type's row
+in the root's file:
+
+- `absent`: the file has no row for the symlink type
+- `matches`: a row exists and its `is_singleton` equals the argument
+- `differs`: a row exists and its `is_singleton` is the other value
+
+```{r outcomes, echo = FALSE}
+knitr::kable(vmTools:::get_disk_registry_outcomes())
+```
+
+`write` changes the file, `skip` leaves it, and `stop` refuses the whole call
+before any root's file is written.
+
+## When a change is refused
+
+An `update` or a `drop` is refused while symlinks of that type exist. After
+the change they would belong to no symlink type the tool knows.
+
+```
+update_symlink_disk_registry(root, symlink_type, is_singleton, operation)
+      |
+      v
+in each root's file, the symlink type's row is
+absent, matches is_singleton, or differs
+      |
+      v
+is the operation refused in any root?
+   add     where the row differs
+   update  where the row is absent
+      |
+      +-- yes --> STOP, nothing written
+      |           the error names the root and the operation to use
+      no
+      |
+      v
+update or drop: do links of the symlink type exist?
+      |
+      +-- yes --> STOP, nothing written
+      |           the error prints the unmark() calls to run first
+      no
+      |
+      v
+write each root's file
+(roots already as asked are left alone)
+```
+
+The two `stalled` symlinks made above block a change, and the error prints the
+calls that clear the way:
+
+```{r refused, eval = flag_eval, error = TRUE}
+update_symlink_disk_registry(model_root, "stalled", is_singleton = TRUE, operation = "update")
+```
+
+## Messages and what to do
+
+| The message says | What it means | What to do |
+|---|---|---|
+| `already on file with the same is_singleton; nothing changed` | The root already has what you asked for. | Nothing. |
+| `already on file with the other is_singleton; use operation = 'update'` | You used `"add"` for a type the root has, with a different `is_singleton`. | Repeat the call with `operation = "update"`. |
+| `not on file; use operation = 'add'` | You used `"update"` for a type the root does not have. | Repeat the call with `operation = "add"`. |
+| `live and ... dangling link(s) of this type exist` | Symlinks of the type are in the way. | Run the `unmark()` lines printed in the error, then repeat the call. |
+| `Root folders disagree about a symlink (shortcut) type's is_singleton` | Two roots record the same type differently. | Run the printed `update_symlink_disk_registry()` call on the root you want to change. |
+| `Built-in symlink (shortcut) types are fixed by the package` | You passed `best`, `latest`, `keep` or `remove`. | Choose another name. |
+
+---
+
+# Why `new_symlink_type()` exists: the session registry and the disk registry
+
+There are two registries, and they do different jobs.
+
+**The session registry** is what a tool works from. When vmTools loads, it
+creates an environment inside the package and puts the four built-in types in
+it. Every tool in the R session reads its symlink types from that one
+environment each time it marks, unmarks or rounds up.
+`new_symlink_type()` adds a type to that environment, and
+`get_symlink_registry()` shows what is in it:
+
+```{r session_registry, eval = flag_eval}
+names(get_symlink_registry())
+```
+
+The environment lives in memory, so it is rebuilt with only the built-ins
+every time R starts. That is why `new_symlink_type()` exists: it is how you
+tell the running session about a type, and it was the only way to add one
+before types could be recorded in a root.
+
+**The disk registry** is the lasting record. It is the `.symlink_registry.csv`
+file in each root, written by `update_symlink_disk_registry()`. It does not
+change the session registry, and `new_symlink_type()` does not change the
+file.
+
+| | Session registry | Disk registry |
+|---|---|---|
+| Where it lives | an environment inside the loaded package, in memory | `.symlink_registry.csv` in each root |
+| How long it lasts | until R restarts | until the type is dropped |
+| Who sees it | every tool in this R session | everyone who uses the root |
+| Changed by | `new_symlink_type()` | `update_symlink_disk_registry()` |
+| Used when a tool marks | yes | no; it is the record a new session registers from |
+
+So a type you want to keep needs both: `update_symlink_disk_registry()` once,
+to record it in the root, and `new_symlink_type()` in each R session that uses
+it.
+
+See also `?update_symlink_disk_registry` and `?new_symlink_type`.
+
+```{r cleanup, include = FALSE, eval = TRUE}
+if (flag_eval) {
+  unlink(dirname(model_root), recursive = TRUE)
+  options(.opt_mc)
+}
+options(.opt_width)
+```
