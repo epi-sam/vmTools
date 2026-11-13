@@ -16,7 +16,7 @@ read_disk_registry(root)
 \description{
 A missing file reads as an empty table. A file whose columns do not match
 the schema, that lists one type with two \code{is_singleton} values, or that
-gives a built-in type the wrong shape, stops: all mean the file was edited
+gives a built-in type the wrong \code{is_singleton}, stops: all mean the file was edited
 by hand.
 }
 \keyword{internal}

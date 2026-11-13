@@ -7,11 +7,11 @@
 format_unmark_recipe(blocking, symlink_type, is_singleton, operation)
 }
 \arguments{
-\item{blocking}{(data.table) \code{find_links_of_shape()} rows for every root}
+\item{blocking}{(data.table) from \code{find_links_by_singleton_status()}}
 
 \item{symlink_type}{(chr) the type}
 
-\item{is_singleton}{(lgl or NULL) the requested shape (NULL for drop)}
+\item{is_singleton}{(lgl or NULL) the requested value (NULL for drop)}
 
 \item{operation}{(chr) \code{"update"} or \code{"drop"}}
 }

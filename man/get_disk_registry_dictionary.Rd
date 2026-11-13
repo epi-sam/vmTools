@@ -8,7 +8,7 @@ get_disk_registry_dictionary()
 }
 \value{
 (list) \code{fname} (chr), \code{schema} (named list of chr),
-\code{timestamp_format} (chr)
+\code{timestamp_format} (chr), \code{help_pointer} (chr)
 }
 \description{
 \itemize{
@@ -16,8 +16,10 @@ get_disk_registry_dictionary()
 must stay a FILE: \code{link_list()} lists every folder in a root, so a dot
 folder would be reported as a version folder
 \item \code{schema}: column name and type; \code{timestamp} and \code{user} match the log schema
-\item \code{timestamp_format}: same shape as the tool's \code{datestamp_format}; kept here
+\item \code{timestamp_format}: same format as the tool's \code{datestamp_format}; kept here
 because the disk registry is written outside the SLT class
+\item \code{help_pointer}: the closing line of errors that need the docs, naming
+levers the user can run
 }
 }
 \keyword{internal}

@@ -11,7 +11,7 @@ record_symlink_type_on_disk(root, symlink_type, is_singleton)
 
 \item{symlink_type}{(chr) the type being promoted}
 
-\item{is_singleton}{(lgl) its shape in the tool's registry}
+\item{is_singleton}{(lgl) its value in the tool's registry}
 }
 \value{
 (lgl) TRUE invisibly if a row was written, FALSE invisibly otherwise
@@ -20,7 +20,7 @@ record_symlink_type_on_disk(root, symlink_type, is_singleton)
 The automatic path: called when a type is first promoted in a root. A
 built-in type, or a type already on file with the same \code{is_singleton}, is a
 no-op. A type on file with the other \code{is_singleton} stops: the session and
-the root disagree about the link shape, and only
+the root disagree about its \code{is_singleton}, and only
 \code{update_symlink_disk_registry()} may change that.
 }
 \keyword{internal}

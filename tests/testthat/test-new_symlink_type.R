@@ -139,7 +139,7 @@ test_that("update_symlink_disk_registry() adds, updates and drops a type in ever
       , regexp = "nothing changed"
    )
 
-   # no links on disk, so the shape may change and the row may go
+   # no links on disk, so is_singleton may change and the row may go
    update_quiet(reg_roots, "stalled", is_singleton = TRUE, operation = "update")
    expect_true(vmTools:::read_disk_registry(reg_roots[2])[symlink_type == "stalled", is_singleton])
    update_quiet(reg_roots, "stalled", operation = "drop")
@@ -161,7 +161,7 @@ test_that("A registry file edited by hand is refused on read", {
    expect_error(vmTools:::read_disk_registry(root_edited), regexp = "is_builtin column wrongly")
 })
 
-test_that("A shape change or drop is refused while links of the old shape exist", {
+test_that("An is_singleton change or a drop is refused while links of the type exist", {
    # root_a still carries failed_<v1> and failed_<v3> made by slt above
    root_a <- unname(root_list$root_a)
    update_quiet(root_a, "failed", is_singleton = FALSE, operation = "add")
@@ -233,7 +233,10 @@ test_that("The first promote of a type records it on file; built-ins and repeats
 
    # the root says singleton, the session says multiple-version
    update_quiet(root_fresh, "failed", is_singleton = TRUE, operation = "update")
-   expect_error(record(root_fresh, "failed", is_singleton = FALSE), regexp = "singleton in")
+   expect_error(
+      record(root_fresh, "failed", is_singleton = FALSE)
+      , regexp = "is_singleton = TRUE in"
+   )
 })
 
 

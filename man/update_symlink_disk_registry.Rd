@@ -21,8 +21,8 @@ remove) are refused}
 \item{is_singleton}{(lgl) required for \code{add} and \code{update}; ignored by
 \code{drop}, which goes by name alone}
 
-\item{operation}{(chr) \code{"add"} a type not yet on file; \code{"update"} the shape
-of a type on file; \code{"drop"} a type from the file}
+\item{operation}{(chr) \code{"add"} a type not yet on file; \code{"update"} the
+\code{is_singleton} of a type on file; \code{"drop"} a type from the file}
 
 \item{verbose}{(lgl: default \code{TRUE}) message what changed in each root}
 }
@@ -43,8 +43,8 @@ function is the explicit way to edit it.
 The live session registry is never changed by this function. To use a type
 in the current session, call \code{new_symlink_type()} or construct a new tool.
 
-Changing a type's shape, or dropping it, is refused while links of the old
-shape exist in a root: afterwards those links would belong to no registered
+Changing a type's \code{is_singleton}, or dropping it, is refused while links of
+that type exist in a root: afterwards those links would belong to no registered
 type, so roundups would skip them and \code{delete_version_folders()} would
 delete them without a log. The error prints the \code{unmark()} calls needed
 first, with the affected version names.

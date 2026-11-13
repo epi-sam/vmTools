@@ -10,7 +10,7 @@
 .symlink_registry <- new.env(parent = emptyenv())
 
 
-#' The built-in symlink types and their fixed shapes
+#' The built-in symlink types and their fixed `is_singleton`
 #'
 #' The one definition: `.onLoad()` registers and locks these, and they are
 #' listed first in every registry and every root's disk registry file.
@@ -83,7 +83,7 @@ make_extract_regex <- function(is_singleton, symlink_type) {
 
 #' Build one registry entry for a symlink type
 #'
-#' The one place an entry's shape is defined; used for the built-ins in
+#' The one place an entry's fields are defined; used for the built-ins in
 #' `.onLoad()`, for `new_symlink_type()`, and for types read from a root's
 #' disk registry.
 #'

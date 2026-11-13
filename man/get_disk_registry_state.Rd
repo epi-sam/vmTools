@@ -2,7 +2,7 @@
 % Please edit documentation in R/registry_disk.R
 \name{get_disk_registry_state}
 \alias{get_disk_registry_state}
-\title{Where a symlink type stands in one root's disk registry}
+\title{A symlink type's row in one root's registry file, against \code{is_singleton}}
 \usage{
 get_disk_registry_state(root, symlink_type, is_singleton)
 }
@@ -11,13 +11,15 @@ get_disk_registry_state(root, symlink_type, is_singleton)
 
 \item{symlink_type}{(chr) the type}
 
-\item{is_singleton}{(lgl or NULL) the requested shape; NULL (a drop) never
-matches, so a type on file reads as \code{"other_shape"}}
+\item{is_singleton}{(lgl or NULL) the requested value; NULL (a drop) never
+matches, so a type on file reads as \code{"differs"}}
 }
 \value{
-(chr) \code{"absent"}, \code{"same_shape"} or \code{"other_shape"}
+(chr) \code{"absent"} (the file has no row for the symlink type),
+\code{"matches"} (a row exists and its \code{is_singleton} equals the argument) or
+\code{"differs"} (a row exists and its \code{is_singleton} is the other value)
 }
 \description{
-Where a symlink type stands in one root's disk registry
+The \code{state} column of \code{get_disk_registry_outcomes()}.
 }
 \keyword{internal}

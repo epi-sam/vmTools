@@ -34,8 +34,8 @@
 
    # Singleton-version marks (best, latest) follow the Highlander rule: one per
    # root directory. Multiple-version marks (keep, remove) may be applied to
-   # many versions in the same root. Shapes come from `get_builtin_symlink_types()`
-   # (R/registry_session.R).
+   # many versions in the same root. Their `is_singleton` comes from
+   # `get_builtin_symlink_types()` (R/registry_session.R).
    builtin_types <- get_builtin_symlink_types()
    builtin_names <- names(builtin_types)
    symlink_registry_builtins <- lapply(builtin_names, function(symlink_name) {

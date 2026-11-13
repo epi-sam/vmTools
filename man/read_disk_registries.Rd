@@ -14,7 +14,8 @@ read_disk_registries(root_list)
 \code{get_disk_registry_dictionary()} plus \code{root} (chr); zero rows if no root has a file
 }
 \description{
-Stops if two roots give one type different shapes: the roots must agree
+Stops if two roots give one type different \code{is_singleton} values: the roots
+must agree
 before a tool can span them. Absence is not a disagreement; see
 \code{backfill_disk_registries()}.
 }

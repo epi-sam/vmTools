@@ -2,7 +2,7 @@
 % Please edit documentation in R/registry_session.R
 \name{get_builtin_symlink_types}
 \alias{get_builtin_symlink_types}
-\title{The built-in symlink types and their fixed shapes}
+\title{The built-in symlink types and their fixed \code{is_singleton}}
 \usage{
 get_builtin_symlink_types()
 }
