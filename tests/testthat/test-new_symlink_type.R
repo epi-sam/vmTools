@@ -246,10 +246,11 @@ tool_roots <- list(
    root_x   = make_test_root("new_types", "tool_x")
    , root_y = make_test_root("new_types", "tool_y")
 )
-make_tool_on_roots <- function() {
+tool_central <- make_test_root("new_types", "tool_central")
+make_tool_on_roots <- function(root_list, central_log_root) {
    return(suppressMessages(suppressWarnings(SLT$new(
-      root_list          = tool_roots
-      , central_log_root = make_test_root("new_types", "tool_central")
+      root_list          = root_list
+      , central_log_root = central_log_root
       , verbose          = FALSE
       , verbose_startup  = FALSE
    ))))
@@ -258,7 +259,7 @@ update_quiet(tool_roots$root_x, "stalled", is_singleton = FALSE, operation = "ad
 
 test_that("Building a tool writes no registry file; its first mark repairs every root's file", {
    fpaths  <- vapply(tool_roots, vmTools:::get_disk_registry_path, character(1))
-   slt_reg <- make_tool_on_roots()
+   slt_reg <- make_tool_on_roots(tool_roots, tool_central)
    expect_identical(unname(file.exists(fpaths)), c(TRUE, FALSE))
 
    slt_reg$make_new_version_folder(dv$v1)
@@ -271,16 +272,34 @@ test_that("Building a tool writes no registry file; its first mark repairs every
 
 test_that("A symlink type on a root's file works in a tool, as a singleton if is_singleton", {
    update_quiet(unname(unlist(tool_roots)), "review", is_singleton = TRUE, operation = "add")
-   slt_reg <- make_tool_on_roots()
+   slt_reg <- make_tool_on_roots(tool_roots, tool_central)
    slt_reg$make_new_version_folder(dv$v2)
    slt_reg$mark("review", dv$v1, list(comment = "first"))
    slt_reg$mark("review", dv$v2, list(comment = "moved"))
    expect_identical(slt_reg$roundup("review", return_as = "version_name"), dv$v2)
 })
 
+test_that("slt$update_symlink_registry() edits every root's file; the tool has the type at once", {
+   slt_reg <- make_tool_on_roots(tool_roots, tool_central)
+   slt_reg$update_symlink_registry("hold", is_singleton = FALSE, operation = "add")
+   expect_identical(vmTools:::read_disk_registries(tool_roots)[symlink_type == "hold", .N], 2L)
+   expect_true("hold" %in% names(slt_reg$get_symlink_registry()))
+})
+
+test_that("Building a verbose tool lists the user-defined types on its roots", {
+   expect_message(
+      suppressWarnings(SLT$new(
+         root_list          = tool_roots
+         , central_log_root = tool_central
+         , verbose          = TRUE
+      ))
+      , regexp = "review +TRUE"
+   )
+})
+
 test_that("A tool is refused on roots whose registry files disagree", {
    update_quiet(tool_roots$root_y, "stalled", is_singleton = TRUE, operation = "update")
-   expect_error(make_tool_on_roots(), regexp = "disagree")
+   expect_error(make_tool_on_roots(tool_roots, tool_central), regexp = "disagree")
 })
 
 

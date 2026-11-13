@@ -2,17 +2,21 @@
 % Please edit documentation in R/registry_disk.R
 \name{format_disk_registry_table}
 \alias{format_disk_registry_table}
-\title{Format symlink types and their \code{is_singleton} as a two-column table for messages}
+\title{Format symlink types as a small table for messages}
 \usage{
 format_disk_registry_table(dt)
 }
 \arguments{
-\item{dt}{(data.table) with \code{symlink_type} and \code{is_singleton}}
+\item{dt}{(data.table) with \code{symlink_type} (chr) and \code{is_singleton} (lgl)}
 }
 \value{
-(chr) one string, one line per type
+(chr) one string: a header line and one line per type, each
+indented two spaces
 }
 \description{
-Format symlink types and their \code{is_singleton} as a two-column table for messages
+Three columns: \code{symlink_type}, \code{is_singleton}, and \code{symlink_format}, the
+name a symlink of that type gets in a root (\verb{<type>} for a singleton,
+\verb{<type>_<version_name>} otherwise). The table is built as data and laid
+out by \code{print()}, so a new column needs no width arithmetic.
 }
 \keyword{internal}

@@ -28,6 +28,7 @@ try(SLT$new()) # call with no arguments to see instructions
 \item \href{#method-Symlink_Tool-return_dictionaries}{\code{SLT$return_dictionaries()}}
 \item \href{#method-Symlink_Tool-return_dynamic_fields}{\code{SLT$return_dynamic_fields()}}
 \item \href{#method-Symlink_Tool-get_symlink_registry}{\code{SLT$get_symlink_registry()}}
+\item \href{#method-Symlink_Tool-update_symlink_registry}{\code{SLT$update_symlink_registry()}}
 \item \href{#method-Symlink_Tool-mark}{\code{SLT$mark()}}
 \item \href{#method-Symlink_Tool-mark_best}{\code{SLT$mark_best()}}
 \item \href{#method-Symlink_Tool-mark_latest}{\code{SLT$mark_latest()}}
@@ -191,6 +192,41 @@ is seen at the next call.
 (named list) one entry per symlink type, in the same form as
 \code{get_symlink_registry()}: \code{is_singleton}, \code{is_builtin},
 \code{symlink_suffix_fn}, \code{extract_regex}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Symlink_Tool-update_symlink_registry"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Tool-update_symlink_registry}{}}}
+\subsection{Method \code{update_symlink_registry()}}{
+Add, update or drop a symlink type in the \code{.symlink_registry.csv} file
+of every root of this tool. A wrapper around
+\code{update_symlink_disk_registry()}, called on the tool's own roots with
+the tool's \code{verbose} setting, so the same rules and messages apply.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{SLT$update_symlink_registry(
+  symlink_type,
+  is_singleton = NULL,
+  operation = c("add", "update", "drop")
+)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{symlink_type}}{(chr) the type; built-in types (best, latest, keep,
+remove) are refused}
+
+\item{\code{is_singleton}}{(lgl) required for \code{add} and \code{update}; ignored by
+\code{drop}}
+
+\item{\code{operation}}{(chr) \code{"add"} a type not yet on file; \code{"update"} the
+\code{is_singleton} of a type on file; \code{"drop"} a type from the file}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+(invisible NULL) called for the side effect of writing each
+root's registry file
 }
 }
 \if{html}{\out{<hr>}}

@@ -480,19 +480,41 @@ find_links_by_singleton_status <- function(roots, symlink_type, is_singleton) {
 
 # Messages ---------------------------------------------------------------------
 
-#' Format symlink types and their `is_singleton` as a two-column table for messages
+#' Format symlink types as a small table for messages
 #'
-#' @param dt (data.table) with `symlink_type` and `is_singleton`
+#' Three columns: `symlink_type`, `is_singleton`, and `symlink_format`, the
+#' name a symlink of that type gets in a root (`<type>` for a singleton,
+#' `<type>_<version_name>` otherwise). The table is built as data and laid
+#' out by `print()`, so a new column needs no width arithmetic.
 #'
-#' @returns (chr) one string, one line per type
+#' @param dt (data.table) with `symlink_type` (chr) and `is_singleton` (lgl)
+#'
+#' @returns (chr) one string: a header line and one line per type, each
+#'   indented two spaces
 #' @keywords internal
 format_disk_registry_table <- function(dt) {
-   width <- max(nchar(c("symlink_type", dt$symlink_type)))
-   lines <- c(
-      sprintf("  %-*s  is_singleton", width, "symlink_type")
-      , sprintf("  %-*s  %s", width, dt$symlink_type, dt$is_singleton)
+   suffixes <- vapply(
+      dt$is_singleton
+      , function(is_singleton) {
+         .f <- make_symlink_suffix_fn(is_singleton)
+         .f("<version_name>")
+      }
+      , character(1)
    )
-   return(paste(lines, collapse = "\n"))
+   table <- data.table::data.table(
+      symlink_type     = dt$symlink_type
+      , is_singleton   = dt$is_singleton
+      , symlink_format = paste0(dt$symlink_type, suffixes)
+   )
+   lines <- utils::capture.output(
+      print(
+         as.data.frame(table)
+         , row.names = FALSE
+         , right = FALSE
+      )
+   )
+   lines <- trimws(lines, which = "right")
+   return(paste0("  ", lines, collapse = "\n"))
 }
 
 

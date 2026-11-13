@@ -2812,7 +2812,14 @@ SLT <- R6::R6Class(
          # - read-only: construction never writes a registry file (many
          #   parallel jobs may construct at once, and a root may not be
          #   writable); the files are repaired at the next mark / unmark / delete
-         private$read_symlink_registry()
+         disk_dt  <- read_disk_registries(root_list)
+         types_dt <- unique(disk_dt[is_builtin == FALSE, .(symlink_type, is_singleton)])
+         if (verbose && nrow(types_dt) > 0L) {
+            message(
+               "User-defined symlink (shortcut) types on this tool's roots:\n"
+               , format_disk_registry_table(types_dt)
+            )
+         }
 
          # Can the tool create symlinks (shortcuts) in each root?
          # - probed once per root here and cached for the life of the tool
@@ -2926,6 +2933,38 @@ SLT <- R6::R6Class(
          registry_held <- private$DYNAMIC$SYMLINK_REGISTRY
          if (length(registry_held) > 0L) return(registry_held)
          return(private$read_symlink_registry())
+      },
+
+      #' @description
+      #' Add, update or drop a symlink type in the `.symlink_registry.csv` file
+      #' of every root of this tool. A wrapper around
+      #' `update_symlink_disk_registry()`, called on the tool's own roots with
+      #' the tool's `verbose` setting, so the same rules and messages apply.
+      #'
+      #' @param symlink_type (chr) the type; built-in types (best, latest, keep,
+      #'   remove) are refused
+      #' @param is_singleton (lgl) required for `add` and `update`; ignored by
+      #'   `drop`
+      #' @param operation (chr) `"add"` a type not yet on file; `"update"` the
+      #'   `is_singleton` of a type on file; `"drop"` a type from the file
+      #'
+      #' @return (invisible NULL) called for the side effect of writing each
+      #'   root's registry file
+      #'
+      update_symlink_registry = function(
+            symlink_type
+            , is_singleton = NULL
+            , operation    = c("add", "update", "drop")
+      ){
+         operation <- match.arg(operation)
+         update_symlink_disk_registry(
+            root           = unlist(private$DICT$ROOTS, use.names = FALSE)
+            , symlink_type = symlink_type
+            , is_singleton = is_singleton
+            , operation    = operation
+            , verbose      = private$DICT$verbose
+         )
+         return(invisible(NULL))
       },
 
       ## Marks and Symlinks ----------------------------------------------------
