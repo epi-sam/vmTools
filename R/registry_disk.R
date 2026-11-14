@@ -1,18 +1,16 @@
 # started: 2026 Nov 10 19:47:56
 # Disk registry ----------------------------------------------------------------
-# The session registry (R/registry_session.R) forgets every user-defined type
-# when R restarts. Each root carries a small file recording the types ever used
-# there, so a new tool on that root starts with the same types (see
-# `SLT$new()`), and typed roundups work without re-registering every session.
+# Each root carries a small file, `.symlink_registry.csv`, recording the
+# symlink (shortcut) types used there, so every tool on that root, in any R
+# session and for any user, works with the same types.
 #
 # - one row per symlink type: current state, not history
 # - the four built-in types are written too, so a person reading the file sees
 #   every type the root uses; their `is_singleton` is fixed by the package,
 #   never by the file
-# - a file edit never changes the live session registry; `new_symlink_type()`
-#   does
-# - a tool's registry = built-ins + the union of its roots' files (+ session
-#   defaults while `new_symlink_type()` lives); see `merge_symlink_registries()`
+# - a tool's registry = the built-ins + the union of its roots' files; see
+#   `merge_symlink_registries()`. The tool reads the files at each call, so
+#   an edit to a file is seen at once
 
 
 # Dictionary and small helpers -------------------------------------------------
@@ -66,7 +64,8 @@ get_disk_registry_path <- function(root) {
 
 #' Is this one of the built-in symlink types?
 #'
-#' Compared ignoring case, as `new_symlink_type()` does.
+#' Compared ignoring case: Windows and macOS treat `BEST` and `best` as the
+#' same folder name.
 #'
 #' @param symlink_type (chr) a type name
 #'
@@ -134,10 +133,15 @@ make_builtin_disk_registry_rows <- function() {
 
 #' Read one root's disk registry
 #'
-#' A missing file reads as an empty table. A file whose columns do not match
-#' the schema, that lists one type with two `is_singleton` values, or that
-#' gives a built-in type the wrong `is_singleton`, stops: all mean the file was edited
-#' by hand.
+#' A missing file reads as an empty table. The read stops if the file:
+#'
+#' - has columns that do not match the schema
+#' - lists one type with two `is_singleton` values
+#' - gives a built-in type the wrong `is_singleton`
+#' - has a type name that is not lowercase
+#' - marks a type's `is_builtin` column wrongly
+#'
+#' All of these mean the file was edited by hand.
 #'
 #' @param root (chr) one root folder
 #'
@@ -191,6 +195,17 @@ read_disk_registry <- function(root) {
          , "\n    - Type(s): ", toString(bad_builtin)
          , "\n    - Built-ins are fixed: best and latest are is_singleton = TRUE; "
          , "keep and remove are is_singleton = FALSE."
+         , "\n    - Was it edited by hand? Fix or delete the file. "
+         , "Nothing has been changed."
+      )
+   }
+
+   not_lowercase <- dt[symlink_type != tolower(symlink_type), symlink_type]
+   if (length(not_lowercase)) {
+      stop(
+         "The symlink (shortcut) type registry file has a type name that is "
+         , "not lowercase: ", fpath
+         , "\n    - Type(s): ", toString(not_lowercase)
          , "\n    - Was it edited by hand? Fix or delete the file. "
          , "Nothing has been changed."
       )
@@ -262,45 +277,6 @@ write_disk_registry <- function(root, dt) {
 }
 
 
-#' Add a symlink type to a root's disk registry if it is not there yet
-#'
-#' The automatic path: called when a type is first promoted in a root. A
-#' built-in type, or a type already on file with the same `is_singleton`, is a
-#' no-op. A type on file with the other `is_singleton` stops: the session and
-#' the root disagree about its `is_singleton`, and only
-#' `update_symlink_disk_registry()` may change that.
-#'
-#' @param root (chr) one root folder
-#' @param symlink_type (chr) the type being promoted
-#' @param is_singleton (lgl) its value in the tool's registry
-#'
-#' @returns (lgl) TRUE invisibly if a row was written, FALSE invisibly otherwise
-#' @keywords internal
-record_symlink_type_on_disk <- function(root, symlink_type, is_singleton) {
-   checkmate::assert_flag(is_singleton)
-   if (is_builtin_symlink_type(symlink_type)) return(invisible(FALSE))
-   dt <- read_disk_registry(root)
-   # a scalar named like the column would resolve to the column inside `[`
-   .symlink_type <- symlink_type
-   on_file       <- dt[symlink_type == .symlink_type]
-   if (nrow(on_file) == 1L) {
-      if (identical(on_file$is_singleton, is_singleton)) return(invisible(FALSE))
-      stop(
-         "Symlink (shortcut) type '", symlink_type, "' has is_singleton = "
-         , is_singleton
-         , " in the live session registry but is_singleton = "
-         , on_file$is_singleton
-         , " in ", get_disk_registry_path(root)
-         , "\nChange one side: update_symlink_disk_registry() for the root, "
-         , "new_symlink_type() for the session. Nothing has been changed."
-      )
-   }
-   new_row <- make_disk_registry_row(symlink_type, is_singleton)
-   write_disk_registry(root, rbind(dt, new_row))
-   return(invisible(TRUE))
-}
-
-
 # Several roots: read, merge, backfill -----------------------------------------
 
 #' Read the disk registries of several roots as one table
@@ -341,52 +317,25 @@ read_disk_registries <- function(root_list) {
 }
 
 
-#' Merge the roots' disk registries with the session registry
+#' Build a tool's symlink registry from its roots' disk registries
 #'
-#' Precedence: a root's file, then the session registry (built-ins locked in
-#' `.onLoad()` plus any `new_symlink_type()` default), so a session default is
-#' used only for a type on no root's file. Built-ins always come from the
-#' package. Order per `sort_symlink_registry()`.
+#' The built-in types, which always come from the package, plus one entry per
+#' user-defined type on the roots' files. Order per `sort_symlink_registry()`.
 #'
 #' @param disk_dt (data.table) from `read_disk_registries()`
-#' @param session_registry (named list) default `get_symlink_registry()`
 #'
 #' @returns (named list) a symlink registry, entries per
 #'   `make_symlink_registry_entry()`
 #' @keywords internal
-merge_symlink_registries <- function(disk_dt, session_registry = get_symlink_registry()) {
+merge_symlink_registries <- function(disk_dt) {
    on_disk      <- unique(disk_dt[is_builtin == FALSE], by = "symlink_type")
    disk_entries <- Map(
       make_symlink_registry_entry
       , symlink_type = on_disk$symlink_type
       , is_singleton = on_disk$is_singleton
    )
-   # built-ins are never among the disk entries, so they always come from the session
-   types_session_only <- setdiff(names(session_registry), names(disk_entries))
-   merged             <- c(session_registry[types_session_only], disk_entries)
+   merged <- c(get_symlink_registry(), disk_entries)
    return(sort_symlink_registry(merged))
-}
-
-
-#' Session defaults that a root's file overrides
-#'
-#' @param disk_dt (data.table) from `read_disk_registries()`
-#' @param session_registry (named list) default `get_symlink_registry()`
-#'
-#' @returns (data.table) `symlink_type` (chr), `session_is_singleton` (lgl),
-#'   `file_is_singleton` (lgl); zero rows if none
-#' @keywords internal
-find_session_overrides <- function(disk_dt, session_registry = get_symlink_registry()) {
-   on_disk <- unique(
-      disk_dt[is_builtin == FALSE, .(symlink_type, file_is_singleton = is_singleton)]
-      , by = "symlink_type"
-   )
-   in_session <- data.table::data.table(
-      symlink_type           = names(session_registry)
-      , session_is_singleton = vapply(session_registry, `[[`, logical(1), "is_singleton")
-   )
-   in_both <- in_session[on_disk, on = "symlink_type", nomatch = NULL]
-   return(in_both[session_is_singleton != file_is_singleton])
 }
 
 
@@ -652,13 +601,13 @@ get_disk_registry_outcomes <- function() {
 #' Every root carries a file, `.symlink_registry.csv`, listing the symlink
 #' (shortcut) types ever used there and whether each is a singleton (one per
 #' root, named `<type>`) or multiple-version (named `<type>_<version_name>`).
-#' `SLT$new()` reads it and registers those types for the session, so a new
-#' tool on an old root can round up every type the root has seen. The tool
-#' writes the file itself the first time a type is promoted in a root; this
-#' function is the explicit way to edit it.
+#' A tool reads the files of its roots each time it is used, so a type added
+#' here can be marked and rounded up by any tool on that root at once, in any
+#' R session. `slt$update_symlink_registry()` calls this function on a tool's
+#' own roots.
 #'
-#' The live session registry is never changed by this function. To use a type
-#' in the current session, call `new_symlink_type()` or construct a new tool.
+#' Type names must be lowercase: Windows and macOS compare names ignoring
+#' case, so two types differing only by case would share symlink names.
 #'
 #' Changing a type's `is_singleton`, or dropping it, is refused while links of
 #' that type exist in a root: afterwards those links would belong to no registered
@@ -667,8 +616,8 @@ get_disk_registry_outcomes <- function() {
 #' first, with the affected version names.
 #'
 #' @param root (chr) one or more root folders; each gets the same change
-#' @param symlink_type (chr) the type; built-in types (best, latest, keep,
-#'   remove) are refused
+#' @param symlink_type (chr) the type, in lowercase; built-in types (best,
+#'   latest, keep, remove) are refused
 #' @param is_singleton (lgl) required for `add` and `update`; ignored by
 #'   `drop`, which goes by name alone
 #' @param operation (chr) `"add"` a type not yet on file; `"update"` the
@@ -707,6 +656,17 @@ update_symlink_disk_registry <- function(
       )
    }
    if (needs_is_singleton) checkmate::assert_flag(is_singleton)
+   # Windows and macOS compare names ignoring case, so two types differing only
+   # by case would share symlink names; lowercase-only makes that impossible
+   if (symlink_type != tolower(symlink_type)) {
+      stop(
+         "symlink_type must be lowercase (you passed '", symlink_type
+         , "'; did you mean '", tolower(symlink_type), "'?)."
+         , "\n    - Windows and macOS compare names ignoring case, so two types "
+         , "differing only by case would share symlink (shortcut) names."
+         , "\n    - Nothing has been changed."
+      )
+   }
    if (is_builtin_symlink_type(symlink_type)) {
       stop(
          "Built-in symlink (shortcut) types are fixed by the package and "
@@ -779,13 +739,6 @@ update_symlink_disk_registry <- function(
    if (verbose) {
       lines <- plans[, sprintf("%s: '%s' %s", root, symlink_type, note)]
       for (line in lines) message(line)
-   }
-   if (verbose && operation != "drop") {
-      message(
-         "The live session registry is unchanged.\nTo use '", symlink_type
-         , "' in this session: new_symlink_type('", symlink_type
-         , "', is_singleton = ", is_singleton, ")"
-      )
    }
    return(invisible(NULL))
 }

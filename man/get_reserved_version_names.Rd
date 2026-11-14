@@ -7,8 +7,8 @@
 get_reserved_version_names(registry = get_symlink_registry())
 }
 \arguments{
-\item{registry}{(named list) a symlink registry; default the session
-registry. A tool passes its own (built-ins plus its roots' disk registries)}
+\item{registry}{(named list) a symlink registry; default the built-in
+types alone. A tool passes its own (built-ins plus its roots' disk registries)}
 }
 \value{
 (list) \code{words} (chr) exact names that are reserved; \code{prefixes}
@@ -18,7 +18,7 @@ registry. A tool passes its own (built-ins plus its roots' disk registries)}
 Singleton symlink types live as bare names directly in a root (\code{best},
 \code{latest}), so a real folder with that name collides with the tool's own
 symlink. Non-singleton types claim a prefix (\verb{keep_<version_name>},
-\verb{remove_<version_name>}). Registering a new type with \code{new_symlink_type()}
-reserves its name automatically.
+\verb{remove_<version_name>}). A type added to a root's registry file reserves
+its name the same way.
 }
 \keyword{internal}

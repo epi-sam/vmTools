@@ -12,8 +12,8 @@ assert_version_name_not_reserved(
 \arguments{
 \item{version_name}{(chr) a candidate folder name}
 
-\item{registry}{(named list) a symlink registry; default the session
-registry}
+\item{registry}{(named list) a symlink registry; default the built-in
+types alone}
 }
 \value{
 (invisible TRUE) or stops with a plain-language message

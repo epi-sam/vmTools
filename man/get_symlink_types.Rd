@@ -7,8 +7,8 @@
 get_symlink_types(registry = get_symlink_registry())
 }
 \arguments{
-\item{registry}{(named list) a symlink registry; default the session
-registry}
+\item{registry}{(named list) a symlink registry; default the built-in
+types alone}
 }
 \value{
 (chr) vector of names of all registered symlink types, e.g.

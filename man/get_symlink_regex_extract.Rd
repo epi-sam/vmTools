@@ -7,8 +7,8 @@
 get_symlink_regex_extract(registry = get_symlink_registry())
 }
 \arguments{
-\item{registry}{(named list) a symlink registry; default the session
-registry}
+\item{registry}{(named list) a symlink registry; default the built-in
+types alone}
 }
 \value{
 (list) named list of regex patterns for extracting symlink types

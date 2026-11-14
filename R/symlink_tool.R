@@ -1814,9 +1814,8 @@ SLT <- R6::R6Class(
       #  Find symlinks that no longer point to a valid target
       #  - Finds only tool-created symlinks by default
       #  - `include_non_tool_symlinks = TRUE` also finds links whose name matches
-      #    no registered type: symlink types are registered per session with
-      #    `new_symlink_type()`, so a custom mark made by another tool looks
-      #    like a hand-made link here
+      #    no symlink type on this tool's roots' registry files, e.g. a
+      #    hand-made link
       #
       #  `version_name` follows the central-log rule for `remove_dangling_<type>`
       #  rows: the target's leaf when it can be read, else the version parsed
@@ -2949,8 +2948,8 @@ SLT <- R6::R6Class(
       #' `update_symlink_disk_registry()`, called on the tool's own roots with
       #' the tool's `verbose` setting, so the same rules and messages apply.
       #'
-      #' @param symlink_type (chr) the type; built-in types (best, latest, keep,
-      #'   remove) are refused
+      #' @param symlink_type (chr) the type, in lowercase; built-in types (best,
+      #'   latest, keep, remove) are refused
       #' @param is_singleton (lgl) required for `add` and `update`; ignored by
       #'   `drop`
       #' @param operation (chr) `"add"` a type not yet on file; `"update"` the
@@ -2984,8 +2983,9 @@ SLT <- R6::R6Class(
       #'   methods (`mark_best`, `mark_latest`, etc.) are superceded thin
       #'   wrappers around this.
       #'
-      #' @param symlink_type (chr) A registered symlink type, e.g. `"best"`,
-      #'   `"keep"`, or any type added via `new_symlink_type()`.
+      #' @param symlink_type (chr) One of this tool's symlink types, e.g.
+      #'   `"best"`, `"keep"`, or a type added with
+      #'   `$update_symlink_registry()`. See `$get_symlink_registry()`.
       #' @param version_name (chr) The version_name folder to mark.
       #'   You may also pass the name of an existing symlink (shortcut) such
       #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
@@ -3401,10 +3401,9 @@ SLT <- R6::R6Class(
       #' name or by the link's own name.
       #'
       #' @param include_non_tool_symlinks (lgl) Default `FALSE`. Also list
-      #'   dangling symlinks whose name matches no type this tool knows. Symlink
-      #'   types are registered per session with `new_symlink_type()`, so a
-      #'   custom mark made by another tool looks like a hand-made link here;
-      #'   `TRUE` lists those too, with `symlink_type` `NA`.
+      #'   dangling symlinks whose name matches no symlink type on this tool's
+      #'   roots' registry files, e.g. a hand-made link; `TRUE` lists those
+      #'   too, with `symlink_type` `NA`.
       #' @param return_as (chr) Default `table`.  Whether to return a data.table with
       #'   symlink and stored target paths (`table`) or just a vector of
       #'   `version_name`s (`version_name`) for easier automated round-ups.
@@ -3534,8 +3533,8 @@ SLT <- R6::R6Class(
       #'   Names used by the tool's own symlinks (shortcuts) are reserved and
       #'   refused: the name of any singleton type (e.g. `"best"`, `"latest"`)
       #'   and any name starting with a non-singleton type plus underscore
-      #'   (e.g. `"keep_"`, `"remove_"`). Types added with `new_symlink_type()`
-      #'   reserve their names the same way.
+      #'   (e.g. `"keep_"`, `"remove_"`). Types added with
+      #'   `$update_symlink_registry()` reserve their names the same way.
       #'
       #' @return (chr) new version_name (in YYYY_MM_DD.VV format if defaults are used)
       #'

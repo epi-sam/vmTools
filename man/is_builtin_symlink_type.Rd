@@ -13,6 +13,7 @@ is_builtin_symlink_type(symlink_type)
 (lgl) TRUE for best, latest, keep, remove in any case
 }
 \description{
-Compared ignoring case, as \code{new_symlink_type()} does.
+Compared ignoring case: Windows and macOS treat \code{BEST} and \code{best} as the
+same folder name.
 }
 \keyword{internal}

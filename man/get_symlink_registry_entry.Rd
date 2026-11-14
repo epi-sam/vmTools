@@ -10,8 +10,8 @@ get_symlink_registry_entry(symlink_type, registry = get_symlink_registry())
 \item{symlink_type}{(chr) name of the symlink type to retrieve, e.g. "best",
 "keep", "remove", "latest"}
 
-\item{registry}{(named list) a symlink registry; default the session
-registry}
+\item{registry}{(named list) a symlink registry; default the built-in
+types alone}
 }
 \value{
 (named list) the registry entry for the specified symlink type. See

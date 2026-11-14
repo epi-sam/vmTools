@@ -14,9 +14,17 @@ read_disk_registry(root)
 \code{get_disk_registry_dictionary()}, built-ins first, each group alphabetical
 }
 \description{
-A missing file reads as an empty table. A file whose columns do not match
-the schema, that lists one type with two \code{is_singleton} values, or that
-gives a built-in type the wrong \code{is_singleton}, stops: all mean the file was edited
-by hand.
+A missing file reads as an empty table. The read stops if the file:
+}
+\details{
+\itemize{
+\item has columns that do not match the schema
+\item lists one type with two \code{is_singleton} values
+\item gives a built-in type the wrong \code{is_singleton}
+\item has a type name that is not lowercase
+\item marks a type's \code{is_builtin} column wrongly
+}
+
+All of these mean the file was edited by hand.
 }
 \keyword{internal}

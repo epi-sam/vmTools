@@ -2,7 +2,7 @@
 # The symlink registry itself (environment, factories, accessors) is in
 # R/registry_session.R; its on-disk, per-root counterpart in R/registry_disk.R.
 #
-# Created when the package loads, persists for the session.
+# Created when the package loads; holds the built-in types only.
 # CRAN-compliant: no global assignment, scoped to package namespace.
 # Built-in bindings are locked so they cannot be overwritten by users.
 .onLoad <- function(libname, pkgname){

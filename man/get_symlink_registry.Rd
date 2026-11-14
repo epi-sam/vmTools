@@ -2,17 +2,19 @@
 % Please edit documentation in R/registry_session.R
 \name{get_symlink_registry}
 \alias{get_symlink_registry}
-\title{Get the full symlink registry}
+\title{Get the built-in symlink registry}
 \usage{
 get_symlink_registry()
 }
 \value{
-(list) the full symlink registry as a named list, the four
-built-ins first and then the other types, each group alphabetical
+(list) the built-in symlink registry as a named list, in
+alphabetical order
 }
 \description{
-Returns the named list of symlink types and their associated properties and
-functions. Expected entries are:
+Returns the four built-in symlink types (best, keep, latest, remove) as a
+named list, each with its properties and functions. A tool's own registry,
+the built-ins plus the types on its roots' registry files, comes from
+\code{slt$get_symlink_registry()} and has the same form. Entries are:
 \itemize{
 \item \code{is_singleton}: (lgl) whether this symlink type is a singleton (only one
 per root)

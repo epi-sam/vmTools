@@ -15,8 +15,8 @@ update_symlink_disk_registry(
 \arguments{
 \item{root}{(chr) one or more root folders; each gets the same change}
 
-\item{symlink_type}{(chr) the type; built-in types (best, latest, keep,
-remove) are refused}
+\item{symlink_type}{(chr) the type, in lowercase; built-in types (best,
+latest, keep, remove) are refused}
 
 \item{is_singleton}{(lgl) required for \code{add} and \code{update}; ignored by
 \code{drop}, which goes by name alone}
@@ -34,14 +34,14 @@ registry file
 Every root carries a file, \code{.symlink_registry.csv}, listing the symlink
 (shortcut) types ever used there and whether each is a singleton (one per
 root, named \verb{<type>}) or multiple-version (named \verb{<type>_<version_name>}).
-\code{SLT$new()} reads it and registers those types for the session, so a new
-tool on an old root can round up every type the root has seen. The tool
-writes the file itself the first time a type is promoted in a root; this
-function is the explicit way to edit it.
+A tool reads the files of its roots each time it is used, so a type added
+here can be marked and rounded up by any tool on that root at once, in any
+R session. \code{slt$update_symlink_registry()} calls this function on a tool's
+own roots.
 }
 \details{
-The live session registry is never changed by this function. To use a type
-in the current session, call \code{new_symlink_type()} or construct a new tool.
+Type names must be lowercase: Windows and macOS compare names ignoring
+case, so two types differing only by case would share symlink names.
 
 Changing a type's \code{is_singleton}, or dropping it, is refused while links of
 that type exist in a root: afterwards those links would belong to no registered

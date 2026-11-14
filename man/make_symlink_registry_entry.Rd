@@ -19,7 +19,6 @@ make_symlink_registry_entry(symlink_type, is_singleton, is_builtin = FALSE)
 }
 \description{
 The one place an entry's fields are defined; used for the built-ins in
-\code{.onLoad()}, for \code{new_symlink_type()}, and for types read from a root's
-disk registry.
+\code{.onLoad()} and for types read from a root's disk registry.
 }
 \keyword{internal}

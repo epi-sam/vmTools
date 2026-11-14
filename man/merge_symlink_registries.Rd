@@ -2,23 +2,19 @@
 % Please edit documentation in R/registry_disk.R
 \name{merge_symlink_registries}
 \alias{merge_symlink_registries}
-\title{Merge the roots' disk registries with the session registry}
+\title{Build a tool's symlink registry from its roots' disk registries}
 \usage{
-merge_symlink_registries(disk_dt, session_registry = get_symlink_registry())
+merge_symlink_registries(disk_dt)
 }
 \arguments{
 \item{disk_dt}{(data.table) from \code{read_disk_registries()}}
-
-\item{session_registry}{(named list) default \code{get_symlink_registry()}}
 }
 \value{
 (named list) a symlink registry, entries per
 \code{make_symlink_registry_entry()}
 }
 \description{
-Precedence: a root's file, then the session registry (built-ins locked in
-\code{.onLoad()} plus any \code{new_symlink_type()} default), so a session default is
-used only for a type on no root's file. Built-ins always come from the
-package. Order per \code{sort_symlink_registry()}.
+The built-in types, which always come from the package, plus one entry per
+user-defined type on the roots' files. Order per \code{sort_symlink_registry()}.
 }
 \keyword{internal}

@@ -9,8 +9,8 @@ find_reserved_name_conflict(version_name, registry = get_symlink_registry())
 \arguments{
 \item{version_name}{(chr) a candidate folder name}
 
-\item{registry}{(named list) a symlink registry; default the session
-registry}
+\item{registry}{(named list) a symlink registry; default the built-in
+types alone}
 }
 \value{
 (chr) the reserved word or prefix it collides with, or \code{NULL} if it

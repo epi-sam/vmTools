@@ -222,8 +222,8 @@ the tool's \code{verbose} setting, so the same rules and messages apply.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{symlink_type}}{(chr) the type; built-in types (best, latest, keep,
-remove) are refused}
+\item{\code{symlink_type}}{(chr) the type, in lowercase; built-in types (best,
+latest, keep, remove) are refused}
 
 \item{\code{is_singleton}}{(lgl) required for \code{add} and \code{update}; ignored by
 \code{drop}}
@@ -255,8 +255,9 @@ wrappers around this.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{symlink_type}}{(chr) A registered symlink type, e.g. \code{"best"},
-\code{"keep"}, or any type added via \code{new_symlink_type()}.}
+\item{\code{symlink_type}}{(chr) One of this tool's symlink types, e.g.
+\code{"best"}, \code{"keep"}, or a type added with
+\verb{$update_symlink_registry()}. See \verb{$get_symlink_registry()}.}
 
 \item{\code{version_name}}{(chr) The version_name folder to mark.
 You may also pass the name of an existing symlink (shortcut) such
@@ -712,10 +713,9 @@ name or by the link's own name.
 \if{html}{\out{<div class="arguments">}}
 \describe{
 \item{\code{include_non_tool_symlinks}}{(lgl) Default \code{FALSE}. Also list
-dangling symlinks whose name matches no type this tool knows. Symlink
-types are registered per session with \code{new_symlink_type()}, so a
-custom mark made by another tool looks like a hand-made link here;
-\code{TRUE} lists those too, with \code{symlink_type} \code{NA}.}
+dangling symlinks whose name matches no symlink type on this tool's
+roots' registry files, e.g. a hand-made link; \code{TRUE} lists those
+too, with \code{symlink_type} \code{NA}.}
 
 \item{\code{return_as}}{(chr) Default \code{table}.  Whether to return a data.table with
 symlink and stored target paths (\code{table}) or just a vector of
@@ -839,8 +839,8 @@ when you instantiate the tool.  For convenience, user may leave NULL
 Names used by the tool's own symlinks (shortcuts) are reserved and
 refused: the name of any singleton type (e.g. \code{"best"}, \code{"latest"})
 and any name starting with a non-singleton type plus underscore
-(e.g. \code{"keep_"}, \code{"remove_"}). Types added with \code{new_symlink_type()}
-reserve their names the same way.}
+(e.g. \code{"keep_"}, \code{"remove_"}). Types added with
+\verb{$update_symlink_registry()} reserve their names the same way.}
 }
 \if{html}{\out{</div>}}
 }
