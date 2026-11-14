@@ -16,7 +16,10 @@
 #' @keywords internal
 assert_scalar <- function(x, x_name = deparse(substitute(x))) {
    if (!(is.atomic(x) && length(x) == 1L)) {
-      stop(x_name, " must be atomic and length 1L.\n", "got: ", toString(x))
+      stop(
+         x_name, " must be atomic and length 1L.\n", "got: ", toString(x)
+         , " : ", "str(x) = ", capture.output(utils::str(x))[1]
+      )
    }
 }
 
@@ -34,7 +37,10 @@ assert_scalar <- function(x, x_name = deparse(substitute(x))) {
 assert_scalar_not_empty = function(x, x_name = deparse(substitute(x))) {
    assert_scalar(x, x_name = x_name)
    if (!isTRUE(validate_not_empty(x))) {
-      stop(x_name, " is empty in some way.\n", "got: ", toString(x))
+      stop(
+         x_name, " is empty in some way.\n", "got: ", toString(x)
+         , " : ", "str(x) = ", capture.output(utils::str(x))[1]
+      )
    }
 }
 

@@ -61,7 +61,7 @@ The constructor function.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$new(
   root_list = NULL,
-  central_log_root = NULL,
+  central_log_root = root_list[[1]],
   schema_repair = TRUE,
   verbose = FALSE,
   verbose_startup = FALSE,
@@ -83,8 +83,9 @@ if one cannot hold links. Run from Linux for roots on a network
 drive.}
 
 \item{\code{central_log_root}}{(path) Root directory for the central log.
-If you have multiple roots in the \code{root_list}, you probably want
-the central log to live one level above those roots.}
+Default: the first root in \code{root_list}. If you have multiple roots
+in the \code{root_list}, you probably want the central log to live one
+level above those roots.}
 
 \item{\code{schema_repair}}{(logical) Default \code{TRUE}.  If \code{TRUE}, the tool
 will attempt to repair any schema mismatches it finds in the logs
@@ -92,10 +93,18 @@ when reading and writing e.g. add new columns if the tool schema has
 columns that existing logs do not. If \code{FALSE}, the tool will stop and
 throw an error if it finds a schema mismatch.}
 
-\item{\code{verbose}}{(lgl: default TRUE) control message verbosity - if TRUE,
-standard message, if FALSE, warn only if something is irregular.}
+\item{\code{verbose}}{(lgl: default FALSE) Narrate what the tool does? If
+\code{TRUE}, every step of an operation sends a message (which symlink is
+demoted or promoted, which log is written), reports say what they
+found, and \code{SLT$new()} lists the user-defined symlink types on its
+roots. If \code{FALSE}, the tool is silent except for a few irregular
+events, which are always reported: a dangling symlink, a folder that
+already exists, a deleted folder.}
 
-\item{\code{verbose_startup}}{(lgl) see start up warnings, if relevant?}
+\item{\code{verbose_startup}}{(lgl: default FALSE) Show the caution about the
+\code{csv_reader} when the tool is built? It applies to the \code{fread}
+readers: double quotation marks in log comments multiply. It
+controls nothing else.}
 
 \item{\code{csv_reader}}{(chr) The CSV reader to use (also assigns matching
 CSV writer). CAUTION: DO NOT USE \code{data.table::fread} if you have any

@@ -2658,16 +2658,25 @@ SLT <- R6::R6Class(
       #'   if one cannot hold links. Run from Linux for roots on a network
       #'   drive.
       #' @param central_log_root (path) Root directory for the central log.
-      #'   If you have multiple roots in the `root_list`, you probably want
-      #'   the central log to live one level above those roots.
+      #'   Default: the first root in `root_list`. If you have multiple roots
+      #'   in the `root_list`, you probably want the central log to live one
+      #'   level above those roots.
       #' @param schema_repair (logical) Default `TRUE`.  If `TRUE`, the tool
       #'   will attempt to repair any schema mismatches it finds in the logs
       #'   when reading and writing e.g. add new columns if the tool schema has
       #'   columns that existing logs do not. If `FALSE`, the tool will stop and
       #'   throw an error if it finds a schema mismatch.
-      #' @param verbose (lgl: default TRUE) control message verbosity - if TRUE,
-      #'   standard message, if FALSE, warn only if something is irregular.
-      #' @param verbose_startup (lgl) see start up warnings, if relevant?
+      #' @param verbose (lgl: default FALSE) Narrate what the tool does? If
+      #'   `TRUE`, every step of an operation sends a message (which symlink is
+      #'   demoted or promoted, which log is written), reports say what they
+      #'   found, and `SLT$new()` lists the user-defined symlink types on its
+      #'   roots. If `FALSE`, the tool is silent except for a few irregular
+      #'   events, which are always reported: a dangling symlink, a folder that
+      #'   already exists, a deleted folder.
+      #' @param verbose_startup (lgl: default FALSE) Show the caution about the
+      #'   `csv_reader` when the tool is built? It applies to the `fread`
+      #'   readers: double quotation marks in log comments multiply. It
+      #'   controls nothing else.
       #' @param csv_reader (chr) The CSV reader to use (also assigns matching
       #'   CSV writer). CAUTION: DO NOT USE `data.table::fread` if you have any
       #'   quotation marks (") in log comments (these lead to exploding series
@@ -2696,7 +2705,7 @@ SLT <- R6::R6Class(
       #' # roots on a network drive.
       initialize = function(
       root_list          = NULL
-      , central_log_root = NULL
+      , central_log_root = root_list[[1]]
       , schema_repair    = TRUE
       , verbose          = FALSE
       , verbose_startup  = FALSE
@@ -2711,17 +2720,13 @@ SLT <- R6::R6Class(
          assert_scalar(verbose_startup)
          assert_type(verbose_startup, "logical")
 
-         # allow lazy defaults
-         # - do this here to suppress startup messages
-         # - assertions are done below
-         if(!is.null(root_list) && is.null(central_log_root)){
-            if(length(root_list) == 1){
-               central_log_root <- data.table::copy(root_list)
-            }
-         }
-
          # Helpful start-up feedback
-         if(is.null(root_list)){
+         # - `central_log_root` defaults to `root_list[[1]]`, which R cannot
+         #   evaluate for an empty list, so only look at it when roots exist
+         is_root_list_missing    <- is.null(root_list) || length(root_list) < 1
+         is_central_root_missing <- is_root_list_missing || is.null(central_log_root)
+
+         if(is_root_list_missing){
             message("\n\nThis tool expects `root_list` to be a named list of root directories for pipeline outputs. \n\n  ",
 
                     "e.g.
@@ -2741,7 +2746,7 @@ SLT <- R6::R6Class(
             )
          }
 
-         if(is.null(central_log_root)){
+         if(is_central_root_missing){
             message("\n\nThis tool expects `central_log_root` to be a single directory for the central log. \n\n  ",
 
                     "e.g.
@@ -2753,7 +2758,7 @@ SLT <- R6::R6Class(
             )
          }
 
-         if(any(is.null(root_list) || is.null(central_log_root))){
+         if(is_root_list_missing || is_central_root_missing){
             stop("You must provide both root_list and central_log_root")
          }
 
@@ -2798,9 +2803,12 @@ SLT <- R6::R6Class(
 
          ## ROOTS
          # clean roots
-         root_list <- lapply(root_list, clean_path)
-         # validate inputs
          assert_named_list(root_list)
+         root_list <- lapply(root_list, clean_path)
+         assert_scalar_not_empty(central_log_root)
+         assert_type(central_log_root, "character")
+         central_log_root <- clean_path(central_log_root)
+         # validate inputs
          lapply(root_list, assert_dir_exists)
          assert_scalar(schema_repair)
          assert_type(schema_repair, "logical")

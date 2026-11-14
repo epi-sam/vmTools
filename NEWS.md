@@ -50,11 +50,12 @@ Symlink Composer instances via the type-generic `mark()` and `roundup()` methods
 
 ## Breaking from 1.0.0 to 2.0.0
 
-Symlink Tool constructor args were clarified
+Symlink Tool constructor args were shortened & clarified
 
 - `SLT$new()` 
   - `user_root_list` is now `root_list`
-  - `user_central_log_root` is now `central_log_root`
+  - `user_central_log_root` is now `central_log_root` and defaults to
+    `root_list[[1]]` if none is provided for lazier startup.
 
 Symlink Registry related changes
 
