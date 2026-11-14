@@ -4,6 +4,20 @@
 
 - `make_new_version_folder()` returns the `version_name`
 
+## User-defined symlink types are recorded in the root
+
+- A symlink type you add is now stored in each root, in `.symlink_registry.csv`,
+  so every R session and every user of the root works with the same types.
+  See `vignette("user_defined_symlink_types", package = "vmTools")`.
+- `slt$update_symlink_registry()` adds, updates or drops a type on a tool's
+  roots; `update_symlink_disk_registry()` does the same for any root folder.
+- `slt$get_symlink_registry()` lists a tool's types. `get_symlink_registry()`
+  now returns the four built-in types only.
+- `new_symlink_type()` is removed. Use `slt$update_symlink_registry()`.
+- Type names must be lowercase.
+- `SLC`: `get_common_symlink_types()` is now `get_symlink_types()` and returns
+  every type any of its tools holds; `roundup_all()` accepts any of them.
+
 ## Cross-platform symlinks
 
 - New internal `R/links.R`: one link backend per operating system - symlinks on Linux and macOS, junctions on Windows. The tool no longer shells out to `ls`, `unlink` or `rm`.

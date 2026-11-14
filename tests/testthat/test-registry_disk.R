@@ -104,7 +104,7 @@ test_that("A registry file edited by hand is refused on read", {
    on_file$is_builtin[on_file$symlink_type == "stalled"] <- TRUE
    utils::write.csv(on_file, fpath, row.names = FALSE)
 
-   expect_error(vmTools:::read_disk_registry(root_edited), regexp = "is_builtin column wrongly")
+   expect_error(vmTools:::read_disk_registry(root_edited), regexp = "wrong is_builtin")
 })
 
 

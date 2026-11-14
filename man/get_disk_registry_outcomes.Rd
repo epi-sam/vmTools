@@ -36,10 +36,10 @@ otherwise in a message when \code{verbose = TRUE}.
 }\tabular{llll}{
    operation \tab state \tab action \tab note \cr
    add \tab absent \tab write \tab add done \cr
-   add \tab matches \tab skip \tab already on file with the same is_singleton; nothing changed \cr
-   add \tab differs \tab stop \tab already on file with the other is_singleton; use operation = 'update' \cr
+   add \tab matches \tab skip \tab already on file with this is_singleton; nothing changed \cr
+   add \tab differs \tab stop \tab already on file with a different is_singleton; use operation = 'update' \cr
    update \tab absent \tab stop \tab not on file; use operation = 'add' \cr
-   update \tab matches \tab skip \tab already on file with the same is_singleton; nothing changed \cr
+   update \tab matches \tab skip \tab already on file with this is_singleton; nothing changed \cr
    update \tab differs \tab write \tab update done \cr
    drop \tab absent \tab skip \tab not on file; nothing to drop \cr
    drop \tab matches \tab write \tab drop done \cr

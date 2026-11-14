@@ -20,9 +20,9 @@ A missing file reads as an empty table. The read stops if the file:
 \itemize{
 \item has columns that do not match the schema
 \item lists one type with two \code{is_singleton} values
-\item gives a built-in type the wrong \code{is_singleton}
+\item has the wrong \code{is_singleton} for a built-in type
 \item has a type name that is not lowercase
-\item marks a type's \code{is_builtin} column wrongly
+\item has the wrong \code{is_builtin} for a type
 }
 
 All of these mean the file was edited by hand.

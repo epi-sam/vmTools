@@ -228,26 +228,13 @@ unlink(base, recursive = TRUE)
 
 # 3 - Custom Symlink Types (Plugin Architecture)
 
-The four built-in types - `best`, `latest`, `keep`, `remove` - cover most workflows.  But the registry is extensible: call `new_symlink_type()` to define your own, then use the generic `$mark()` and `$roundup()` methods.
+The four built-in types - `best`, `latest`, `keep`, `remove` - cover most workflows.  But the registry is extensible: add your own type to a tool's roots with `$update_symlink_registry()`, then use the generic `$mark()` and `$roundup()` methods. The `user_defined_symlink_types` vignette covers this in full.
 
 ## Example: regulatory `hold` for clinical trials
 
 In clinical-trial data pipelines, a regulatory agency can issue a **clinical hold** - an order to freeze a dataset in place pending review.  No one may delete, overwrite, or re-process that data until the hold is lifted.  This is different from `keep` (an internal convenience) because a `hold` has legal weight and should be immediately visible to anyone browsing the output directory.
 
 ### Register the type
-
-```{r hold_register, eval = flag_eval}
-new_symlink_type("hold", is_singleton = FALSE)
-get_symlink_registry()[["hold"]]
-```
-
-`is_singleton = FALSE` because multiple datasets can be under hold simultaneously (each for a different regulatory inquiry).
-
-- By contrast, `best` is a singleton type - only one folder can hold it at a time.
-- Users may create singleton symlinks as well.
-- Users may create as many new symlink types as they like.
-
-### Use it
 
 ```{r hold_setup, eval = flag_eval}
 base_hold <- file.path(tempdir(), "slt_tech", "trial_outputs")
@@ -258,6 +245,20 @@ slt_trial <- SLT$new(
   central_log_root = base_hold
 )
 ```
+
+```{r hold_register, eval = flag_eval}
+slt_trial$update_symlink_registry("hold", is_singleton = FALSE, operation = "add")
+slt_trial$get_symlink_registry()[["hold"]]
+```
+
+`is_singleton = FALSE` because multiple datasets can be under hold simultaneously (each for a different regulatory inquiry).
+
+- By contrast, `best` is a singleton type - only one folder can hold it at a time.
+- Users may create singleton symlinks as well.
+- Users may create as many new symlink types as they like.
+- The type is recorded in the root folder, so it is there in every later R session.
+
+### Use it
 
 ```{r hold_reset_cores, include = FALSE}
 .opt_mc3 <- options(mc.cores = 1L)

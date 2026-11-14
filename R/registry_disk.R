@@ -137,9 +137,9 @@ make_builtin_disk_registry_rows <- function() {
 #'
 #' - has columns that do not match the schema
 #' - lists one type with two `is_singleton` values
-#' - gives a built-in type the wrong `is_singleton`
+#' - has the wrong `is_singleton` for a built-in type
 #' - has a type name that is not lowercase
-#' - marks a type's `is_builtin` column wrongly
+#' - has the wrong `is_builtin` for a type
 #'
 #' All of these mean the file was edited by hand.
 #'
@@ -190,8 +190,8 @@ read_disk_registry <- function(root) {
    bad_builtin  <- builtin_rows[is_singleton != builtin_types[symlink_type], symlink_type]
    if (length(bad_builtin)) {
       stop(
-         "The symlink (shortcut) type registry file gives a built-in type the "
-         , "wrong is_singleton: ", fpath
+         "The symlink (shortcut) type registry file has the wrong is_singleton "
+         , "for a built-in type: ", fpath
          , "\n    - Type(s): ", toString(bad_builtin)
          , "\n    - Built-ins are fixed: best and latest are is_singleton = TRUE; "
          , "keep and remove are is_singleton = FALSE."
@@ -215,8 +215,8 @@ read_disk_registry <- function(root) {
    bad_flag            <- dt[is_builtin != is_builtin_expected, symlink_type]
    if (length(bad_flag)) {
       stop(
-         "The symlink (shortcut) type registry file marks a type's is_builtin "
-         , "column wrongly: ", fpath
+         "The symlink (shortcut) type registry file has the wrong is_builtin "
+         , "for a type: ", fpath
          , "\n    - Type(s): ", toString(bad_flag)
          , "\n    - Only best, keep, latest and remove are built-in."
          , "\n    - Was it edited by hand? Fix or delete the file. "
@@ -304,7 +304,7 @@ read_disk_registries <- function(root_list) {
       detail <- dt[symlink_type %in% conflicts][order(symlink_type, -is_singleton, root)]
       lines  <- detail[, sprintf("  %s: is_singleton = %s in %s", symlink_type, is_singleton, root)]
       stop(
-         "Root folders disagree about a symlink (shortcut) type's is_singleton:\n"
+         "Root folders disagree on is_singleton for a symlink (shortcut) type:\n"
          , paste(lines, collapse = "\n")
          , "\nPick the roots to change and run, for each:\n"
          , "update_symlink_disk_registry(<root>, \"<type>\", "
@@ -483,7 +483,7 @@ format_disk_registry_table <- function(dt) {
 #' @keywords internal
 format_unmark_recipe <- function(blocking, symlink_type, is_singleton, operation) {
    reason <- if (operation == "drop") "dropped" else "is_singleton changed"
-   entry  <- sprintf("list(comment = \"%s %s\")", symlink_type, reason)
+   entry  <- sprintf("list(comment = \"%s: %s\")", symlink_type, reason)
    lines  <- character(0)
    if (any(!blocking$is_dangling)) {
       lines <- c(lines, paste0(
@@ -561,24 +561,24 @@ get_disk_registry_state <- function(root, symlink_type, is_singleton) {
 #' - `note`: the text reported for that root: inside the error for `stop`,
 #'   otherwise in a message when `verbose = TRUE`.
 #'
-#' | operation | state   | action | note                                                                  |
-#' |-----------|---------|--------|-----------------------------------------------------------------------|
-#' | add       | absent  | write  | add done                                                              |
-#' | add       | matches | skip   | already on file with the same is_singleton; nothing changed           |
-#' | add       | differs | stop   | already on file with the other is_singleton; use operation = 'update' |
-#' | update    | absent  | stop   | not on file; use operation = 'add'                                    |
-#' | update    | matches | skip   | already on file with the same is_singleton; nothing changed           |
-#' | update    | differs | write  | update done                                                           |
-#' | drop      | absent  | skip   | not on file; nothing to drop                                          |
-#' | drop      | matches | write  | drop done                                                             |
-#' | drop      | differs | write  | drop done                                                             |
+#' | operation | state   | action | note                                                                    |
+#' |-----------|---------|--------|-------------------------------------------------------------------------|
+#' | add       | absent  | write  | add done                                                                |
+#' | add       | matches | skip   | already on file with this is_singleton; nothing changed                 |
+#' | add       | differs | stop   | already on file with a different is_singleton; use operation = 'update' |
+#' | update    | absent  | stop   | not on file; use operation = 'add'                                      |
+#' | update    | matches | skip   | already on file with this is_singleton; nothing changed                 |
+#' | update    | differs | write  | update done                                                             |
+#' | drop      | absent  | skip   | not on file; nothing to drop                                            |
+#' | drop      | matches | write  | drop done                                                               |
+#' | drop      | differs | write  | drop done                                                               |
 #'
 #' @returns (data.table) nine rows: `operation` (chr), `state` (chr) from
 #'   `get_disk_registry_state()`, `action` (chr), `note` (chr)
 #' @keywords internal
 get_disk_registry_outcomes <- function() {
-   no_change <- "already on file with the same is_singleton; nothing changed"
-   differs   <- "already on file with the other is_singleton; use operation = 'update'"
+   no_change <- "already on file with this is_singleton; nothing changed"
+   differs   <- "already on file with a different is_singleton; use operation = 'update'"
    rows <- list(
       list("add",      "absent",  "write", "add done")
       , list("add",    "matches", "skip",  no_change)

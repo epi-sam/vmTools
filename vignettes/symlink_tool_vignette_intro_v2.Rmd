@@ -110,8 +110,8 @@ The tool is now tied to `modeling_root`.  All symlinks, logs, and reports will l
 
 Version folder names are yours to choose, with one rule: names the tool uses for
 its own symlinks (shortcuts) are reserved. That means `best` and `latest`, and
-anything starting with `keep_` or `remove_`. Any type you add with
-`new_symlink_type()` reserves its name the same way.
+anything starting with `keep_` or `remove_`. Any type you add (see the
+`user_defined_symlink_types` vignette) reserves its name the same way.
 
 ```{r make_folders, eval = flag_eval}
 v1 <- next_version(modeling_root, "2024_02_01")
