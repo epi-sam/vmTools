@@ -79,7 +79,7 @@ test_that("A built-in name, a case-only clash or an empty name is refused at reg
 
 test_that("The composer offers user types and rounds them up by tool", {
    slc <- suppressMessages(SLC$new(tool_list = list(my_project = slt), verbose = FALSE))
-   expect_true(all(c("in_progress", "failed") %in% slc$get_common_symlink_types()))
+   expect_true(all(c("in_progress", "failed") %in% slc$get_symlink_types()))
    expect_identical(unique(slc$roundup_all("failed")$tool_name), "my_project")
 })
 

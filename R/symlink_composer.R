@@ -13,6 +13,7 @@ SLC <- R6::R6Class(
     TOOLS = NULL
 
     , verbose = NULL
+    , verbose_startup = NULL
 
     # Symlink types held by each tool, read from the tools at call time
     #
@@ -23,10 +24,12 @@ SLC <- R6::R6Class(
 
     # Say which symlink types only some tools hold, if any
     #
-    # Silent when every tool holds the same types.
+    # Silent when every tool holds the same types, or when the composer was
+    # built with `verbose = FALSE`.
     #
     # @return (lgl) TRUE invisibly if a message was sent
     , message_if_symlink_types_differ = function() {
+      if (!private$verbose) return(invisible(FALSE))
       types_by_tool <- private$get_symlink_types_by_tool()
       types_all     <- unique(unlist(types_by_tool, use.names = FALSE))
       types_shared  <- Reduce(intersect, types_by_tool)
@@ -59,18 +62,26 @@ SLC <- R6::R6Class(
     #'     project_a = my_slt_a,
     #'     project_b = my_slt_b
     #'   )
-    #' @param verbose (lgl) Control message verbosity
+    #' @param verbose (lgl: default TRUE) Send the message that lists symlink
+    #'   types held by only some of the tools? It is sent only when the tools'
+    #'   types differ, at construction and from `$get_symlink_types()`. It
+    #'   controls nothing else, and does not change the tools' own `verbose`.
+    #' @param verbose_startup (lgl: default FALSE) Send the start-up summary
+    #'   that counts and names the tools held? It controls nothing else.
     #'
     #' @return (SymlinkComposer) A composer managing multiple SLT instances
     initialize = function(
     tool_list
-    , verbose = FALSE
+    , verbose         = TRUE
+    , verbose_startup = FALSE
     ) {
 
       # Validate inputs
       assert_named_list(tool_list)
       assert_scalar(verbose)
       assert_type(verbose, "logical")
+      assert_scalar(verbose_startup)
+      assert_type(verbose_startup, "logical")
 
       # Validate each element is an SLT instance
       lapply(names(tool_list), function(tool_name) {
@@ -80,10 +91,11 @@ SLC <- R6::R6Class(
         }
       })
 
-      private$verbose <- verbose
-      private$TOOLS   <- tool_list
+      private$verbose         <- verbose
+      private$verbose_startup <- verbose_startup
+      private$TOOLS           <- tool_list
 
-      if(verbose) {
+      if(verbose_startup) {
         message("\nSymlink Composer initialized with ", length(private$TOOLS), " tool(s):")
         message("  ", paste(names(private$TOOLS), collapse = ", "))
       }
@@ -117,7 +129,7 @@ SLC <- R6::R6Class(
     #'
     #' Valid types are the union of the symlink types of all SLT instances held
     #' by this composer: any type that at least one tool holds. A tool that
-    #' lacks the type contributes no rows. Use `$get_common_symlink_types()` to
+    #' lacks the type contributes no rows. Use `$get_symlink_types()` to
     #' inspect the valid set.
     #'
     #' @param symlink_type (chr) A symlink type held by at least one tool,
@@ -153,10 +165,11 @@ SLC <- R6::R6Class(
     #' The union of the tools' types, read from the tools each time: the
     #' built-in types first, then the rest, each group alphabetical. These are
     #' the valid values for the `symlink_type` argument of `roundup_all()`.
-    #' Sends a message if some types are held by only some tools.
+    #' Sends a message if some types are held by only some tools and the
+    #' composer was built with `verbose = TRUE`.
     #'
     #' @return (chr) Vector of symlink type strings
-    , get_common_symlink_types = function() {
+    , get_symlink_types = function() {
        private$message_if_symlink_types_differ()
        types_all <- unique(unlist(private$get_symlink_types_by_tool(), use.names = FALSE))
        builtins  <- intersect(names(get_builtin_symlink_types()), types_all)

@@ -56,7 +56,7 @@ slc <- SLC$new(
 # Test basic info methods
 slc$list_tools()
 
-slc$get_common_symlink_types()
+slc$get_symlink_types()
 
 # Should run cleanly with empty directories
 slc$roundup_all("best")

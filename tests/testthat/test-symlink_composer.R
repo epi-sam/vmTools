@@ -327,6 +327,9 @@ if(!vmTools:::dir_supports_links(tempdir())){
          , regexp = "parked: project_a"
       )
       expect_identical(unique(slc_mixed$roundup_all("parked")$tool_name), "project_a")
+      expect_no_message(
+         SLC$new(tool_list = list(project_a = slt_a, project_b = slt_b), verbose = FALSE)
+      )
    })
 
 

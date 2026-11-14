@@ -14,7 +14,7 @@ aggregated query operations across multiple projects.
 \item \href{#method-Symlink_Composer-get_tool}{\code{SLC$get_tool()}}
 \item \href{#method-Symlink_Composer-list_tools}{\code{SLC$list_tools()}}
 \item \href{#method-Symlink_Composer-roundup_all}{\code{SLC$roundup_all()}}
-\item \href{#method-Symlink_Composer-get_common_symlink_types}{\code{SLC$get_common_symlink_types()}}
+\item \href{#method-Symlink_Composer-get_symlink_types}{\code{SLC$get_symlink_types()}}
 \item \href{#method-Symlink_Composer-roundup_all_unmarked}{\code{SLC$roundup_all_unmarked()}}
 \item \href{#method-Symlink_Composer-roundup_all_by_date}{\code{SLC$roundup_all_by_date()}}
 \item \href{#method-Symlink_Composer-clone}{\code{SLC$clone()}}
@@ -26,7 +26,7 @@ aggregated query operations across multiple projects.
 \subsection{Method \code{new()}}{
 Initialize the SymlinkComposer
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLC$new(tool_list, verbose = FALSE)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLC$new(tool_list, verbose = TRUE, verbose_startup = FALSE)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -39,7 +39,13 @@ project_a = my_slt_a,
 project_b = my_slt_b
 )}
 
-\item{\code{verbose}}{(lgl) Control message verbosity}
+\item{\code{verbose}}{(lgl: default TRUE) Send the message that lists symlink
+types held by only some of the tools? It is sent only when the tools'
+types differ, at construction and from \verb{$get_symlink_types()}. It
+controls nothing else, and does not change the tools' own \code{verbose}.}
+
+\item{\code{verbose_startup}}{(lgl: default FALSE) Send the start-up summary
+that counts and names the tools held? It controls nothing else.}
 }
 \if{html}{\out{</div>}}
 }
@@ -88,7 +94,7 @@ Roundup symlinks of a given type across all tools
 
 Valid types are the union of the symlink types of all SLT instances held
 by this composer: any type that at least one tool holds. A tool that
-lacks the type contributes no rows. Use \verb{$get_common_symlink_types()} to
+lacks the type contributes no rows. Use \verb{$get_symlink_types()} to
 inspect the valid set.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLC$roundup_all(symlink_type, return_as = c("table", "version_name"))}\if{html}{\out{</div>}}
@@ -109,18 +115,19 @@ e.g. "best", "keep", "remove", "latest"}
 }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-Symlink_Composer-get_common_symlink_types"></a>}}
-\if{latex}{\out{\hypertarget{method-Symlink_Composer-get_common_symlink_types}{}}}
-\subsection{Method \code{get_common_symlink_types()}}{
+\if{html}{\out{<a id="method-Symlink_Composer-get_symlink_types"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Composer-get_symlink_types}{}}}
+\subsection{Method \code{get_symlink_types()}}{
 Return the symlink types held by any SLT instance of this
 composer
 
 The union of the tools' types, read from the tools each time: the
 built-in types first, then the rest, each group alphabetical. These are
 the valid values for the \code{symlink_type} argument of \code{roundup_all()}.
-Sends a message if some types are held by only some tools.
+Sends a message if some types are held by only some tools and the
+composer was built with \code{verbose = TRUE}.
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{SLC$get_common_symlink_types()}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{SLC$get_symlink_types()}\if{html}{\out{</div>}}
 }
 
 \subsection{Returns}{
