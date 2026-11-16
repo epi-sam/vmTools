@@ -15,14 +15,27 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 .opt_width <- options(width = 120)
 flag_eval  <- vmTools::dir_supports_links(tempdir())
+
+# Chunks with `mask_user = TRUE` print "USER" in place of the name of whoever
+# builds the vignette (the registry file records it in its `user` column).
+# "USER" is padded to the name's width so printed columns stay aligned.
+knitr::knit_hooks$set(output = local({
+   hook_output <- knitr::knit_hooks$get("output")
+   user_name   <- Sys.info()[["user"]]
+   user_masked <- formatC("USER", width = nchar(user_name))
+   function(x, options) {
+      if (isTRUE(options$mask_user)) x <- gsub(user_name, user_masked, x, fixed = TRUE)
+      return(hook_output(x, options))
+   }
+}))
 ```
 
 ```{r windows_note, echo = FALSE}
 if (!flag_eval) {
-  knitr::asis_output(
-    "> **Note:** This machine cannot create symlinks (shortcuts) in its temp folder
+   knitr::asis_output(
+      "> **Note:** This machine cannot create symlinks (shortcuts) in its temp folder
     > (on Windows that needs a local disk). Code is shown but not evaluated on this system."
-  )
+   )
 }
 ```
 
@@ -61,16 +74,16 @@ model_root <- clean_path(model_root)
 slt <- SLT$new(root_list = list("model_root" = model_root))
 
 slt$update_symlink_registry(
-  symlink_type   = "stalled"
-  , is_singleton = FALSE
-  , operation    = "add"
+   symlink_type   = "stalled"
+   , is_singleton = FALSE
+   , operation    = "add"
 )
 
 names(slt$get_symlink_registry())
 ```
 
-That is the only step. The type is recorded in the root, so it is there in
-every later R session and for every other user of the root.
+That is the only step. The type is recorded in the root, so it can be used by
+any later R session and any other user of the root.
 
 ## The arguments
 
@@ -118,61 +131,139 @@ print_tree(model_root, level = 1)
 
 # How a tool uses the registry file
 
-A tool does not keep its own list of symlink types. Each time it is used it
-reads the registry file of every root, so a type a teammate adds to a root is
-there at your tool's next call.
+`slt` does not keep its own list of symlink types. At each call it reads the
+registry file in its root, so a type a teammate adds to the root is there at
+your next call.
+
+The calls fall into two groups:
 
 ```
-SLT$new(), roundups,                        mark(), unmark(),
-get_symlink_registry()                      delete_version_folders()
-          |                                           |
-          +---------------------+---------------------+
-                                |
-                                v
-            read .symlink_registry.csv in every root
-                                |
-                                v
-   do two roots give one symlink type a different is_singleton?
-                                |
-                                +-- yes --> STOP, nothing changed
-                                |           the error lists each root's
-                                |           is_singleton and the call to run
-                                no
-                                |
-                                v
-    the tool's symlink types = built-in types + types on the files
-          |                                           |
-          v                                           v
-  nothing is written                    first, the files are repaired:
-                                        a root with no file gets one, and
-                                        a type one root has and another
-                                        lacks is copied over
-                                                      |
-                                                      v
-                                          then the operation runs
+slt <- SLT$new(root_list = list("model_root" = model_root))
+
+read-only calls                    write calls
+---------------                    -----------
+SLT$new()                          slt$mark()
+slt$roundup()                      slt$unmark()
+slt$get_symlink_registry()         slt$delete_version_folders()
 ```
 
-Building a tool and rounding up never write to a root, so both work on a
-root you can only read.
+```
+any call above
+|
+v
+slt reads model_root/.symlink_registry.csv
+(no file yet: nothing to read, built-in types only)
+|
+v
+slt's symlink types =
+built-in types + user-defined types in the file (do not hand-edit)
+|
+v
+which kind of call? --- read-only -------> the call runs.
+|                                          Nothing is written to model_root.
+|                                          A missing registry file is NOT created.
+|                                          - only built-in symlinks can be found when missing
+|                                             i.e. 'best', 'latest', 'keep', 'remove'
+write
+|
+v
+does model_root have                no
+a registry file? ------------------------> slt writes one, with the built-in
+|                                          types, then the call runs.
+yes
+|
+v
+the call runs
+```
+
+Building a tool and `slt$roundup()` never write to the root, not even to create
+a missing registry file, so both work on a root you can _only_ read.
 
 ## Several roots
 
-The roots of one tool must agree on each type's `is_singleton`. If they do
-not, the tool stops and prints the call that fixes it:
+**_SUNSET NOTICE:_**
+
+Most tools have one root. Support for several roots using one tool will likely
+be sunset in a future version, so prefer one tool per root for new work. Until
+then, a tool with several roots runs every safety check described here.
+
+A tool built on several roots runs the same flow, with two checks added.
+They are marked `[+]`.
+
+```r
+slt <- SLT$new(
+   root_list = list(
+      "model_root"   = model_root
+      , "other_root" = other_root
+   )
+)
+```
+
+```
+any call above
+|
+v
+slt reads .symlink_registry.csv
+in every root
+(a root with no file yet: nothing to read)
+|
+v
+[+] do two roots give one symlink   yes
+    type a different is_singleton? ------> STOP, nothing changed.
+|                                          The error lists each root's
+no                                         is_singleton and the call to run.
+|
+v
+slt's symlink types =
+built-in types + user-defined types in any root's file (do not hand-edit)
+|
+v
+which kind of call? --- read-only -------> the call runs.
+|                                          Nothing is written to any root.
+|                                          A missing registry file is NOT created.
+|                                          - only built-in symlinks can be found when
+|                                             every root's file is missing,
+|                                             i.e. 'best', 'latest', 'keep', 'remove'
+write
+|
+v
+does every root have                no
+a registry file? ------------------------> slt writes one in each root that
+|                                          lacks it, with the built-in types.
+yes
+|
+v
+[+] does every root's file          no
+    list every type? --------------------> slt copies each missing row from
+|                                          a root that has it.
+yes
+|
+v
+the call runs
+```
+
+The first added check is the one that can stop you. The roots of one tool
+must agree on each type's `is_singleton`. If they do not, the tool stops and
+prints the call that fixes it:
 
 ```{r roots_disagree, eval = flag_eval, error = TRUE}
 other_root <- file.path(demo_base, "other_root")
 dir.create(other_root)
 
 update_symlink_disk_registry(
-  other_root, "stalled", is_singleton = TRUE, operation = "add", verbose = FALSE
+   root          = other_root
+   , symlink_type = "stalled"
+   , is_singleton = TRUE
+   , operation    = "add"
+   , verbose      = FALSE
 )
 
 SLT$new(root_list = list("model_root" = model_root, "other_root" = other_root))
 ```
 
-A root that simply lacks a type is not a disagreement. It gets the type from
-its sibling roots the next time the tool marks, unmarks or deletes.
+A root that simply lacks a type is not a disagreement. That is the second
+added check: the root gets the type from its sibling roots the next time the
+tool marks, unmarks or deletes.
 
 ---
 
@@ -190,9 +281,15 @@ symlink type. The built-in types are listed first. The tool writes this file;
 it is not meant to be edited by hand, and a hand-edited file is refused when
 it is read.
 
-```{r show_file, eval = flag_eval}
+```{r show_file, eval = flag_eval, mask_user = TRUE}
 read.csv(file.path(model_root, ".symlink_registry.csv"))
 ```
+
+The tool only manages symlinks whose type is in this file. A symlink of any
+other type is left alone, and `slt$make_reports()` lists it in
+`report_DISCREPANCIES.csv` as "non-tool symlinks in root folder". Add the type
+with `slt$update_symlink_registry()` to bring such symlinks back into the tool's
+understanding.
 
 ## Change `is_singleton`, or drop a type
 
@@ -200,10 +297,17 @@ The same function does both, with a different `operation`:
 
 ```{r change_calls, eval = FALSE}
 # a type on file, with a different is_singleton
-slt$update_symlink_registry("stalled", is_singleton = TRUE, operation = "update")
+slt$update_symlink_registry(
+   "stalled"
+   , is_singleton = TRUE
+   , operation    = "update"
+)
 
 # remove a type from the file
-slt$update_symlink_registry("stalled", operation = "drop")
+slt$update_symlink_registry(
+   "stalled"
+   , operation = "drop"
+)
 ```
 
 What happens depends on the `operation` argument and on the symlink type's row
@@ -226,38 +330,42 @@ An `update` or a `drop` is refused while symlinks of that type exist. After
 the change they would belong to no symlink type the tool knows.
 
 ```
-update_symlink_disk_registry(root, symlink_type, is_singleton, operation)
-      |
-      v
-in each root's file, the symlink type's row is
+slt$update_symlink_registry(symlink_type, is_singleton, operation)
+|
+v
+in model_root/.symlink_registry.csv, the symlink type's row is
 absent, matches is_singleton, or differs
-      |
-      v
-is the operation refused in any root?
-   add     where the row differs
-   update  where the row is absent
-      |
-      +-- yes --> STOP, nothing written
-      |           the error names the root and the operation to use
-      no
-      |
-      v
-update or drop: do links of the symlink type exist?
-      |
-      +-- yes --> STOP, nothing written
-      |           the error prints the unmark() calls to run first
-      no
-      |
-      v
-write each root's file
-(roots already as asked are left alone)
+|
+v
+is the operation refused?
+   add     where the row differs    yes
+   update  where the row is absent ------> STOP, nothing written.
+|                                          The error names the root and
+no                                         the operation to use.
+|
+v
+update or drop: do links of the     yes
+symlink type exist? ---------------------> STOP, nothing written.
+|                                          The error prints the unmark()
+no                                         calls to run first.
+|
+v
+slt writes model_root/.symlink_registry.csv
+(a file already as asked is left alone)
 ```
 
-The two `stalled` symlinks made above block a change, and the error prints the
-calls that clear the way:
+**_With several roots, every root is checked before any file is written. One
+refusal stops the whole call._**
+
+The two `stalled` symlinks made above block a change, and the error tells you
+which `unmark()` calls to run before repeating it:
 
 ```{r refused, eval = flag_eval, error = TRUE}
-slt$update_symlink_registry("stalled", is_singleton = TRUE, operation = "update")
+slt$update_symlink_registry(
+   "stalled"
+   , is_singleton = TRUE
+   , operation    = "update"
+)
 ```
 
 ## Messages and what to do
@@ -276,8 +384,8 @@ See also `?update_symlink_disk_registry`.
 
 ```{r cleanup, include = FALSE, eval = TRUE}
 if (flag_eval) {
-  unlink(demo_base, recursive = TRUE)
-  options(.opt_mc)
+   unlink(demo_base, recursive = TRUE)
+   options(.opt_mc)
 }
 options(.opt_width)
 ```
