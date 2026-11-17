@@ -26,21 +26,21 @@ hook_output   <- knitr::knit_hooks$get("output")
 flag_eval     <- vmTools::dir_supports_links(tempdir())
 
 knitr::knit_hooks$set(output = function(x, options) {
-  if (!is.null(n <- options$out.lines)) {
-    x <- vmTools:::split_line_breaks(x)
-    if (length(x) > n) x <- c(head(x, n %/% 2), "....", tail(x, n %/% 2 + 1))
-    x <- paste(x, collapse = "\n")
-  }
-  hook_output(x, options)
+   if (!is.null(n <- options$out.lines)) {
+      x <- vmTools:::split_line_breaks(x)
+      if (length(x) > n) x <- c(head(x, n %/% 2), "....", tail(x, n %/% 2 + 1))
+      x <- paste(x, collapse = "\n")
+   }
+   return(hook_output(x, options))
 })
 ```
 
 ```{r windows_note, echo = FALSE}
 if (!flag_eval) {
-  knitr::asis_output(
-    "> **Note:** This machine cannot create symlinks (shortcuts) in its temp folder
+   knitr::asis_output(
+      "> **Note:** This machine cannot create symlinks (shortcuts) in its temp folder
     > (on Windows that needs a local disk). Code is shown but not evaluated on this system."
-  )
+   )
 }
 ```
 
@@ -52,13 +52,14 @@ print_tree <- function(x, level = Inf) vmTools:::dir_tree(x, level = level)
 
 # Auto-increment YYYY_MM_DD.VV folder names
 next_version <- function(root, date) {
-  existing <- grep(
-    sprintf("^%s\\.\\d{2}$", date),
-    list.files(root), value = TRUE
-  )
-  idx <- if (length(existing) == 0) 0L else
-    max(as.integer(sub(".*\\.", "", existing)))
-  sprintf("%s.%02d", date, idx + 1L)
+   existing <- grep(
+      sprintf("^%s\\.\\d{2}$", date)
+      , list.files(root)
+      , value = TRUE
+   )
+   idx <- if (length(existing) == 0) 0L else
+      max(as.integer(sub(".*\\.", "", existing)))
+   return(sprintf("%s.%02d", date, idx + 1L))
 }
 
 show_vars <- c("log_id", "timestamp", "version_name", "action", "comment")
@@ -92,8 +93,8 @@ modeling_root <- file.path(tempdir(), "slt_demo", "modeling_root")
 dir.create(modeling_root, recursive = TRUE, showWarnings = FALSE)
 
 slt <- SLT$new(
-  root_list        = list("modeling_root" = modeling_root),
-  central_log_root = modeling_root
+   root_list          = list("modeling_root" = modeling_root)
+   , central_log_root = modeling_root
 )
 ```
 
@@ -113,8 +114,9 @@ results.
 
 Version folder names are yours to choose, with one rule: names the tool uses for
 its own symlinks (shortcuts) are reserved. That means `best` and `latest`, and
-anything starting with `keep_` or `remove_`. Any type you add (see the
-`user_defined_symlink_types` vignette) reserves its name the same way.
+anything starting with `keep_` or `remove_`. Any type you add (see
+`vignette("user_defined_symlink_types", package = "vmTools")`) reserves its
+name the same way.
 
 ```{r make_folders, eval = flag_eval}
 v1 <- next_version(modeling_root, "2024_02_01")
@@ -217,11 +219,11 @@ slt$mark_remove(version_name = v2, user_entry = list(comment = "Experimental - p
 
 ```{r delete_v2, eval = flag_eval}
 for (ver in to_remove$version_name) {
-  slt$delete_version_folders(
-    version_name       = ver,
-    user_entry         = list(comment = "Cleaning up experimental run"),
-    require_user_input = FALSE
-  )
+   slt$delete_version_folders(
+      version_name         = ver
+      , user_entry         = list(comment = "Cleaning up experimental run")
+      , require_user_input = FALSE
+   )
 }
 ```
 
@@ -262,18 +264,21 @@ print_tree(modeling_root, level = 1)
 
 ## What's Next?
 
-This walkthrough covers the core workflow. The
-`symlink_tool_vignette_technical.Rmd` vignette covers:
+This walkthrough covers the core workflow. The technical reference,
+`vignette("symlink_tool_vignette_technical", package = "vmTools")`, covers:
 
-- use the Symlink Composer class to collect and manage `best` symlinks across
-  multiple projects for a full '`best` set',
-- allow multiple roots per tool instance (e.g., separating model inputs from
-  outputs while keeping them in sync with the same version names) - **_SUNSET
-  NOTICE:_** support for several roots using one tool will likely be sunset in a
-  future version,
-- the plugin / extension architecture for custom marking behaviour,
-- advanced report options and discrepancy detection, and
-- all available private and public methods.
+- the Symlink Composer class, which collects `best` symlinks across several
+  projects into a full '`best` set',
+- several roots per tool instance (e.g., separating model inputs from outputs
+  while keeping them in sync with the same version names) - **_SUNSET NOTICE:_**
+  support for several roots using one tool will likely be sunset in a future
+  version,
+- a worked example of a user-defined symlink type,
+- reports and discrepancy detection, and
+- how links work on Windows.
+
+To add your own symlink types, see
+`vignette("user_defined_symlink_types", package = "vmTools")`.
 
 ```{r cleanup, include = FALSE, eval = TRUE}
 unlink(dirname(modeling_root), recursive = TRUE)

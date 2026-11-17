@@ -26,21 +26,21 @@ hook_output <- knitr::knit_hooks$get("output")
 flag_eval   <- vmTools::dir_supports_links(tempdir())
 
 knitr::knit_hooks$set(output = function(x, options) {
-  if (!is.null(n <- options$out.lines)) {
-    x <- vmTools:::split_line_breaks(x)
-    if (length(x) > n) x <- c(head(x, n %/% 2), "....", tail(x, n %/% 2 + 1))
-    x <- paste(x, collapse = "\n")
-  }
-  hook_output(x, options)
+   if (!is.null(n <- options$out.lines)) {
+      x <- vmTools:::split_line_breaks(x)
+      if (length(x) > n) x <- c(head(x, n %/% 2), "....", tail(x, n %/% 2 + 1))
+      x <- paste(x, collapse = "\n")
+   }
+   return(hook_output(x, options))
 })
 ```
 
 ```{r windows_note, echo = FALSE}
 if (!flag_eval) {
-  knitr::asis_output(
-    "> **Note:** This machine cannot create symlinks (shortcuts) in its temp folder
+   knitr::asis_output(
+      "> **Note:** This machine cannot create symlinks (shortcuts) in its temp folder
     > (on Windows that needs a local disk). Code is shown but not evaluated on this system."
-  )
+   )
 }
 ```
 
@@ -51,13 +51,14 @@ library(data.table)
 print_tree <- function(x, level = Inf) vmTools:::dir_tree(x, level = level)
 
 next_version <- function(root, date) {
-  existing <- grep(
-    sprintf("^%s\\.\\d{2}$", date),
-    list.files(root), value = TRUE
-  )
-  idx <- if (length(existing) == 0) 0L else
-    max(as.integer(sub(".*\\.", "", existing)))
-  sprintf("%s.%02d", date, idx + 1L)
+   existing <- grep(
+      sprintf("^%s\\.\\d{2}$", date)
+      , list.files(root)
+      , value = TRUE
+   )
+   idx <- if (length(existing) == 0) 0L else
+      max(as.integer(sub(".*\\.", "", existing)))
+   return(sprintf("%s.%02d", date, idx + 1L))
 }
 
 show_vars <- c("log_id", "timestamp", "version_name", "action", "comment")
@@ -67,7 +68,7 @@ This vignette assumes you've read the **Quick Start** guide and covers:
 
 1. The Symlink Composer (`SLC`) for cross-project queries
 2. Multiple roots per tool instance
-3. Custom symlink types via the plugin architecture
+3. User-defined symlink types
 4. Reports and discrepancy detection
 5. How links work on Windows
 
@@ -99,12 +100,13 @@ base_slc <- file.path(tempdir(), "slt_tech", "composer")
 regions <- c("north", "central", "south")
 
 tools <- lapply(setNames(regions, regions), function(r) {
-  root <- file.path(base_slc, r)
-  dir.create(root, recursive = TRUE, showWarnings = FALSE)
-  SLT$new(
-    root_list        = setNames(list(root), r),
-    central_log_root = root
-  )
+   root <- file.path(base_slc, r)
+   dir.create(root, recursive = TRUE, showWarnings = FALSE)
+   slt <- SLT$new(
+      root_list          = setNames(list(root), r)
+      , central_log_root = root
+   )
+   return(slt)
 })
 ```
 
@@ -119,10 +121,10 @@ asynchronous development.
 run_dates <- c(north = "2024_09_01", central = "2024_09_08", south = "2024_09_15")
 
 for (r in regions) {
-  root <- file.path(base_slc, r)
-  ver  <- next_version(root, run_dates[[r]])
-  tools[[r]]$make_new_version_folder(version_name = ver)
-  tools[[r]]$mark_best(version_name = ver, user_entry = list(comment = paste(r, "initial run")))
+   root <- file.path(base_slc, r)
+   ver  <- next_version(root, run_dates[[r]])
+   tools[[r]]$make_new_version_folder(version_name = ver)
+   tools[[r]]$mark_best(version_name = ver, user_entry = list(comment = paste(r, "initial run")))
 }
 ```
 
@@ -151,8 +153,8 @@ symlink type set can be 'composed' across all its instruments.
 # Archive the north run - it's being cited in a journal submission
 north_best <- composer$roundup_all("best")[tool_name == "north", version_name]
 tools$north$mark_keep(
-  version_name = north_best,
-  user_entry   = list(comment = "Journal submission 2024")
+   version_name = north_best
+   , user_entry = list(comment = "Journal submission 2024")
 )
 
 composer$roundup_all("keep")
@@ -195,11 +197,11 @@ dir.create(root_input,  recursive = TRUE, showWarnings = FALSE)
 dir.create(root_output, recursive = TRUE, showWarnings = FALSE)
 
 slt <- SLT$new(
-  root_list = list(
-    input  = root_input,
-    output = root_output
-  ),
-  central_log_root = base
+   root_list = list(
+      input    = root_input
+      , output = root_output
+   )
+   , central_log_root = base
 )
 ```
 
@@ -237,7 +239,7 @@ demotes v1 everywhere at once.
 
 ```{r multi_promote, eval = flag_eval}
 suppressMessages(
-  slt$mark_best(version_name = v2, user_entry = list(comment = "Revised covariates"))
+   slt$mark_best(version_name = v2, user_entry = list(comment = "Revised covariates"))
 )
 print_tree(base, level = 1)
 ```
@@ -248,12 +250,13 @@ unlink(base, recursive = TRUE)
 
 ---
 
-# 3 - Custom Symlink Types (Plugin Architecture)
+# 3 - User-Defined Symlink Types
 
 The four built-in types - `best`, `latest`, `keep`, `remove` - cover most
 workflows. But the registry is extensible: add your own type to a tool's roots
 with `$update_symlink_registry()`, then use the generic `$mark()` and
-`$roundup()` methods. The `user_defined_symlink_types` vignette covers this in
+`$roundup()` methods.
+`vignette("user_defined_symlink_types", package = "vmTools")` covers this in
 full.
 
 ## Example: regulatory `hold` for clinical trials
@@ -272,14 +275,19 @@ base_hold <- file.path(tempdir(), "slt_tech", "trial_outputs")
 dir.create(base_hold, recursive = TRUE, showWarnings = FALSE)
 
 slt_trial <- SLT$new(
-  root_list        = list(trial = base_hold),
-  central_log_root = base_hold
+   root_list          = list(trial = base_hold)
+   , central_log_root = base_hold
 )
 ```
 
 ```{r hold_register, eval = flag_eval}
-slt_trial$update_symlink_registry("hold", is_singleton = FALSE, operation = "add")
-slt_trial$get_symlink_registry()[["hold"]]
+slt_trial$update_symlink_registry(
+   symlink_type   = "hold"
+   , is_singleton = FALSE
+   , operation    = "add"
+)
+
+names(slt_trial$get_symlink_registry())
 ```
 
 `is_singleton = FALSE` because multiple datasets can be under hold
@@ -301,13 +309,16 @@ simultaneously (each for a different regulatory inquiry).
 ```{r hold_create, eval = flag_eval}
 # Simulate three analysis runs
 for (i in 1:3) {
-  ver <- next_version(base_hold, "2025_01_10")
-  slt_trial$make_new_version_folder(version_name = ver)
+   ver <- next_version(base_hold, "2025_01_10")
+   slt_trial$make_new_version_folder(version_name = ver)
 }
 
 # Mark run .02 with a regulatory hold
-slt_trial$mark("hold", version_name = "2025_01_10.02",
-               user_entry = list(comment = "FDA clinical hold - trial xxxx"))
+slt_trial$mark(
+   symlink_type   = "hold"
+   , version_name = "2025_01_10.02"
+   , user_entry   = list(comment = "FDA clinical hold - trial xxxx")
+)
 ```
 
 ```{r hold_tree, eval = flag_eval}
@@ -326,8 +337,10 @@ slt_trial$roundup("hold")
 When the hold is lifted, demote with `unmark()`:
 
 ```{r hold_unmark, eval = flag_eval}
-slt_trial$unmark(version_name = "2025_01_10.02",
-                 user_entry = list(comment = "Hold lifted - FDA clearance 2025-03-01"))
+slt_trial$unmark(
+   version_name = "2025_01_10.02"
+   , user_entry = list(comment = "Hold lifted - FDA clearance 2025-03-01")
+)
 ```
 
 ```{r hold_tree_after, eval = flag_eval}
@@ -339,7 +352,7 @@ by whom, and when it was released.
 
 ```{r hold_log, eval = flag_eval}
 data.table::fread(
-  file.path(base_hold, "2025_01_10.02", "logs", "log_version_history.csv")
+   file.path(base_hold, "2025_01_10.02", "logs", "log_version_history.csv")
 )[, ..show_vars]
 ```
 
@@ -361,8 +374,8 @@ base_rpt <- file.path(tempdir(), "slt_tech", "reports")
 dir.create(base_rpt, recursive = TRUE, showWarnings = FALSE)
 
 slt_rpt <- SLT$new(
-  root_list        = list(output = base_rpt),
-  central_log_root = base_rpt
+   root_list          = list(output = base_rpt)
+   , central_log_root = base_rpt
 )
 ```
 
@@ -372,15 +385,19 @@ slt_rpt <- SLT$new(
 
 ```{r rpt_populate, eval = flag_eval}
 for (i in 1:4) {
-  ver <- next_version(base_rpt, "2024_11_01")
-  slt_rpt$make_new_version_folder(version_name = ver)
+   ver <- next_version(base_rpt, "2024_11_01")
+   slt_rpt$make_new_version_folder(version_name = ver)
 }
 
 suppressMessages({
-  slt_rpt$mark_best(version_name = "2024_11_01.03",
-                    user_entry = list(comment = "Production run"))
-  slt_rpt$mark_keep(version_name = "2024_11_01.01",
-                    user_entry = list(comment = "Baseline comparison"))
+   slt_rpt$mark_best(
+      version_name = "2024_11_01.03"
+      , user_entry = list(comment = "Production run")
+   )
+   slt_rpt$mark_keep(
+      version_name = "2024_11_01.01"
+      , user_entry = list(comment = "Baseline comparison")
+   )
 })
 ```
 
