@@ -4,10 +4,14 @@
 \alias{assert_scalar}
 \title{Assert an element is atomic and length 1}
 \usage{
-assert_scalar(x)
+assert_scalar(x, x_name = deparse(substitute(x)))
 }
 \arguments{
 \item{x}{(any) Element to check}
+
+\item{x_name}{(chr) Name used in error messages. Defaults to the
+expression passed as \code{x}; wrappers forward their own so the caller's name
+survives the extra call frame.}
 }
 \value{
 (none) stop if assertion fails

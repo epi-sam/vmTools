@@ -3,10 +3,9 @@
 # use clean_path() liberally for github/cran checks
 
 .user <- Sys.info()[['user']]
-make_directory <- function(path) dir.create(path, recursive = TRUE, showWarnings = FALSE)
 
 # Base directory for all SLC tests
-root_base <- clean_path(tempdir(), "slc")
+root_base <- make_test_root("slc")
 
 # Project A - two roots
 project_a_roots <- list(
@@ -45,13 +44,12 @@ ue_list <- list(
 
 # Integration Tests ------------------------------------------------------------
 
-# All integration tests will fail on Windows unless the R process runs with
-# administrative privileges, which is not possible on CRAN servers.
-# See description section of ?base::file.symlink for details.
+# Every integration test creates symlinks (shortcuts). Skip the file on a
+# machine that cannot make them in tempdir() (e.g. Windows without a local disk).
 
-if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FALSE){
+if(!vmTools:::dir_supports_links(tempdir())){
 
-   testthat::skip("Symbolic links are not supported on Windows without admin privileges")
+   testthat::skip("this machine cannot create symlinks (shortcuts) in tempdir()")
 
 } else {
 
@@ -318,10 +316,27 @@ if(tolower(.Platform$OS.type) == "windows" & vmTools:::is_windows_admin() == FAL
    })
 
 
+   # Types only some tools hold ----------------------------------------------------
+
+   test_that("A type only one tool holds is announced, offered, and rounded up from that tool", {
+      slt_a$update_symlink_registry("parked", is_singleton = FALSE, operation = "add")
+      slt_a$mark("parked", "2024_03_01.2", list(comment = "waiting on inputs"))
+
+      expect_message(
+         slc_mixed <- SLC$new(tool_list = list(project_a = slt_a, project_b = slt_b))
+         , regexp = "parked: project_a"
+      )
+      expect_identical(unique(slc_mixed$roundup_all("parked")$tool_name), "project_a")
+      expect_no_message(
+         SLC$new(tool_list = list(project_a = slt_a, project_b = slt_b), verbose = FALSE)
+      )
+   })
+
+
    # Clean up --------------------------------------------------------------------
 
    test_that("Cleanup is complete", {
-      system(paste("rm -rf", root_base))
+      unlink(root_base, recursive = TRUE)
       expect_error(dir_tree(root_base), regexp = "Failed to search directory.*no such file or directory")
    })
 

@@ -14,7 +14,9 @@ clean_path(..., normalize = TRUE, mustWork = FALSE)
 \item{mustWork}{(lgl) passed to normalizePath()}
 }
 \value{
-(chr) full file paths with consistent platform-specific structure
+(chr) full file paths with consistent platform-specific structure:
+forward slashes, no doubled slashes, no trailing slash (a bare root such
+as \code{"/"} or \code{"C:/"} is kept)
 }
 \description{
 Wrapper utility for sanitizing file.path(...) output

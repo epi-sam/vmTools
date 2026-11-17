@@ -20,14 +20,24 @@ install.packages("vmTools")
       - No database required
    - User-control of important versions with automated logs and reports
       - best   - a single best folder of data/outputs
+      - latest - a single most recent folder of data/outputs
       - keep   - an arbitrary number of important folders to keep
       - remove - an arbitrary number of folders staged for removal (with method to delete)
+      - your own types, recorded in the root folder so every user of it sees them
 
 
 
 ## How does it work?
 
-- See the vignettes folder for examples of how to use the package.
+- See the vignettes for examples of how to use the package:
+
+```r
+vignette("symlink_tool_vignette_intro",     package = "vmTools") # quick start
+vignette("symlink_tool_vignette_technical", package = "vmTools") # technical reference
+vignette("user_defined_symlink_types",      package = "vmTools") # adding symlink types
+```
+
+- One tool manages one root folder. **Sunset notice:** support for several roots on one tool will likely be sunset in a future version; prefer one tool per root.
 
 
 

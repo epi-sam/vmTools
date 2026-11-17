@@ -1,25 +1,169 @@
+# vmTools 2.1.0
+
+The tool now runs on Linux, macOS and Windows without admin rights, and a
+user-defined symlink type is recorded in the root folder, so every user of the
+root sees it.
+
+## Breaking against CRAN 1.0.1
+
+- Windows: roots must be on a local disk (e.g. `C:`). Network drives refuse
+  junctions, so the tool stops at construction with a plain message. Run from
+  Linux for roots on a network drive.
+- The changes made in 2.0.0 also apply; see "Breaking from 1.0.0 to 2.0.0"
+  under vmTools 2.0.1 below:
+  - `SLT$new()`: `user_root_list` is now `root_list`, and
+    `user_central_log_root` is now `central_log_root`
+  - `SLT$new()`: `verbose` defaults to `FALSE` (was `TRUE`)
+  - `SLT$return_dictionaries()` no longer returns the symlink type entries
+
+## Breaking against 2.0.x (development versions, never on CRAN)
+
+- `new_symlink_type()` is removed. Use
+  `slt$update_symlink_registry(symlink_type, is_singleton, operation = "add")`.
+- `get_symlink_registry()` now returns the four built-in types only. For a
+  tool's full list use `slt$get_symlink_registry()`.
+- Symlink type names must be lowercase.
+- `SLC`: `get_common_symlink_types()` is now `get_symlink_types()` and returns
+  every type any of its tools holds.
+- `SLC$new()`: `verbose` now defaults to `TRUE` (was `FALSE`) and controls only
+  the message sent when the tools hold different symlink types. The start-up
+  summary moved to the new `verbose_startup` argument (default `FALSE`).
+- `SLT$new(central_log_root = NULL)` passed explicitly now stops. Leave the
+  argument out; the default is still the first root, `root_list[[1]]`.
+- Vignette files renamed: `symlink_tool_vignette_intro` and
+  `symlink_tool_vignette_technical` lose their `_v2` suffix.
+- Windows: roots must be on a local disk (see above).
+
+## Sunset notice
+
+- Support for several roots on one `SLT` will likely be sunset in a future
+  version. Prefer one tool per root. Until then a tool with several roots runs
+  every safety check, and `SLT$new()` sends a one-line message when `root_list`
+  has more than one root.
+
+## User-defined symlink types are recorded in the root
+
+- A symlink type you add is now stored in each root, in `.symlink_registry.csv`,
+  so every R session and every user of the root works with the same types.
+  See `vignette("user_defined_symlink_types", package = "vmTools")`.
+- `slt$update_symlink_registry()` adds, updates or drops a type on a tool's
+  roots; `update_symlink_disk_registry()` does the same for any root folder.
+- `slt$get_symlink_registry()` lists a tool's types: the built-in types plus
+  those in its roots' registry files.
+- Read operations never write. `SLT$new()`, the roundups and
+  `slt$get_symlink_registry()` work on a root you can only read. A missing
+  registry file is created at the next `mark()`, `unmark()` or
+  `delete_version_folders()`.
+- The roots of one tool must agree on a type's `is_singleton`. If they do not,
+  the tool stops and prints the call that fixes it.
+- Changing a type's `is_singleton`, or dropping the type, is refused while
+  symlinks of that type exist. The error prints the `unmark()` calls to run
+  first.
+- `SLC$roundup_all()` accepts any type one of its tools holds, and asks only
+  the tools that hold it.
+
+## Dangling symlinks
+
+A dangling symlink is one that still exists after its version folder was
+deleted by hand.
+
+- `slt$roundup_dangling()` is new: it lists dangling symlinks across roots.
+- `unmark()` removes a dangling symlink, by version name or by the link's own
+  name (e.g. `best`). It writes a `remove_dangling_<type>` row to the central
+  log only, with a comment prefixed `[vmTools auto]`. The deleted folder is
+  never re-created.
+- `mark()` checks the symlink's place before demoting anything. A dangling
+  `best` or `latest` in the way is removed and logged; a real folder in the way
+  stops the mark with nothing changed.
+- The discrepancy report lists dangling tool symlinks as "tool symlink
+  (shortcut) points to a missing folder".
+- Dangling links are detected on Windows (junctions) as well as on Linux and
+  macOS.
+
+## Cross-platform symlinks
+
+- New internal `R/links.R`: one link backend per operating system - symlinks on
+  Linux and macOS, junctions on Windows. The tool no longer shells out to `ls`,
+  `unlink` or `rm`.
+- Windows no longer needs admin rights.
+- `dir_supports_links(dir)` is exported: `TRUE` if a link round-trip works in
+  `dir`. The constructor runs it on every root; call it yourself to check a
+  folder first.
+- The constructor no longer sets data.table threads - data.table's own default
+  already respects the CPUs allocated to the job.
+- Symlink registry entries no longer carry `ls_regex_fn`.
+- Test suite runs on Linux, macOS and Windows CI.
+
+## QOL Updates
+
+- `make_new_version_folder()` returns the `version_name`
+- New vignette, `vignette("user_defined_symlink_types", package = "vmTools")`.
+  The intro and technical vignettes gain a section on Windows and present the
+  tool as managing one root.
+
+## Bug Fixes
+
+- A symlink whose target folder was deleted by hand no longer crashes the tool
+  (see Dangling symlinks above).
+- A failed promotion can no longer leave the previous `best` or `latest`
+  demoted with nothing marked in its place.
+- `clean_path()` now drops a trailing slash (bare roots such as `/` and `C:/`
+  are kept). Previously a trailing slash survived, which made symlink checks
+  look through the link instead of at it.
+- `utils` is now a declared import and every `utils` call is namespaced
+  (`head`, `tail`, `capture.output`, `menu`, CSV readers/writers), so the tool
+  works in sessions where `utils` is loaded but not attached.
+
+
+
+# vmTools 2.0.2
+
+## Bug Fixes
+
+- Safe for many processes to instantiate `SLT` at once. The constructor no
+  longer writes the central log; it is created on the first mark.
+- All log and report writes are atomic (temp file + rename), so concurrent
+  readers never see a partially written file.
+- A log that is non-empty but unreadable now errors instead of being silently
+  rebuilt (and its history lost). Zero-byte logs are still rebuilt.
+- Passing a symlink name (`"latest"`, `"keep_<version>"`) as a `version_name`
+  now resolves to the real folder it points to instead of silently doing nothing
+  or logging under the wrong name.
+- Symlink names are reserved: `make_new_version_folder()` refuses them, and a
+  real folder sitting on one blocks marking and appears in the discrepancy
+  report.
+- Symlink lookup no longer matches other versions by suffix or treats `.` as a
+  wildcard, so marking one version can no longer delete another's symlink.
+
+
+
 # vmTools 2.0.1
 
-Introduces a plugin architecture for symlink types: register a new type once with
-`new_symlink_type()` and it works immediately across all Symlink Tool and 
-Symlink Composer instances via the type-generic `mark()` and `roundup()` methods.
+Introduces user-defined symlink types: add a type of your own and use it through
+the type-generic `mark()` and `roundup()` methods of the Symlink Tool and
+Symlink Composer.
+
+This section describes the feature as it works from 2.1.0 on. 2.0.1 added types
+with `new_symlink_type()`, for one R session only; that function was removed in
+2.1.0 (see above).
 
 ## Breaking from 1.0.0 to 2.0.0
 
-Symlink Tool constructor args were clarified
+Symlink Tool constructor args were shortened & clarified
 
 - `SLT$new()` 
   - `user_root_list` is now `root_list`
-  - `user_central_log_root` is now `central_log_root`
+  - `user_central_log_root` is now `central_log_root` and defaults to
+    `root_list[[1]]` if none is provided for lazier startup.
 
 Symlink Registry related changes
 
 - `SLT$return_dictionaries()` no longer `returns DICT$symlink_types`, 
   `DICT$symlink_regex_extract`, or `DICT$symlink_registry`. The symlink type 
-  registry (the package's central record of all known types and their behaviour) 
-  is now managed at the package level 
-  - extend it with `new_symlink_type()`.
-  - read it with `get_symlink_registry()`
+  registry (the record of all known types and their behaviour) is now read
+  from the tool's roots
+  - extend it with `slt$update_symlink_registry()`
+  - read it with `slt$get_symlink_registry()`
 
 ## New Features
 
@@ -31,39 +175,40 @@ See new, simplified vignette documents.
 **Extensible symlink type registry**
 
 ```r
-new_symlink_type("production", is_singleton = TRUE)
-# One per root — promoting a new version demotes the previous one
-new_symlink_type("flagged", is_singleton = FALSE)
-# Many per root — flag several versions for QA review at once.
+slt$update_symlink_registry("production", is_singleton = TRUE, operation = "add")
+# One per root - promoting a new version demotes the previous one
+slt$update_symlink_registry("flagged", is_singleton = FALSE, operation = "add")
+# Many per root - flag several versions for QA review at once.
 ```
 
-- Type definitions now live in a package-level environment shared across all
-  SLT/SLC instances in your R session. Adding a type with
-  `new_symlink_type()` takes effect immediately — no restart or object
-  re-creation needed.
-- `new_symlink_type(symlink_type, is_singleton)` — the `is_singleton` flag
-  controls the type's behaviour:
-   - `TRUE` — one folder per root ("Highlander rule"). Promoting a new folder
+- Type definitions are stored in the root folder, in `.symlink_registry.csv`,
+  so every R session and every user of the root works with the same types. A
+  type added with `slt$update_symlink_registry()` takes effect at the tool's
+  next call - no restart or object re-creation needed.
+- `slt$update_symlink_registry(symlink_type, is_singleton, operation)` - the
+  `is_singleton` flag controls the type's behaviour:
+   - `TRUE` - one folder per root ("Highlander rule"). Promoting a new folder
      automatically demotes the previous holder. For superlatives like `"best"`
      or `"latest"`.
-   - `FALSE` — many folders per root. For accumulating marks like `"keep"` or
+   - `FALSE` - many folders per root. For accumulating marks like `"keep"` or
      `"remove"`.
    - All derived patterns are generated automatically. Built-in types are locked
      ('best', 'latest', 'keep', 'remove').
 
 **Type-generic `mark()` and `roundup()` on SLT**
 
-- `slt$mark(symlink_type, version_name, user_entry)` — marks a version with any
-  built-in or custom type registered via `new_symlink_type()`.
-- `slt$roundup(symlink_type, type)` — lists all symlinks of a given type across
-  roots. Accepts any registered type.
+- `slt$mark(symlink_type, version_name, user_entry)` - marks a version with any
+  built-in or user-defined type.
+- `slt$roundup(symlink_type, return_as)` - lists all symlinks of a given type
+  across roots. Accepts any of the tool's types.
 - Per-type methods (`mark_best()`, `roundup_keep()`, etc.) still work and are
   maintained indefinitely (see Superseded below).
 
 **Type-generic `roundup_all()` on SLC**
 
-- `slc$roundup_all(symlink_type)` — combines results across all Symlink 
-  Composer tools for any registered type. Replaces `roundup_all_symlinks()`.
+- `slc$roundup_all(symlink_type)` - combines results across all Symlink 
+  Composer tools for any type one of them holds. Replaces
+  `roundup_all_symlinks()`.
 
 **`return_as` pass-through on SLC aggregates**
 
@@ -74,7 +219,7 @@ new_symlink_type("flagged", is_singleton = FALSE)
 
 The per-type methods below remain fully functional and are maintained
 indefinitely. The type-generic equivalents are preferred for new code,
-especially with custom types from `new_symlink_type()`.
+especially with user-defined types.
 
 | Superseded | Replacement |
 |---|---|
@@ -82,11 +227,10 @@ especially with custom types from `new_symlink_type()`.
 | `slt$mark_latest()` | `slt$mark("latest", ...)` |
 | `slt$mark_keep()` | `slt$mark("keep", ...)` |
 | `slt$mark_remove()` | `slt$mark("remove", ...)` |
-| `slt$roundup_best()` | `slt$roundup("best", type)` |
-| `slt$roundup_latest()` | `slt$roundup("latest", type)` |
-| `slt$roundup_keep()` | `slt$roundup("keep", type)` |
-| `slt$roundup_remove()` | `slt$roundup("remove", type)` |
-
+| `slt$roundup_best()` | `slt$roundup("best", return_as)` |
+| `slt$roundup_latest()` | `slt$roundup("latest", return_as)` |
+| `slt$roundup_keep()` | `slt$roundup("keep", return_as)` |
+| `slt$roundup_remove()` | `slt$roundup("remove", return_as)` |
 
 
 # vmTools 1.3.1

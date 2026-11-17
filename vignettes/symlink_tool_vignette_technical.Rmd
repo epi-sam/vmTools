@@ -1,0 +1,529 @@
+---
+title: "Symlink Tool - Technical Reference"
+
+# Interactive rendering - uncomment this block and comment out the vignette output below
+# output:
+#   html_document:
+#     highlight: zenburn
+#     theme: readable
+#     toc: true
+#     toc_float: true
+
+# For package builds
+output: rmarkdown::html_vignette
+Encoding: UTF-8
+vignette: >
+ %\VignetteIndexEntry{Symlink Tool - Technical Reference}
+ %\VignetteEngine{knitr::rmarkdown}
+ %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
+
+.opt_width  <- options(width = 120)
+hook_output <- knitr::knit_hooks$get("output")
+flag_eval   <- vmTools::dir_supports_links(tempdir())
+
+knitr::knit_hooks$set(output = function(x, options) {
+   if (!is.null(n <- options$out.lines)) {
+      x <- vmTools:::split_line_breaks(x)
+      if (length(x) > n) x <- c(head(x, n %/% 2), "....", tail(x, n %/% 2 + 1))
+      x <- paste(x, collapse = "\n")
+   }
+   return(hook_output(x, options))
+})
+```
+
+```{r windows_note, echo = FALSE}
+if (!flag_eval) {
+   knitr::asis_output(
+      "> **Note:** This machine cannot create symlinks (shortcuts) in its temp folder
+    > (on Windows that needs a local disk). Code is shown but not evaluated on this system."
+   )
+}
+```
+
+```{r helpers, include = FALSE}
+library(vmTools)
+library(data.table)
+
+print_tree <- function(x, level = Inf) vmTools:::dir_tree(x, level = level)
+
+next_version <- function(root, date) {
+   existing <- grep(
+      sprintf("^%s\\.\\d{2}$", date)
+      , list.files(root)
+      , value = TRUE
+   )
+   idx <- if (length(existing) == 0) 0L else
+      max(as.integer(sub(".*\\.", "", existing)))
+   return(sprintf("%s.%02d", date, idx + 1L))
+}
+
+show_vars <- c("log_id", "timestamp", "version_name", "action", "comment")
+```
+
+This vignette assumes you've read the **Quick Start** guide and covers:
+
+1. The Symlink Composer (`SLC`) for cross-project queries
+2. Multiple roots per tool instance
+3. User-defined symlink types
+4. Reports and discrepancy detection
+5. How links work on Windows
+
+Each section is self-contained - run them independently or in order.
+
+---
+
+# 1 - Symlink Composer (`SLC`)
+
+When a production deliverable is assembled from several independent modeling
+pipelines - say, separate submodels for different geographic regions - each
+pipeline has its own SLT. The **Symlink Composer** (`SLC`) lets you query across
+all of them at once: _"what is the current `best` set?"_
+
+Think of each pipeline as an **instrument** in an orchestra. Each instrument
+practises independently and keeps its own sheet music (SLT logs). The
+**composer** (SLC) runs in 'read only' mode - it looks across all its
+instruments to discover "is every instrument ready for the final concert?"
+
+## Setup: three independent sub-model pipelines
+
+Each region has been worked on at different paces, so their `best` versions are
+on different dates.
+
+```{r slc_setup, eval = flag_eval}
+base_slc <- file.path(tempdir(), "slt_tech", "composer")
+
+# Each region gets its own output root and SLT
+regions <- c("north", "central", "south")
+
+tools <- lapply(setNames(regions, regions), function(r) {
+   root <- file.path(base_slc, r)
+   dir.create(root, recursive = TRUE, showWarnings = FALSE)
+   slt <- SLT$new(
+      root_list          = setNames(list(root), r)
+      , central_log_root = root
+   )
+   return(slt)
+})
+```
+
+```{r slc_reset_cores, include = FALSE}
+.opt_mc2 <- options(mc.cores = 1L)
+```
+
+Run each pipeline independently - different dates reflect real-world
+asynchronous development.
+
+```{r slc_runs, eval = flag_eval}
+run_dates <- c(north = "2024_09_01", central = "2024_09_08", south = "2024_09_15")
+
+for (r in regions) {
+   root <- file.path(base_slc, r)
+   ver  <- next_version(root, run_dates[[r]])
+   tools[[r]]$make_new_version_folder(version_name = ver)
+   tools[[r]]$mark_best(version_name = ver, user_entry = list(comment = paste(r, "initial run")))
+}
+```
+
+## Compose the set
+
+```{r slc_compose, eval = flag_eval}
+composer <- SLC$new(tool_list = tools)
+composer$list_tools()
+```
+
+## Query the full `best` set
+
+```{r slc_best, eval = flag_eval}
+composer$roundup_all("best")
+```
+
+One table, every sub-model's current `best` - a single view of the full
+production-ready set, spanning three different run dates.
+
+## Query `keep` or any other type
+
+Querying a full `best` or `latest` set is probably most common, but _any_
+symlink type set can be 'composed' across all its instruments.
+
+```{r slc_keep_setup, eval = flag_eval}
+# Archive the north run - it's being cited in a journal submission
+north_best <- composer$roundup_all("best")[tool_name == "north", version_name]
+tools$north$mark_keep(
+   version_name = north_best
+   , user_entry = list(comment = "Journal submission 2024")
+)
+
+composer$roundup_all("keep")
+```
+
+## Find unmarked folders across every pipeline
+
+```{r slc_unmarked, eval = flag_eval}
+composer$roundup_all_unmarked()
+```
+
+```{r slc_cleanup, include = FALSE, eval = flag_eval}
+unlink(base_slc, recursive = TRUE)
+```
+
+---
+
+# 2 - Multiple Roots
+
+**_SUNSET NOTICE:_**
+
+Most tools have one root. Support for several roots using one tool will likely
+be sunset in a future version, so prefer one tool per root for new work. Until
+then, a tool with several roots runs every safety check, and everything in this
+section works as shown.
+
+A single SLT instance can manage several root directories at once. This is
+useful when one pipeline run produces outputs that land in different locations -
+e.g. pre-model inputs and post-model results - but you want them versioned in
+lockstep under the same `version_name`.
+
+## Setup
+
+```{r multi_setup, eval = flag_eval}
+base <- file.path(tempdir(), "slt_tech", "multi_root")
+
+root_input  <- file.path(base, "to_model")
+root_output <- file.path(base, "modeled")
+dir.create(root_input,  recursive = TRUE, showWarnings = FALSE)
+dir.create(root_output, recursive = TRUE, showWarnings = FALSE)
+
+slt <- SLT$new(
+   root_list = list(
+      input    = root_input
+      , output = root_output
+   )
+   , central_log_root = base
+)
+```
+
+```{r multi_reset_cores, include = FALSE}
+.opt_mc <- options(mc.cores = 1L)
+```
+
+Two roots, one tool. Every `mark` or `make_new_version_folder` call operates on
+both roots in parallel.
+
+## Create and mark
+
+```{r multi_create, eval = flag_eval}
+v1 <- next_version(root_input, "2024_06_01")
+slt$make_new_version_folder(version_name = v1)
+
+# Populate with dummy files
+invisible(file.create(file.path(root_input,  v1, "prep.csv")))
+invisible(file.create(file.path(root_output, v1, "results.csv")))
+
+v2 <- next_version(root_input, "2024_06_01")
+slt$make_new_version_folder(version_name = v2)
+invisible(file.create(file.path(root_input,  v2, "prep.csv")))
+invisible(file.create(file.path(root_output, v2, "results.csv")))
+
+slt$mark_best(version_name = v1, user_entry = list(comment = "Initial run"))
+```
+
+```{r multi_tree, eval = flag_eval}
+print_tree(base, level = 2)
+```
+
+The `best` symlink appears in _both_ roots, pointing to v1 in each. Promoting v2
+demotes v1 everywhere at once.
+
+```{r multi_promote, eval = flag_eval}
+suppressMessages(
+   slt$mark_best(version_name = v2, user_entry = list(comment = "Revised covariates"))
+)
+print_tree(base, level = 1)
+```
+
+```{r multi_cleanup, include = FALSE, eval = flag_eval}
+unlink(base, recursive = TRUE)
+```
+
+---
+
+# 3 - User-Defined Symlink Types
+
+The four built-in types - `best`, `latest`, `keep`, `remove` - cover most
+workflows. But the registry is extensible: add your own type to a tool's roots
+with `$update_symlink_registry()`, then use the generic `$mark()` and
+`$roundup()` methods.
+`vignette("user_defined_symlink_types", package = "vmTools")` covers this in
+full.
+
+## Example: regulatory `hold` for clinical trials
+
+In clinical-trial data pipelines, a regulatory agency can issue a **clinical
+hold** - an order to freeze a dataset in place pending review. No one may
+delete, overwrite, or re-process that data until the hold is lifted. This is
+different from `keep` (an internal convenience) because a `hold` has legal
+weight and should be immediately visible to anyone browsing the output
+directory.
+
+### Register the type
+
+```{r hold_setup, eval = flag_eval}
+base_hold <- file.path(tempdir(), "slt_tech", "trial_outputs")
+dir.create(base_hold, recursive = TRUE, showWarnings = FALSE)
+
+slt_trial <- SLT$new(
+   root_list          = list(trial = base_hold)
+   , central_log_root = base_hold
+)
+```
+
+```{r hold_register, eval = flag_eval}
+slt_trial$update_symlink_registry(
+   symlink_type   = "hold"
+   , is_singleton = FALSE
+   , operation    = "add"
+)
+
+names(slt_trial$get_symlink_registry())
+```
+
+`is_singleton = FALSE` because multiple datasets can be under hold
+simultaneously (each for a different regulatory inquiry).
+
+- By contrast, `best` is a singleton type - only one folder can hold it at a
+  time.
+- Users may create singleton symlinks as well.
+- Users may create as many new symlink types as they like.
+- The type is recorded in the root folder, so it is there in every later R
+  session.
+
+### Use it
+
+```{r hold_reset_cores, include = FALSE}
+.opt_mc3 <- options(mc.cores = 1L)
+```
+
+```{r hold_create, eval = flag_eval}
+# Simulate three analysis runs
+for (i in 1:3) {
+   ver <- next_version(base_hold, "2025_01_10")
+   slt_trial$make_new_version_folder(version_name = ver)
+}
+
+# Mark run .02 with a regulatory hold
+slt_trial$mark(
+   symlink_type   = "hold"
+   , version_name = "2025_01_10.02"
+   , user_entry   = list(comment = "FDA clinical hold - trial xxxx")
+)
+```
+
+```{r hold_tree, eval = flag_eval}
+print_tree(base_hold, level = 1)
+```
+
+The `hold_2025_01_10.02` symlink is now visible on the filesystem - any team
+member who `ls`es the directory sees it immediately.
+
+### Roundup held datasets
+
+```{r hold_roundup, eval = flag_eval}
+slt_trial$roundup("hold")
+```
+
+When the hold is lifted, demote with `unmark()`:
+
+```{r hold_unmark, eval = flag_eval}
+slt_trial$unmark(
+   version_name = "2025_01_10.02"
+   , user_entry = list(comment = "Hold lifted - FDA clearance 2025-03-01")
+)
+```
+
+```{r hold_tree_after, eval = flag_eval}
+print_tree(base_hold, level = 1)
+```
+
+The audit trail lives in the versioned folder's log - when the hold was placed,
+by whom, and when it was released.
+
+```{r hold_log, eval = flag_eval}
+data.table::fread(
+   file.path(base_hold, "2025_01_10.02", "logs", "log_version_history.csv")
+)[, ..show_vars]
+```
+
+```{r hold_cleanup, include = FALSE, eval = flag_eval}
+unlink(base_hold, recursive = TRUE)
+```
+
+---
+
+# 4 - Reports and Discrepancy Detection
+
+SLT auto-generates a `report_key_versions.csv` on every `mark` call. Additional
+reports are available via `$make_reports()`.
+
+## Setup
+
+```{r rpt_setup, eval = flag_eval}
+base_rpt <- file.path(tempdir(), "slt_tech", "reports")
+dir.create(base_rpt, recursive = TRUE, showWarnings = FALSE)
+
+slt_rpt <- SLT$new(
+   root_list          = list(output = base_rpt)
+   , central_log_root = base_rpt
+)
+```
+
+```{r rpt_reset_cores, include = FALSE}
+.opt_mc4 <- options(mc.cores = 1L)
+```
+
+```{r rpt_populate, eval = flag_eval}
+for (i in 1:4) {
+   ver <- next_version(base_rpt, "2024_11_01")
+   slt_rpt$make_new_version_folder(version_name = ver)
+}
+
+suppressMessages({
+   slt_rpt$mark_best(
+      version_name = "2024_11_01.03"
+      , user_entry = list(comment = "Production run")
+   )
+   slt_rpt$mark_keep(
+      version_name = "2024_11_01.01"
+      , user_entry = list(comment = "Baseline comparison")
+   )
+})
+```
+
+## Run all reports
+
+```{r rpt_make, eval = flag_eval}
+suppressMessages(slt_rpt$make_reports())
+print_tree(base_rpt, level = 1)
+```
+
+### Key-version report
+
+Current state of every symlink-marked folder.
+
+- Runs automatically when marking/unmarking
+- Only tracks symlinks defined in the package registry
+
+```{r rpt_key, eval = flag_eval}
+data.table::fread(file.path(base_rpt, "report_key_versions.csv"))[, ..show_vars]
+```
+
+### Non-symlinked folders
+
+Folders that exist but have no active symlink - useful for identifying cleanup
+candidates.
+
+```{r rpt_nonsym, eval = flag_eval}
+data.table::fread(file.path(base_rpt, "report_all_logs_non_symlink.csv"))[, ..show_vars]
+```
+
+### Discrepancy report
+
+If any versioned logs have unexpected structure (missing fields, extra rows,
+schema drift), a `report_DISCREPANCIES.csv` file is written. A clean project
+produces no discrepancy file.
+
+- Runs automatically when marking/unmarking
+
+```{r rpt_discrep, eval = flag_eval}
+tryCatch(
+   data.table::fread(file.path(base_rpt, "report_DISCREPANCIES.csv"))
+   , error = function(e) message("No report_DISCREPANCIES.csv - nothing to report.")
+)
+```
+
+```{r rpt_cleanup, include = FALSE, eval = flag_eval}
+unlink(base_rpt, recursive = TRUE)
+```
+
+---
+
+# 5 - How Links Work on Windows
+
+The tool only ever links to **folders** - a `best/` or `keep_*/` link always
+points at a version folder, never at a file. This allows native Windows support.
+
+## Junctions, not symlinks
+
+On Linux and macOS the tool makes ordinary symlinks with `file.symlink()`. On
+Windows it makes **junctions** with `Sys.junction()` instead. A junction is an
+older, folder-only kind of Windows link that:
+
+- needs no special privilege - any account can make one,
+- is resolved by the file system itself, so every program follows it without
+  knowing it is a link, and
+- works only on local NTFS disks (e.g. `C:`) - shared network drives refuse
+  them.
+
+Because the tool never links to files, the folder-only restriction costs
+nothing.
+
+## Why not `file.symlink()` on Windows?
+
+Base R's own help page for `file.symlink()` describes the Windows symlink
+interface this way:
+
+> A version of symbolic linking to files/directories was implemented more
+> recently, and `file.symlink` makes use of that interface. However, it has
+> restrictions which are crippling. First, the user needs permission to make
+> symbolic links, and that permission is not normally granted except to
+> Administrator accounts (note: not users with Administrator rights): further
+> many users report that whereas the Policy Editor appears to be able to grant
+> such rights, the API still reports insufficient permissions. Second, the
+> interface needs to know if `from` is a file or a directory (and it need not
+> yet exist): we have implemented this to allow linking from a directory only
+> if it currently exists.
+
+A tool that only worked for administrators, or whose permissions could not be
+reliably granted, would be unusable on a typical managed computer. Junctions
+sidestep both problems.
+
+## What this means in practice
+
+- **Roots must be on a local disk.** The tool probes every root when it is built
+  (`SLT$new()`) and stops with a plain message naming the drive and its type if
+  one cannot hold junctions. For roots on a network drive, run the tool from
+  Linux.
+- **Links made on Linux are not readable from Windows.** A symlink written from
+  a Linux machine onto a network share shows up on Windows as a missing path or
+  a plain folder, depending on the mount. Roundups run from Windows against such
+  a root would be silently wrong, which is why the probe is fatal on Windows and
+  merely informative on Linux/macOS.
+- **Dangling junctions are found and can be cleared.** A dangling link is one
+  that still exists after its target folder was deleted by hand. The tool
+  detects these on Windows as it does on Linux and macOS: `roundup_dangling()`
+  lists them, the discrepancy report shows them, and `unmark()` removes them.
+  Deleting version folders through the tool (`delete_version_folders()`) avoids
+  the situation, since it unmarks first.
+- **Symlinks made by other programs are reported, never removed.** If someone
+  creates a true Windows symlink inside a root by hand, the tool lists it in
+  roundups and discrepancy reports, but base R cannot delete it. Remove it in a
+  command prompt with `rmdir`; the tool will tell you so.
+
+You can ask the same question the constructor asks, for any folder, before
+building a tool:
+
+```{r probe_demo}
+dir_supports_links(tempdir())
+```
+
+---
+
+# Cleanup
+
+```{r final_cleanup, include = FALSE, eval = TRUE}
+unlink(file.path(tempdir(), "slt_tech"), recursive = TRUE)
+options(.opt_width)
+options(.opt_mc)
+```

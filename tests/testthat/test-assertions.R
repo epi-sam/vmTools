@@ -7,8 +7,21 @@ test_that("assert_scalar works", {
 # assert_scalar_not_empty ------------------------------------------------------
 test_that("assert_scalar_not_empty works", {
    expect_no_error(assert_scalar_not_empty("A"))
-   expect_error(assert_scalar_not_empty(1:2), regexp = "x must be atomic and length 1L")
+   expect_error(assert_scalar_not_empty(1:2), regexp = "1:2 must be atomic and length 1L")
    expect_error(assert_scalar_not_empty(Inf), regexp = "Inf is empty in some way.")
+})
+
+test_that("assertion messages name the caller's variable, not the wrapper's argument", {
+   my_arg <- NULL
+   expect_error(assert_scalar(my_arg),           regexp = "^my_arg must be atomic")
+   expect_error(assert_scalar_not_empty(my_arg), regexp = "^my_arg must be atomic")
+   expect_error(assert_dir_exists(my_arg),       regexp = "^my_arg is NULL")
+   my_arg <- ""
+   expect_error(assert_scalar_not_empty(my_arg), regexp = "^my_arg is empty in some way")
+   my_arg <- " "
+   expect_error(assert_scalar_not_empty(my_arg), regexp = "^my_arg is empty in some way")
+   my_arg <- 1L
+   expect_error(assert_type(my_arg, "character"), regexp = "^my_arg must be of type character")
 })
 
 # assert_type ------------------------------------------------------------------
