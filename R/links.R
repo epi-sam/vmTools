@@ -56,7 +56,7 @@
 #   receives a cleaned path and performs only the OS-specific task.
 #
 # Link primitives (internal-public contract for the rest of the package):
-#   link_resolve(path)          list(is_link, target, dangling)
+#   link_resolve(path)          list(is_link, target, is_dangling)
 #   link_create(target, link)   never overwrites; cleans up after a failed attempt
 #   link_remove(link)           refuses anything that is not a link; never touches the target
 #
@@ -72,7 +72,7 @@
 # file.mtime(): NA on a dead junction because Windows cannot open it, a date
 # on a real folder. The junction backend uses that as the detector and then
 # asks PowerShell for the stored target, on that rare branch only. Probed on
-# Windows 2026-10-22; history in .claude/DANGLING_MATRIX.md.
+# Windows 2026-10-22.
 #
 # Conventions:
 # - no system()/system2() except two PowerShell calls in the junction backend,

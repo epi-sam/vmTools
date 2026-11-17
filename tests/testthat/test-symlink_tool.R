@@ -446,8 +446,8 @@ test_that("Symlink names passed as version_name resolve to the real version",
              expect_identical(tail(vlog$version_name, 1), v1)
 
              # --- A non-existent name passes through unchanged (resolution never invents a name)
-             #     NOTE: mark() on a non-existent version is currently a silent skip (pre-existing,
-             #     see plan finding G) - so test the helper directly rather than the public method.
+             #     NOTE: mark() on a non-existent version is currently a silent skip, so test the
+             #     helper directly rather than the public method.
              expect_identical(
                 slt_res$.__enclos_env__$private$resolve_version_name("does_not_exist_1990")
                 , "does_not_exist_1990"

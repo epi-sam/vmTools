@@ -1,8 +1,38 @@
 # vmTools 2.1.0
 
-## QOL Updates
+The tool now runs on Linux, macOS and Windows without admin rights, and a
+user-defined symlink type is recorded in the root folder, so every user of the
+root sees it.
 
-- `make_new_version_folder()` returns the `version_name`
+## Breaking against CRAN 1.0.1
+
+- Windows: roots must be on a local disk (e.g. `C:`). Network drives refuse
+  junctions, so the tool stops at construction with a plain message. Run from
+  Linux for roots on a network drive.
+- The changes made in 2.0.0 also apply; see "Breaking from 1.0.0 to 2.0.0"
+  under vmTools 2.0.1 below:
+  - `SLT$new()`: `user_root_list` is now `root_list`, and
+    `user_central_log_root` is now `central_log_root`
+  - `SLT$new()`: `verbose` defaults to `FALSE` (was `TRUE`)
+  - `SLT$return_dictionaries()` no longer returns the symlink type entries
+
+## Breaking against 2.0.x (development versions, never on CRAN)
+
+- `new_symlink_type()` is removed. Use
+  `slt$update_symlink_registry(symlink_type, is_singleton, operation = "add")`.
+- `get_symlink_registry()` now returns the four built-in types only. For a
+  tool's full list use `slt$get_symlink_registry()`.
+- Symlink type names must be lowercase.
+- `SLC`: `get_common_symlink_types()` is now `get_symlink_types()` and returns
+  every type any of its tools holds.
+- `SLC$new()`: `verbose` now defaults to `TRUE` (was `FALSE`) and controls only
+  the message sent when the tools hold different symlink types. The start-up
+  summary moved to the new `verbose_startup` argument (default `FALSE`).
+- `SLT$new(central_log_root = NULL)` passed explicitly now stops. Leave the
+  argument out; the default is still the first root, `root_list[[1]]`.
+- Vignette files renamed: `symlink_tool_vignette_intro` and
+  `symlink_tool_vignette_technical` lose their `_v2` suffix.
+- Windows: roots must be on a local disk (see above).
 
 ## Sunset notice
 
@@ -18,27 +48,71 @@
   See `vignette("user_defined_symlink_types", package = "vmTools")`.
 - `slt$update_symlink_registry()` adds, updates or drops a type on a tool's
   roots; `update_symlink_disk_registry()` does the same for any root folder.
-- `slt$get_symlink_registry()` lists a tool's types. `get_symlink_registry()`
-  now returns the four built-in types only.
-- `new_symlink_type()` is removed. Use `slt$update_symlink_registry()`.
-- Type names must be lowercase.
-- `SLC`: `get_common_symlink_types()` is now `get_symlink_types()` and returns
-  every type any of its tools holds; `roundup_all()` accepts any of them.
+- `slt$get_symlink_registry()` lists a tool's types: the built-in types plus
+  those in its roots' registry files.
+- Read operations never write. `SLT$new()`, the roundups and
+  `slt$get_symlink_registry()` work on a root you can only read. A missing
+  registry file is created at the next `mark()`, `unmark()` or
+  `delete_version_folders()`.
+- The roots of one tool must agree on a type's `is_singleton`. If they do not,
+  the tool stops and prints the call that fixes it.
+- Changing a type's `is_singleton`, or dropping the type, is refused while
+  symlinks of that type exist. The error prints the `unmark()` calls to run
+  first.
+- `SLC$roundup_all()` accepts any type one of its tools holds, and asks only
+  the tools that hold it.
+
+## Dangling symlinks
+
+A dangling symlink is one that still exists after its version folder was
+deleted by hand.
+
+- `slt$roundup_dangling()` is new: it lists dangling symlinks across roots.
+- `unmark()` removes a dangling symlink, by version name or by the link's own
+  name (e.g. `best`). It writes a `remove_dangling_<type>` row to the central
+  log only, with a comment prefixed `[vmTools auto]`. The deleted folder is
+  never re-created.
+- `mark()` checks the symlink's place before demoting anything. A dangling
+  `best` or `latest` in the way is removed and logged; a real folder in the way
+  stops the mark with nothing changed.
+- The discrepancy report lists dangling tool symlinks as "tool symlink
+  (shortcut) points to a missing folder".
+- Dangling links are detected on Windows (junctions) as well as on Linux and
+  macOS.
 
 ## Cross-platform symlinks
 
-- New internal `R/links.R`: one link backend per operating system - symlinks on Linux and macOS, junctions on Windows. The tool no longer shells out to `ls`, `unlink` or `rm`.
-- Windows no longer needs admin rights. Roots must be on a local disk (e.g. `C:`); network drives refuse junctions, so the tool stops at construction with a plain message. Run from Linux for roots on a network drive.
-- The constructor no longer sets data.table threads - data.table's own default already respects the CPUs allocated to the job.
+- New internal `R/links.R`: one link backend per operating system - symlinks on
+  Linux and macOS, junctions on Windows. The tool no longer shells out to `ls`,
+  `unlink` or `rm`.
+- Windows no longer needs admin rights.
+- `dir_supports_links(dir)` is exported: `TRUE` if a link round-trip works in
+  `dir`. The constructor runs it on every root; call it yourself to check a
+  folder first.
+- The constructor no longer sets data.table threads - data.table's own default
+  already respects the CPUs allocated to the job.
 - Symlink registry entries no longer carry `ls_regex_fn`.
 - Test suite runs on Linux, macOS and Windows CI.
-- `dir_supports_links(dir)` is exported: `TRUE` if a link round-trip works in `dir`. The constructor runs it on every root; call it yourself to check a folder first.
+
+## QOL Updates
+
+- `make_new_version_folder()` returns the `version_name`
+- New vignette, `vignette("user_defined_symlink_types", package = "vmTools")`.
+  The intro and technical vignettes gain a section on Windows and present the
+  tool as managing one root.
 
 ## Bug Fixes
 
-- `clean_path()` now drops a trailing slash (bare roots such as `/` and `C:/` are kept). Previously a trailing slash survived, which made symlink checks look through the link instead of at it.
-- A symlink whose target folder was deleted by hand no longer crashes the tool; it resolves to the missing target with a message.
-- `utils` is now a declared import and every `utils` call is namespaced (`head`, `tail`, `capture.output`, `menu`, CSV readers/writers), so the tool works in sessions where `utils` is loaded but not attached.
+- A symlink whose target folder was deleted by hand no longer crashes the tool
+  (see Dangling symlinks above).
+- A failed promotion can no longer leave the previous `best` or `latest`
+  demoted with nothing marked in its place.
+- `clean_path()` now drops a trailing slash (bare roots such as `/` and `C:/`
+  are kept). Previously a trailing slash survived, which made symlink checks
+  look through the link instead of at it.
+- `utils` is now a declared import and every `utils` call is namespaced
+  (`head`, `tail`, `capture.output`, `menu`, CSV readers/writers), so the tool
+  works in sessions where `utils` is loaded but not attached.
 
 
 
