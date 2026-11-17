@@ -6,31 +6,41 @@
 #' Assert an element is atomic and length 1
 #'
 #' @param x (any) Element to check
+#' @param x_name (chr) Name used in error messages. Defaults to the
+#'   expression passed as `x`; wrappers forward their own so the caller's name
+#'   survives the extra call frame.
 #'
 #' @return (none) stop if assertion fails
 #'
 #' @family assertions
 #' @keywords internal
-assert_scalar <- function(x) {
-   x_name <- deparse(substitute(x))
+assert_scalar <- function(x, x_name = deparse(substitute(x))) {
    if (!(is.atomic(x) && length(x) == 1L)) {
-      stop(x_name, " must be atomic and length 1L.\n", "got: ", toString(x))
+      stop(
+         x_name, " must be atomic and length 1L.\n", "got: ", toString(x)
+         , " : ", "str(x) = ", capture.output(utils::str(x))[1]
+      )
    }
 }
 
 #' Assert x is a scalar, and not empty in some way
 #'
 #' @param x (any) some object to check
+#' @param x_name (chr) Name used in error messages. Defaults to the
+#'   expression passed as `x`; wrappers forward their own so the caller's name
+#'   survives the extra call frame.
 #'
 #' @return (none) stop if assertion fails
 #'
 #' @family assertions
 #' @keywords internal
-assert_scalar_not_empty = function(x) {
-   assert_scalar(x)
+assert_scalar_not_empty = function(x, x_name = deparse(substitute(x))) {
+   assert_scalar(x, x_name = x_name)
    if (!isTRUE(validate_not_empty(x))) {
-      x_name <- deparse(substitute(x))
-      stop(x_name, " is empty in some way.\n", "got: ", toString(x))
+      stop(
+         x_name, " is empty in some way.\n", "got: ", toString(x)
+         , " : ", "str(x) = ", capture.output(utils::str(x))[1]
+      )
    }
 }
 
@@ -38,16 +48,18 @@ assert_scalar_not_empty = function(x) {
 #'
 #' @param x (any) Object to check
 #' @param type (chr) Type to check against
+#' @param x_name (chr) Name used in error messages. Defaults to the
+#'   expression passed as `x`; wrappers forward their own so the caller's name
+#'   survives the extra call frame.
 #'
 #' @return (none) stop if assertion fails
 #'
 #' @family assertions
 #' @keywords internal
-assert_type = function(x, type) {
+assert_type = function(x, type, x_name = deparse(substitute(x))) {
    assert_scalar(type)
    stopifnot(is.character(type))
    if (!inherits(x, type)) {
-      x_name <- deparse(substitute(x))
       x_type <- typeof(x)
       stop(x_name, " must be of type ", type, "\n", "got: ", x_type)
    }
@@ -88,14 +100,17 @@ assert_named_list = function(x){
 #' Assert a directory exists on disk
 #'
 #' @param x (chr) A directory path
+#' @param x_name (chr) Name used in error messages. Defaults to the
+#'   expression passed as `x`; wrappers forward their own so the caller's name
+#'   survives the extra call frame.
 #'
 #' @return (none) stop if assertion fails
 #'
 #' @family assertions
 #' @keywords internal
-assert_dir_exists = function(x){
-   if(is.null(x)) stop("x is NULL")
-   assert_scalar(x)
+assert_dir_exists = function(x, x_name = deparse(substitute(x))){
+   if(is.null(x)) stop(x_name, " is NULL")
+   assert_scalar(x, x_name = x_name)
    x <- normalizePath(x, mustWork = TRUE)
    x
 }

@@ -17,8 +17,9 @@ and 'remove' (marked for deletion).
 
 
 try(SLT$new()) # call with no arguments to see instructions
-# Tool will not instantiate on Windows unless running with Admin permissions
-# - requirement for symlink creation on Windows
+# On Windows, roots must be on a local disk (e.g. C:) - the tool makes
+# junctions there, and network drives refuse them. Run from Linux for
+# roots on a network drive.
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -26,6 +27,8 @@ try(SLT$new()) # call with no arguments to see instructions
 \item \href{#method-Symlink_Tool-new}{\code{SLT$new()}}
 \item \href{#method-Symlink_Tool-return_dictionaries}{\code{SLT$return_dictionaries()}}
 \item \href{#method-Symlink_Tool-return_dynamic_fields}{\code{SLT$return_dynamic_fields()}}
+\item \href{#method-Symlink_Tool-get_symlink_registry}{\code{SLT$get_symlink_registry()}}
+\item \href{#method-Symlink_Tool-update_symlink_registry}{\code{SLT$update_symlink_registry()}}
 \item \href{#method-Symlink_Tool-mark}{\code{SLT$mark()}}
 \item \href{#method-Symlink_Tool-mark_best}{\code{SLT$mark_best()}}
 \item \href{#method-Symlink_Tool-mark_latest}{\code{SLT$mark_latest()}}
@@ -38,6 +41,7 @@ try(SLT$new()) # call with no arguments to see instructions
 \item \href{#method-Symlink_Tool-roundup_keep}{\code{SLT$roundup_keep()}}
 \item \href{#method-Symlink_Tool-roundup_remove}{\code{SLT$roundup_remove()}}
 \item \href{#method-Symlink_Tool-roundup_unmarked}{\code{SLT$roundup_unmarked()}}
+\item \href{#method-Symlink_Tool-roundup_dangling}{\code{SLT$roundup_dangling()}}
 \item \href{#method-Symlink_Tool-roundup_by_date}{\code{SLT$roundup_by_date()}}
 \item \href{#method-Symlink_Tool-get_common_new_version_name}{\code{SLT$get_common_new_version_name()}}
 \item \href{#method-Symlink_Tool-make_new_version_folder}{\code{SLT$make_new_version_folder()}}
@@ -57,7 +61,7 @@ The constructor function.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$new(
   root_list = NULL,
-  central_log_root = NULL,
+  central_log_root = root_list[[1]],
   schema_repair = TRUE,
   verbose = FALSE,
   verbose_startup = FALSE,
@@ -71,11 +75,21 @@ The constructor function.
 \describe{
 \item{\code{root_list}}{(list) Named list of root directories for
 pipeline outputs. This is where \code{version_name} folders live - these
-are iterative runs of an analysis pipeline.}
+are iterative runs of an analysis pipeline.
+On Windows each root must be on a local disk (e.g. \verb{C:}): the tool
+makes junctions there, and network drives refuse them. The tool
+checks every root when it is built and stops with a plain message
+if one cannot hold links. Run from Linux for roots on a network
+drive.
+SUNSET NOTICE: support for several roots on one tool will likely be
+sunset in a future version. Prefer one tool per root. Until then a
+tool with several roots runs every safety check, and \code{SLT$new()}
+sends a one-line message when \code{root_list} has more than one root.}
 
 \item{\code{central_log_root}}{(path) Root directory for the central log.
-If you have multiple roots in the \code{root_list}, you probably want
-the central log to live one level above those roots.}
+Default: the first root in \code{root_list}. If you have multiple roots
+in the \code{root_list}, you probably want the central log to live one
+level above those roots.}
 
 \item{\code{schema_repair}}{(logical) Default \code{TRUE}.  If \code{TRUE}, the tool
 will attempt to repair any schema mismatches it finds in the logs
@@ -83,10 +97,18 @@ when reading and writing e.g. add new columns if the tool schema has
 columns that existing logs do not. If \code{FALSE}, the tool will stop and
 throw an error if it finds a schema mismatch.}
 
-\item{\code{verbose}}{(lgl: default TRUE) control message verbosity - if TRUE,
-standard message, if FALSE, warn only if something is irregular.}
+\item{\code{verbose}}{(lgl: default FALSE) Narrate what the tool does? If
+\code{TRUE}, every step of an operation sends a message (which symlink is
+demoted or promoted, which log is written), reports say what they
+found, and \code{SLT$new()} lists the user-defined symlink types on its
+roots. If \code{FALSE}, the tool is silent except for a few irregular
+events, which are always reported: a dangling symlink, a folder that
+already exists, a deleted folder.}
 
-\item{\code{verbose_startup}}{(lgl) see start up warnings, if relevant?}
+\item{\code{verbose_startup}}{(lgl: default FALSE) Show the caution about the
+\code{csv_reader} when the tool is built? It applies to the \code{fread}
+readers: double quotation marks in log comments multiply. It
+controls nothing else.}
 
 \item{\code{csv_reader}}{(chr) The CSV reader to use (also assigns matching
 CSV writer). CAUTION: DO NOT USE \code{data.table::fread} if you have any
@@ -114,8 +136,9 @@ central logs.
 \if{html}{\out{<div class="r example copy">}}
 \preformatted{
 try(SLT$new()) # call with no arguments to see instructions
-# Tool will not instantiate on Windows unless running with Admin permissions
-# - requirement for symlink creation on Windows
+# On Windows, roots must be on a local disk (e.g. C:) - the tool makes
+# junctions there, and network drives refuse them. Run from Linux for
+# roots on a network drive.
 }
 \if{html}{\out{</div>}}
 
@@ -167,6 +190,59 @@ to see.}
 }
 }
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Symlink_Tool-get_symlink_registry"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Tool-get_symlink_registry}{}}}
+\subsection{Method \code{get_symlink_registry()}}{
+The symlink types this tool works with: the built-in types plus the
+types recorded in its roots' \code{.symlink_registry.csv} files. Read from
+the files each time it is called, so a type a teammate adds to a root
+is seen at the next call.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{SLT$get_symlink_registry()}\if{html}{\out{</div>}}
+}
+
+\subsection{Returns}{
+(named list) one entry per symlink type, in the same form as
+\code{get_symlink_registry()}: \code{is_singleton}, \code{is_builtin},
+\code{symlink_suffix_fn}, \code{extract_regex}
+}
+}
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Symlink_Tool-update_symlink_registry"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Tool-update_symlink_registry}{}}}
+\subsection{Method \code{update_symlink_registry()}}{
+Add, update or drop a symlink type in the \code{.symlink_registry.csv} file
+of every root of this tool. A wrapper around
+\code{update_symlink_disk_registry()}, called on the tool's own roots with
+the tool's \code{verbose} setting, so the same rules and messages apply.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{SLT$update_symlink_registry(
+  symlink_type,
+  is_singleton = NULL,
+  operation = c("add", "update", "drop")
+)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{symlink_type}}{(chr) the type, in lowercase; built-in types (best,
+latest, keep, remove) are refused}
+
+\item{\code{is_singleton}}{(lgl) required for \code{add} and \code{update}; ignored by
+\code{drop}}
+
+\item{\code{operation}}{(chr) \code{"add"} a type not yet on file; \code{"update"} the
+\code{is_singleton} of a type on file; \code{"drop"} a type from the file}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+(invisible NULL) called for the side effect of writing each
+root's registry file
+}
+}
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-mark"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-mark}{}}}
 \subsection{Method \code{mark()}}{
@@ -183,8 +259,9 @@ wrappers around this.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{symlink_type}}{(chr) A registered symlink type, e.g. \code{"best"},
-\code{"keep"}, or any type added via \code{new_symlink_type()}.}
+\item{\code{symlink_type}}{(chr) One of this tool's symlink types, e.g.
+\code{"best"}, \code{"keep"}, or a type added with
+\verb{$update_symlink_registry()}. See \verb{$get_symlink_registry()}.}
 
 \item{\code{version_name}}{(chr) The version_name folder to mark.
 You may also pass the name of an existing symlink (shortcut) such
@@ -391,9 +468,14 @@ Remove all symlinks for a single \code{version_name} in all \code{roots}
 
 Writes:
 \itemize{
-\item appends to a log file in the output folder with a date and time stamp
-\item does \emph{not} append to the central log file
+\item appends a \verb{demote_<type>} row to the log file in the output folder
+\item appends the same row to the central log file
 }
+
+A dangling symlink (shortcut), one whose version folder was deleted by
+hand, is removed too, by version name or by its own name. That writes
+a \verb{remove_dangling_<type>} row to the central log only, with a comment
+prefixed \verb{[vmTools auto]}; the deleted folder is never re-created.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{SLT$unmark(version_name, user_entry)}\if{html}{\out{</div>}}
 }
@@ -406,7 +488,7 @@ lives directly under one of the \code{root}s you define when you
 instantiate the tool.
 You may also pass the name of an existing symlink (shortcut) such
 as \code{"latest"} or \code{"keep_1990_01_01"}; it is resolved to the real
-version_name folder it points to.}
+version_name folder it points to, or removed directly if dangling.}
 
 \item{\code{user_entry}}{(list) Named list of user-defined fields to append to
 the log.  After making a tool called e.g. slt, call
@@ -437,7 +519,8 @@ wrappers.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{symlink_type}}{(chr) A registered symlink type.}
+\item{\code{symlink_type}}{(chr) One of this tool's symlink types, e.g.
+\code{"best"}. See \verb{$get_symlink_registry()}.}
 
 \item{\code{return_as}}{(chr: default \code{"table"}) or \code{"version_name"}.}
 }
@@ -614,6 +697,54 @@ Table output schema
 }
 }
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-Symlink_Tool-roundup_dangling"></a>}}
+\if{latex}{\out{\hypertarget{method-Symlink_Tool-roundup_dangling}{}}}
+\subsection{Method \code{roundup_dangling()}}{
+Find all dangling tool symlinks (shortcuts) in all \code{roots}
+
+A dangling symlink points to a version folder that no longer exists
+(deleted by hand, or by \code{delete_version_folders()} on a folder that
+also carried another mark). The ordinary roundups never list these;
+this one does, so they can be cleaned up with \code{unmark()}, by version
+name or by the link's own name.
+\subsection{Usage}{
+\if{html}{\out{<div class="r">}}\preformatted{SLT$roundup_dangling(
+  include_non_tool_symlinks = FALSE,
+  return_as = c("table", "version_name")
+)}\if{html}{\out{</div>}}
+}
+
+\subsection{Arguments}{
+\if{html}{\out{<div class="arguments">}}
+\describe{
+\item{\code{include_non_tool_symlinks}}{(lgl) Default \code{FALSE}. Also list
+dangling symlinks whose name matches no symlink type on this tool's
+roots' registry files, e.g. a hand-made link; \code{TRUE} lists those
+too, with \code{symlink_type} \code{NA}.}
+
+\item{\code{return_as}}{(chr) Default \code{table}.  Whether to return a data.table with
+symlink and stored target paths (\code{table}) or just a vector of
+\code{version_name}s (\code{version_name}) for easier automated round-ups.}
+}
+\if{html}{\out{</div>}}
+}
+\subsection{Returns}{
+(data.table/chr) A single data.table with results from all
+roots, with \code{root_name} as the first column, or a vector of
+\code{version_name}s if \code{return_as = version_name}. \code{dir_name_resolved}
+is the folder the link still points to, and is \code{NA} when it cannot
+be read; \code{version_name} is then parsed from a per-version link's own
+name, or \code{"unknown"} for a singleton such as \code{best}, or \code{NA} for a
+non-tool link.
+
+Table output schema
+
+\if{html}{\out{<div class="sourceCode r">}}\preformatted{root_name version_name dir_name dir_name_resolved symlink_type
+   <char>       <char>   <char>            <char>       <char>
+}\if{html}{\out{</div>}}
+}
+}
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-Symlink_Tool-roundup_by_date"></a>}}
 \if{latex}{\out{\hypertarget{method-Symlink_Tool-roundup_by_date}{}}}
 \subsection{Method \code{roundup_by_date()}}{
@@ -713,8 +844,8 @@ when you instantiate the tool.  For convenience, user may leave NULL
 Names used by the tool's own symlinks (shortcuts) are reserved and
 refused: the name of any singleton type (e.g. \code{"best"}, \code{"latest"})
 and any name starting with a non-singleton type plus underscore
-(e.g. \code{"keep_"}, \code{"remove_"}). Types added with \code{new_symlink_type()}
-reserve their names the same way.}
+(e.g. \code{"keep_"}, \code{"remove_"}). Types added with
+\verb{$update_symlink_registry()} reserve their names the same way.}
 }
 \if{html}{\out{</div>}}
 }

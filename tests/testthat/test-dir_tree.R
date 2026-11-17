@@ -16,3 +16,31 @@ test_that("dir_tree produces correct top-level repo file structure and formattin
    )
 })
 
+test_that("dir_tree prints a link with its target and does not expand it", {
+   testthat::skip_if_not(vmTools::dir_supports_links(tempdir()), "this machine cannot create symlinks (shortcuts) in tempdir()")
+   root <- make_test_root("dir_tree_links")
+   on.exit(unlink(root, recursive = TRUE), add = TRUE)
+   target <- clean_path(root, "1999_09_09.01")
+   make_directory(target)
+   file.create(clean_path(target, "data.txt"))
+   vmTools:::link_create(target, clean_path(root, "best"))
+
+   out <- gsub("\033\\[[0-9;]*m", "", capture.output(dir_tree(root)))   # strip colour codes
+
+   expect_true(any(endsWith(out, paste0("best -> ", target))))   # the link, with an arrow
+   expect_identical(sum(grepl("data.txt", out, fixed = TRUE)), 1L)   # printed once, under the real folder only
+})
+
+test_that("dir_tree flags a dangling link", {
+   testthat::skip_if_not(vmTools::dir_supports_links(tempdir()), "this machine cannot create symlinks (shortcuts) in tempdir()")
+   root <- make_test_root("dir_tree_dangling")
+   on.exit(unlink(root, recursive = TRUE), add = TRUE)
+   target <- clean_path(root, "gone")
+   make_directory(target)
+   vmTools:::link_create(target, clean_path(root, "best"))
+   unlink(target, recursive = TRUE)
+
+   out <- gsub("\033\\[[0-9;]*m", "", capture.output(dir_tree(root)))
+   expect_true(any(grepl("best -> .*gone \\(target missing\\)$", out)))
+})
+

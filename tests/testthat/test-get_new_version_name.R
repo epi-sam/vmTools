@@ -1,4 +1,4 @@
-dir_parent  <- tempdir()
+dir_parent  <- clean_path(tempdir())   # normalized, like every other fixture (macOS: /var -> /private/var)
 dir_child   <- 'temp_directory_1'
 dir_full    <- file.path(dir_parent, dir_child)
 
@@ -18,7 +18,7 @@ test_that("get_new_version_name functionality works", {
 
    # create random root directory with self-teardown (`teardown()` is deprecated)
    withr::local_file(dir_full)
-   dir.create(dir_full, recursive = TRUE)
+   expect_identical(make_test_root(dir_child), dir_full)   # creates it; helper and fixture must agree
 
    # expect bootstrap to work
    expect_equal("1999_09_09.01", get_new_version_name(root = dir_full, date = "1999_09_09"))

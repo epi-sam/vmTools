@@ -47,6 +47,10 @@ SLT <- R6::R6Class(
 
          , ROOTS = NULL
 
+         # TRUE/FALSE per root: can the tool create symlinks (shortcuts) there?
+         # - filled by a probe at construction (see R/links.R dir_supports_links)
+         , ROOT_LINK_CAPABLE = NULL
+
 
          ## Logs
 
@@ -131,6 +135,10 @@ SLT <- R6::R6Class(
 
          # Paths built from roots and intermediate path structures
          , VERS_PATHS = list()
+
+         # The tool's symlink types for the operation under way - built from
+         # the roots' registry files by `handler_reconcile_symlink_registry()`
+         , SYMLINK_REGISTRY = list()
       ),
 
 
@@ -395,7 +403,7 @@ SLT <- R6::R6Class(
             if(any(coltype_success_mask == FALSE)){
                coltype_fail_mask <- !coltype_success_mask
                coltype_fails     <- coltypes_actual[coltype_fail_mask]
-               stop(my_dt_name, ": ", "Columns failing type-matching.  Actual column data-types are:", "\n    ", paste(capture.output(coltype_fails), collapse = "\n    "))
+               stop(my_dt_name, ": ", "Columns failing type-matching.  Actual column data-types are:", "\n    ", paste(utils::capture.output(coltype_fails), collapse = "\n    "))
             }
          }
 
@@ -469,8 +477,8 @@ SLT <- R6::R6Class(
       #  @param version_name (chr) e.g. "2023_01_01"
       #  @param symlink_type (chr) e.g. "best"
       #
-      #  @return (list) two elements symlinks - symlink path names (unresolved)
-      #    and symlink_count of symlinks matching get_symlink_types()
+      #  @return (list) two elements: symlinks - symlink names (the link's own
+      #    name under root, e.g. "best" or "keep_1990_01_01") and symlink_count
       find_count_symlinks = function(root, version_name, symlink_type){
 
          # validate inputs
@@ -478,22 +486,29 @@ SLT <- R6::R6Class(
          assert_scalar(version_name)
          assert_scalar(symlink_type)
 
-         # Define all eligible symlink regex patterns by type
-         # We're ONLY monitoring symlinks of a certain pattern - users are free to make others
-         ls_regex_fn   <- get_symlink_registry_entry(symlink_type)[["ls_regex_fn"]]
-         symlink_regex <- ls_regex_fn(version_name)
+         # The tool's symlink for a type + version has exactly one name (e.g.
+         # `best`, `keep_1990_01_01`) and must point at that version folder.
+         # We're ONLY monitoring symlinks of that pattern - users are free to make others
+         leaf_expected <- basename(private$make_symlink_path(clean_path(root, version_name), symlink_type))
 
-         folder_contents <- system(paste("ls -l", root), intern = TRUE)
-         folder_contents <- folder_contents[-1] # remove "total xxx" header row
-         if(length(folder_contents) == 0) stop("No items found in your root folder - investigate: ", root)
-
-         symlinks           <- grep(symlink_regex, folder_contents, value = TRUE)
-         symlinks_found_lgl <- grepl(symlink_regex, folder_contents)
-         symlink_count      <- sum(as.integer(symlinks_found_lgl))
+         links_dt <- link_list(root)
+         links_dt <- links_dt[is_link == TRUE & leaf == leaf_expected, ]
+         # A link whose target can be read must point at this version. A dangling
+         # link whose target cannot be read (Windows, PowerShell silent) is
+         # matched by name alone, but only for per-version types: `keep_<v>`
+         # carries the version in its name, `best` does not and must never be
+         # attributed to a version by guesswork.
+         registry       <- self$get_symlink_registry()
+         entry          <- get_symlink_registry_entry(symlink_type, registry)
+         is_singleton   <- isTRUE(entry[["is_singleton"]])
+         target_missing <- is.na(links_dt$target)
+         keep_row       <- !target_missing & basename(links_dt$target) == version_name
+         keep_row[target_missing] <- !is_singleton
+         links_dt       <- links_dt[keep_row, ]
 
          return(list(
-            symlinks      = symlinks,
-            symlink_count = symlink_count
+            symlinks      = links_dt$leaf,
+            symlink_count = nrow(links_dt)
          ))
       },
 
@@ -511,7 +526,7 @@ SLT <- R6::R6Class(
          version_name <- basename(version_path)
 
          symlink_list <- private$find_count_symlinks(root = root, version_name = version_name, symlink_type = symlink_type)
-         ifelse(symlink_list$symlink_count > 0, TRUE, FALSE)
+         return(symlink_list$symlink_count > 0)
       },
 
       #  assert that some number of symlinks exist for some version_name - sums symlinks across all symlink_types specified
@@ -533,13 +548,13 @@ SLT <- R6::R6Class(
          if(!is.integer(n_sym)) stop("n_sym must be an integer")
          if(n_sym < 0L) stop("n_sym must be non-negative")
 
-         valid_symlink_types <- c(get_symlink_types(), "all")
+         valid_symlink_types <- c(get_symlink_types(self$get_symlink_registry()), "all")
          if(!symlink_type %in% valid_symlink_types) {
             stop("symlink_type must be one of: \n  ",
                  valid_symlink_types, collapse = "\n  ")
          }
 
-         if(symlink_type == "all") symlink_type <- get_symlink_types()
+         if(symlink_type == "all") symlink_type <- get_symlink_types(self$get_symlink_registry())
          names(symlink_type) <- symlink_type # names for lapply
 
          symlink_list <- lapply(symlink_type, function(x){
@@ -553,13 +568,13 @@ SLT <- R6::R6Class(
             if(sum(symlink_counts) > n_sym) {
                stop("You have more than ", n_sym, " symlink(s) for ", version_path, "\n  ",
                     "Please run 'unmark()' to remove all symlinks, then try again.\n  ",
-                    paste(capture.output(symlink_counts), collapse = "\n  "))
+                    paste(utils::capture.output(symlink_counts), collapse = "\n  "))
             }
          } else {
             if(sum(symlink_counts) != n_sym) {
                stop("You do not have ", n_sym, " symlink(s) for ", version_path, "\n  ",
                     "Please run 'unmark()' to remove all symlinks, then try again.\n  ",
-                    paste(capture.output(symlink_counts), collapse = "\n  "))
+                    paste(utils::capture.output(symlink_counts), collapse = "\n  "))
             }
          }
 
@@ -568,19 +583,48 @@ SLT <- R6::R6Class(
       },
 
 
-      #  Resolve a symlink to its full path
+      #  Stop if a real folder occupies the path a tool symlink (shortcut) needs
       #
-      #  @param path (chr) a path to a symlink
+      #  @param path_symlink (chr) the slot path, e.g. <root>/best
+      #  @param version_name (chr) version being marked, for the message
+      #  @param symlink_type (chr) registered type, for the message
       #
-      #  @return (chr) the full path of the symlink
-      resolve_symlink = function(path){
-         # path_resolved <- normalizePath(path, mustWork = FALSE)
-         path_resolved <- clean_path(path, normalize = TRUE, mustWork = FALSE)
-         if(file.exists(path_resolved)) {
-            return(path_resolved)
-         } else {
-            private$msg_sometimes("Could not resolve symlink: ", path, always_message = TRUE)
+      #  @return (lgl) TRUE invisibly; stops otherwise
+      assert_symlink_slot_free = function(path_symlink, version_name, symlink_type){
+         if (!path_is_link(path_symlink) && dir.exists(path_symlink)) {
+            # A real directory, not a symlink, is using the name the symlink needs
+            stop(
+               "Cannot mark '", version_name, "' as '", symlink_type, "'.",
+               "\nThe tool needs to create a symlink (shortcut) named '", basename(path_symlink), "' here:\n  ", path_symlink,
+               "\nbut a real folder with that name already exists.",
+               "\nPlease move or rename that folder, then try again. Nothing has been changed."
+            )
          }
+         return(invisible(TRUE))
+      },
+
+      #  Resolve a symlink to the full path of its target
+      #
+      #  A dangling symlink (target folder gone) still resolves to that target
+      #  path, with a message, so callers can log and remove it. A real folder
+      #  resolves to its own normalized path.
+      #
+      #  @param path (chr) a path to a symlink (or a real folder)
+      #
+      #  @return (chr) the full path of the symlink's target
+      resolve_symlink = function(path){
+         info <- link_resolve(path)
+
+         if (info$is_link && info$is_dangling) {
+            private$msg_sometimes("Dangling symlink (target folder is gone): ", path, " -> ", info$target, always_message = TRUE)
+            path_resolved <- info$target
+         } else if (info$is_link) {
+            path_resolved <- info$target
+         } else {
+            path_resolved <- clean_path(path, normalize = TRUE, mustWork = FALSE)
+         }
+
+         return(path_resolved)
       },
 
       #  Resolve a user-supplied `version_name` to the real folder name.
@@ -595,7 +639,7 @@ SLT <- R6::R6Class(
       #  - A real version_name, or a name that does not exist, passes through
       #    unchanged so downstream "folder does not exist" errors still fire.
       #  - With several roots, the name must resolve to the SAME version in
-         # every root; otherwise the request is ambiguous & stop.
+      #    every root; otherwise the request is ambiguous & stop.
       #
       #  @param version_name (chr) user-supplied version_name or symlink name
       #
@@ -618,7 +662,7 @@ SLT <- R6::R6Class(
          # Still a reserved name after resolving?  Then no such symlink exists
          # (user meant e.g. "latest" but nothing is marked latest), or a real
          # folder is using the name.  Either way there is no version to act on.
-         if(!is.null(find_reserved_name_conflict(resolved))){
+         if(!is.null(find_reserved_name_conflict(resolved, self$get_symlink_registry()))){
             stop(
                "'", version_name, "' is the name of a symlink (shortcut), not a versioned folder, ",
                "and no symlink with that name currently exists in:\n  ", paste(roots, collapse = "\n  "),
@@ -643,56 +687,53 @@ SLT <- R6::R6Class(
       make_symlink_path = function(version_path, symlink_type){
          assert_scalar(version_path)
          assert_scalar(symlink_type)
-         if(!symlink_type %in% get_symlink_types()) stop("Invalid symlink_type: ", symlink_type)
+         registry <- self$get_symlink_registry()
+         if(!symlink_type %in% names(registry)) stop("Invalid symlink_type: ", symlink_type)
          root         <- dirname(clean_path(version_path))
          version_name <- basename(clean_path(version_path))
 
-         symlink_suffix_fn <- get_symlink_registry_entry(symlink_type)[["symlink_suffix_fn"]]
+         entry             <- get_symlink_registry_entry(symlink_type, registry)
+         symlink_suffix_fn <- entry[["symlink_suffix_fn"]]
          symlink_suffix    <- symlink_suffix_fn(version_name)
 
          # don't normalize - we want a symlink path
          return(clean_path(root, paste0(symlink_type, symlink_suffix), normalize = FALSE))
       },
 
-      #  Pull a symlink from a linux-style path string
+      #  Remove one tool symlink (shortcut) of one type for one version, and log it
       #
-      #  e.g. pull "best" from:
-      #  "lrwxrwxrwx 1 USER Domain Users  63 Feb  6 17:04 best -> /mnt/share/some/path"
+      #  Looks for the link this type would give this version (`best`,
+      #  `keep_<version>`) in one root. Three outcomes:
+      #  - not there: message, no log row, no error
+      #  - there but dangling (its folder was deleted by hand): the link is
+      #    removed and the central log alone gets a `remove_dangling_<type>`
+      #    row with a tool-authored comment plus the user's. The gone folder is
+      #    never re-created to hold a version log
+      #  - live: the link is removed and both the version log and the central
+      #    log get a `demote_<type>` row, but only if the delete succeeded
       #
-      #  @param symlink_string (chr) a string from a linux path e.g. "lrwxrwxrwx 1 USER Domain Users  63 Feb  6 17:04 best -> /mnt/share/some/path"
+      #  A dangling link whose stored target cannot be read is matched by its own
+      #  name for per-version types only; a dangling `best` is never attributed to
+      #  a version by guesswork.
       #
-      #  @return (chr) the symlink string
-      extract_symlink = function(symlink_string){
-         if(!grepl(arrow_regex(), symlink_string)) stop("No arrow found in symlink_string: ", symlink_string)
-         match_idx <- regexpr(arrow_regex(), symlink_string)
-         str_pre_arrow <- substr(symlink_string, 1, match_idx - 1)
-         # grab the last string of non-whitespace characters
-         str_symlink <- tail(strsplit(str_pre_arrow, " ")[[1]], 1)
-         # validate against allowed patterns
-         symlink_regex <- get_symlink_regex_extract()
-         symlink_regex <- paste(unlist(symlink_regex), collapse = "|")
-         if(!grepl(symlink_regex, str_symlink)) {
-            stop("Invalid symlink found - inspect extract_symlink logic: ", str_symlink)
-         }
-         return(str_symlink)
-      },
-
-      #  Remove one symlink and message about which type was removed, append to log
+      #  Messages about removals and failures are always shown, even with
+      #  verbose off, because the tool is touching something the user did not
+      #  name in the call.
       #
       #  @param root (chr) path to the root folder
-      #  @param version_name (chr) version_name of the user's folder
-      #  @param symlink_type (chr) valid symlink type defined by class, e.g. 'best', 'keep', 'remove'
-      #  @param user_entry (named list) user entry from the user's folder
+      #  @param version_name (chr) resolved version_name the link should point at
+      #  @param symlink_type (chr) one registered type, e.g. 'best', 'keep', 'remove'
+      #  @param user_entry (named list) the caller's log entry
       #
-      #  @return (none) side effect of removing a symlink
+      #  @return (none) side effects on disk and in the logs as above
       remove_one_symlink = function(root, version_name, symlink_type, user_entry){
          assert_dir_exists(root)
          assert_scalar(version_name)
          assert_scalar(symlink_type)
-         if(!symlink_type %in% get_symlink_types())
+         if(!symlink_type %in% get_symlink_types(self$get_symlink_registry()))
          stop(
             "Invalid symlink_type; got - ", symlink_type
-            , " - expected - ", toString(get_symlink_types())
+            , " - expected - ", toString(get_symlink_types(self$get_symlink_registry()))
          )
 
          symlink_list <- private$find_count_symlinks(
@@ -700,30 +741,58 @@ SLT <- R6::R6Class(
             version_name = version_name,
             symlink_type = symlink_type
          )
-         symlink <- unlist(symlink_list$symlinks)
+         symlinks <- symlink_list$symlinks
 
-         if(length(symlink) > 0){
-            symlink_clean <- private$extract_symlink(symlink_string = symlink)
-            # don't normalize - we want a symlink path
-            symlink_full  <- clean_path(root, symlink_clean, normalize = FALSE)
-            path_real     <- private$resolve_symlink(path = symlink_full)
-            version_name_to_remove <- basename(path_real)
-            private$DYNAMIC$LOG$action       <- sprintf("demote_%s", symlink_type)
-            private$DYNAMIC$LOG$version_name <- version_name_to_remove
-
-            private$msg_sometimes("   removing ", symlink_full)
-
-            # Log only if the unlink succeeds (linux-style &&: act, then record the act)
-            if (system(paste("unlink", symlink_full)) == 0L) {
-               private$append_to_log(version_path = path_real, user_entry = user_entry)
-               private$append_to_central_log(version_path = path_real, user_entry = user_entry)
-            } else {
-               private$msg_sometimes("   unlink failed for: ", symlink_full, always_message = TRUE)
-            }
-
-         } else {
-            private$msg_sometimes("     No symlink found for: ", version_name, " - ", symlink_type, always_message = TRUE)
+         # nothing to do is not an error
+         if (length(symlinks) == 0) {
+            private$msg_sometimes(
+               "     No symlink found for: ", version_name, " - ", symlink_type
+               , always_message = TRUE
+            )
+            return(invisible(NULL))
          }
+
+         # don't normalize - we want the symlink path itself, not its target
+         symlink_full <- clean_path(root, symlinks, normalize = FALSE)
+
+         # Dangling link: the version folder is gone, so there is no version log
+         # to write and nothing to re-create. Central-log row only.
+         # Must prevent creation of zombie folders by the append_to_log() route.
+         if (isTRUE(link_resolve(symlink_full)$is_dangling)) {
+            private$remove_dangling_symlink(
+               root                  = root
+               , symlink_leaf        = symlinks
+               , symlink_type        = symlink_type
+               , user_entry          = user_entry
+               , append_user_comment = TRUE
+            )
+            return(invisible(NULL))
+         }
+
+         # Live link: demote
+         path_real <- private$resolve_symlink(path = symlink_full)
+         private$DYNAMIC$LOG$action       <- sprintf("demote_%s", symlink_type)
+         private$DYNAMIC$LOG$version_name <- basename(path_real)
+
+         private$msg_sometimes("   removing ", symlink_full)
+
+         # Log only if the unlink succeeds (linux-style &&: act, then record the act)
+         removed <- tryCatch(
+            link_remove(symlink_full)
+            , error = function(e) {
+               private$msg_sometimes(
+                  "   unlink failed for: ", symlink_full, "\n   ", conditionMessage(e)
+                  , always_message = TRUE
+               )
+               return(FALSE)
+            }
+         )
+         if (isTRUE(removed)) {
+            private$append_to_log(version_path = path_real, user_entry = user_entry)
+            private$append_to_central_log(version_path = path_real, user_entry = user_entry)
+         }
+
+         return(invisible(NULL))
       },
 
       #  Remove all symlinks for a version_name
@@ -738,7 +807,7 @@ SLT <- R6::R6Class(
       remove_all_symlinks = function(root, version_name, user_entry){
          assert_scalar(version_name)
          private$msg_sometimes("Removing symlinks for: ", version_name)
-         for(symlink_type in get_symlink_types()){
+         for(symlink_type in get_symlink_types(self$get_symlink_registry())){
             private$remove_one_symlink(
                root         = root,
                version_name = version_name,
@@ -746,6 +815,173 @@ SLT <- R6::R6Class(
                user_entry   = user_entry
             )
          }
+      },
+
+      #  Which version did a dangling link belong to?
+      #
+      #  From the target when it can be read. Otherwise from the link's own
+      #  name for per-version types (`keep_1990_01_01` -> `1990_01_01`), and
+      #  "unknown" for singletons (`best` says nothing about its version).
+      #  - "unknown" should be a rare failure path when a dangling windows junction
+      #    fails to find the junction target.
+      #
+      #  @param symlink_leaf (chr) the link's own name
+      #  @param symlink_type (chr) registered type
+      #  @param target (chr or NA) the link's target as reported by link_resolve()
+      #
+      #  @return (chr) a version_name, or "unknown"
+      resolve_dangling_version_name = function(symlink_leaf, symlink_type, target){
+         if (!is.na(target)) return(basename(target))
+         reg <- get_symlink_registry_entry(symlink_type, self$get_symlink_registry())
+         if (isTRUE(reg[["is_singleton"]])) return("unknown")
+         version_name <- sub(reg[["extract_regex"]], "", symlink_leaf)
+         return(version_name)
+      },
+
+      #  Remove a dangling link by its own name (the unmark() path for link names)
+      #
+      #  `unmark("best")` normally resolves "best" to the version it points at
+      #  and strips that version of every mark. A dangling link may have no
+      #  readable version (Windows, PowerShell silent), so when the name the
+      #  user passed is a tool link that is dangling, it is removed by name
+      #  instead. Decide first, act second: this path is taken only when every
+      #  root that has the link has it dangling. Dangling in one root and live in
+      #  another is ambiguous (which version did the user mean?), so nothing is
+      #  touched and the normal path raises its ambiguity error.
+      #
+      #  @param link_name (chr) what the user passed as version_name
+      #  @param user_entry (named list) the caller's log entry
+      #
+      #  @return (lgl) TRUE if the request was handled here; FALSE to continue
+      #    with normal resolution, nothing changed
+      remove_dangling_link_by_name = function(link_name, user_entry){
+
+         # not a tool link name (e.g. a plain version_name): nothing for this path to do
+         symlink_type <- get_symlink_type_from_name(link_name, self$get_symlink_registry())
+         if (is.na(symlink_type)) return(FALSE)
+
+         roots    <- unlist(private$DICT$ROOTS)
+         info     <- lapply(roots, function(root) link_resolve(clean_path(root, link_name, normalize = FALSE)))
+         is_link  <- vapply(info, `[[`, logical(1), "is_link")
+         is_dangling <- vapply(info, `[[`, logical(1), "is_dangling")
+
+         # no dangling link anywhere: normal resolution handles it
+         if (!any(is_dangling)) return(FALSE)
+
+         # dangling in one root, live in another: ambiguous, so touch nothing and let
+         # the normal path raise its ambiguity error via `resolve_version_name()`
+         if (any(is_link & !is_dangling)) return(FALSE)
+
+         # unambiguous dangling link in all roots - remove and log
+         for (root in roots[is_dangling]) {
+            private$remove_dangling_symlink(
+               root                  = root
+               , symlink_leaf        = link_name
+               , symlink_type        = symlink_type
+               , user_entry          = user_entry
+               , append_user_comment = TRUE
+            )
+         }
+         for (root in roots) private$report_all_logs_tool_symlink(root)
+         return(TRUE)
+      },
+
+      #  Remove a dangling tool symlink (shortcut) and record it in the central log only
+      #
+      #  The target folder is gone, so there is no version log to append to, and
+      #  the tool never re-creates a folder to hold one. The central-log row is
+      #  the whole record. Its comment is machine-prefixed so a reader can tell
+      #  the tool wrote it:
+      #    [vmTools auto] removed dangling symlink (shortcut) <leaf> pointing to missing folder <target leaf>. <user comment>
+      #  No quotes, semicolons or commas in the generated text, so the csv
+      #  round-trips on any delimiter. They may exist in user comments - their repsonsibility.
+      #
+      #  @param root (chr) root folder
+      #  @param symlink_leaf (chr) the link's own name, e.g. `best`, `keep_1990_01_01`
+      #  @param symlink_type (chr) registered type
+      #  @param user_entry (named list) the caller's log entry
+      #  @param append_user_comment (lgl) TRUE when the user asked for this removal
+      #    (`unmark()`); FALSE when it is a side effect of clearing a dangling
+      #    singleton slot during a mark, where the user's comment belongs on the
+      #    promote row instead & removing a dangling symlink is just housekeeping
+      #
+      #  @return (lgl) TRUE if the link was removed and logged
+      remove_dangling_symlink = function(root, symlink_leaf, symlink_type, user_entry, append_user_comment = TRUE){
+         assert_dir_exists(root)
+         assert_scalar(symlink_leaf)
+         assert_scalar(symlink_type)
+         assert_named_list(user_entry)
+         checkmate::assert_flag(append_user_comment)
+         registry <- self$get_symlink_registry()
+         if(!symlink_type %in% names(registry)) stop("Invalid symlink_type: ", symlink_type)
+
+         path_link <- clean_path(root, symlink_leaf, normalize = FALSE)
+         info      <- link_resolve(path_link)
+         if (!(info$is_link && info$is_dangling)) {
+            stop(
+               "Not a dangling symlink (shortcut): ", path_link
+               , "\n  - remove_dangling_symlink() only removes links whose target folder is gone. Nothing has been changed."
+            )
+         }
+
+         # version_path is always the version folder's hard path, as on every
+         # demote row - the action column says what happened to the link, the
+         # version columns say which version it was about. The folder is gone;
+         # its address is still what the row is about.
+         version_name <- private$resolve_dangling_version_name(symlink_leaf, symlink_type, info$target)
+         if (!is.na(info$target)) {
+            version_path <- info$target
+            target_leaf  <- basename(info$target)
+            link_label   <- symlink_leaf
+         } else if (version_name != "unknown") {
+            version_path <- clean_path(root, version_name, normalize = FALSE)   # per-version link: name carries the version
+            target_leaf  <- version_name
+            link_label   <- symlink_leaf
+         } else {
+            # dangling singleton whose stored target Windows could not report: no
+            # hard path to give. NA in the column; the full link path goes in
+            # the comment so the row still says which root it happened in.
+            version_path <- NA_character_
+            target_leaf  <- "unknown"
+            link_label   <- path_link
+         }
+
+         comment_auto <- sprintf(
+            "[vmTools auto] removed dangling symlink (shortcut) %s pointing to missing folder %s."
+            , link_label, target_leaf
+         )
+         user_comment <- if (append_user_comment) user_entry[["comment"]] else NULL
+         entry_auto   <- user_entry
+         entry_auto[["comment"]] <- if (length(user_comment) == 1L && nzchar(user_comment)) {
+            paste(comment_auto, user_comment)
+         } else {
+            comment_auto
+         }
+
+         private$DYNAMIC$LOG$action       <- sprintf("remove_dangling_%s", symlink_type)
+         private$DYNAMIC$LOG$version_name <- version_name
+
+         private$msg_sometimes(
+            "   removing dangling symlink (shortcut): ", path_link, " (target folder missing: ", target_leaf, ")"
+            , always_message = TRUE
+         )
+
+         # act, then record the act
+         removed <- tryCatch(
+            link_remove(path_link)
+            , error = function(e) {
+               private$msg_sometimes(
+                  "   unlink failed for: ", path_link, "\n   ", conditionMessage(e)
+                  , always_message = TRUE
+               )
+               return(FALSE)
+            }
+         )
+         if (isTRUE(removed)) {
+            private$append_to_central_log(version_path = version_path, user_entry = entry_auto)
+         }
+
+         return(isTRUE(removed))
       },
 
 
@@ -795,7 +1031,10 @@ SLT <- R6::R6Class(
          # Remove symlinks and base folders
          # ensure the folder is marked `remove_`
          # - the tool will not delete unmarked folders, that's the entire point of the tool
-         folder_dt_removes      <- folder_dt[is_tool_symlink == TRUE & grepl(get_symlink_regex_extract()[["remove"]], dir_leaf), ]
+         regex_extract          <- get_symlink_regex_extract(self$get_symlink_registry())
+         regex_remove           <- regex_extract[["remove"]]
+         is_remove_link         <- grepl(regex_remove, folder_dt$dir_leaf)
+         folder_dt_removes      <- folder_dt[is_tool_symlink == TRUE & is_remove_link, ]
          deletion_symlink_exact <- sprintf("remove_%s", version_name)
          deletion_dir_name      <- folder_dt[dir_leaf == deletion_symlink_exact, dir_name]
 
@@ -830,11 +1069,11 @@ SLT <- R6::R6Class(
                private$append_to_central_log(version_path = version_path, user_entry = user_entry)
                for(dir_name in dirnames_to_delete){
                   private$msg_sometimes("Deleting ", dir_name)
-                  system(sprintf("rm -rf %s", dir_name))
+                  private$delete_folder_or_link(dir_name)
                }
             }
 
-            ret_val_deleted_TF <- ifelse(user_input == 2, TRUE, FALSE)
+            ret_val_deleted_TF <- user_input == 2
 
          } else if (require_user_input == FALSE) {
 
@@ -846,7 +1085,7 @@ SLT <- R6::R6Class(
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
             for(dir_name in dirnames_to_delete){
                private$msg_sometimes("Deleting ", dir_name, always_message = TRUE)
-               system(paste("rm -rf", dir_name))
+               private$delete_folder_or_link(dir_name)
             }
 
             ret_val_deleted_TF <- TRUE
@@ -857,6 +1096,24 @@ SLT <- R6::R6Class(
 
          return(ret_val_deleted_TF)
 
+      },
+
+      #  Delete one version folder, or one of the tool's symlinks to it
+      #
+      #  A symlink is removed with `link_remove()`, which deletes the link only
+      #  and never follows it into the folder it points to. A real folder is
+      #  removed recursively. Used only by `delete_remove_folder()`.
+      #
+      #  @param path (chr) a real folder or a symlink directly under a root
+      #
+      #  @return (none) side effect of deletion
+      delete_folder_or_link = function(path){
+         assert_scalar(path)
+         if (path_is_link(path)) {
+            link_remove(path)
+         } else {
+            unlink(path, recursive = TRUE)
+         }
       },
 
 
@@ -1127,7 +1384,7 @@ SLT <- R6::R6Class(
          # Safely write first 'create' row if it doesn't exist
          dt_log <- private$ensure_log_creation_entry(version_path, dt_log)
 
-         last_row <- tail(dt_log, 1)
+         last_row <- utils::tail(dt_log, 1)
 
          log_entry <- data.table::data.table(
             log_id       = last_row$log_id + 1,
@@ -1259,7 +1516,7 @@ SLT <- R6::R6Class(
 
          if(!is.na(private$DYNAMIC$LOG$action)){
 
-            last_row <- tail(dt_log, 1)
+            last_row <- utils::tail(dt_log, 1)
 
             log_entry <- data.table::data.table(
                log_id       = last_row$log_id + 1,
@@ -1326,7 +1583,7 @@ SLT <- R6::R6Class(
       #
       #  @return (data.table) a data.table with the first row of each log
       query_logs_first_row = function(log_list){
-         dt_query <- data.table::rbindlist(lapply(log_list, function(x) head(x, 1)), fill = TRUE)
+         dt_query <- data.table::rbindlist(lapply(log_list, function(x) utils::head(x, 1)), fill = TRUE)
          setorderv(dt_query, private$DICT$log_sort_varname)
          return(dt_query)
       },
@@ -1340,7 +1597,7 @@ SLT <- R6::R6Class(
       #
       #  @return (data.table) a data.table with the last row of each log
       query_logs_last_row = function(log_list){
-         dt_query <- data.table::rbindlist(lapply(log_list, function(x) tail(x, 1)), fill = TRUE)
+         dt_query <- data.table::rbindlist(lapply(log_list, function(x) utils::tail(x, 1)), fill = TRUE)
          setorderv(dt_query, private$DICT$log_sort_varname)
          return(dt_query)
       },
@@ -1365,44 +1622,51 @@ SLT <- R6::R6Class(
       #  - Moves all logs to subfolders for a proper query
       #
       #  @param root (chr) path to a root folder defined at instantiation (`STL$new()`)
+      #  @param include_dangling (lgl) keep dangling symlinks (target folder gone)?
+      #    Default FALSE: every query and roundup sees only links it can follow.
+      #    TRUE is for the discrepancy report and `query_all_dangling()`, which
+      #    name them. A dangling row has `dir_name_resolved` = the stored target
+      #    (NA when it cannot be read) and `version_name` = its leaf (or NA).
       #
       #  @return (data.table) table of all version_name folders and their folder types (e.g. bare folder or symlink)
-      query_root_folder_types = function(root){
-         # Find all first-level folders in the root (non-recursive)
-         dir_name <- list.dirs(root, full.names = TRUE, recursive = FALSE)
-         # final part of the path - implies symlink if active
-         dir_leaf <- basename(dir_name)
-         dir_name_resolved <- unlist(lapply(dir_name, private$resolve_symlink))
-         dir_name_resolved <- clean_path(dir_name_resolved)
+      query_root_folder_types = function(root, include_dangling = FALSE){
+         checkmate::assert_flag(include_dangling)
+         # Find all first-level folders and symlinks in the root (non-recursive)
+         # - the tool's own transient probe entries are left out
+         links_dt <- link_list(root)
+         links_dt <- links_dt[!startsWith(leaf, ".vmtools_probe_"), ]
+         if (!include_dangling) links_dt <- links_dt[is_dangling == FALSE, ]
+
+         # resolved path: a symlink's target, or a real folder's own path
+         dir_name_resolved <- links_dt$target
+         non_link_mask <- !links_dt$is_link
+         dir_name_resolved[non_link_mask] <- clean_path(links_dt$path[non_link_mask], normalize = TRUE)
+
          # table of all folders, resolved paths, and last part of the path
-         tryCatch(
-            {
-               # I want this to be an error, not a warning
-               folder_dt <- data.table::as.data.table(
-                  cbind(
-                     dir_name,
-                     dir_name_resolved,
-                     dir_leaf
-                  )
-               )
-            },
-            warning = function(w) stop("cbind operation failed in query_root_folder_types - inspect logic.")
+         folder_dt <- data.table::data.table(
+            dir_name            = links_dt$path
+            , dir_name_resolved = dir_name_resolved
+            , dir_leaf          = links_dt$leaf
          )
          # also add on the resolved leaf version_name for later queries and roundups
          # - keep name distinct to avoid data.table conflicts with function args
          folder_dt[, version_name := basename(dir_name_resolved)]
          # define symlinks that could and couldn't have been created by this tool for later use
-         tool_symlink_regex  <- get_symlink_regex_extract()
+         tool_symlink_regex  <- get_symlink_regex_extract(self$get_symlink_registry())
          tool_symlink_regex  <- paste(tool_symlink_regex, collapse = "|")
-         folder_dt[, is_symlink := dir_name != dir_name_resolved]
+         folder_dt[, is_symlink := links_dt$is_link]
+         folder_dt[, is_dangling := links_dt$is_dangling]
          # a tool symlink must actually BE a symlink - a real folder named e.g.
          # `best` is a collision, not a mark, and is flagged separately
          folder_dt[, is_tool_symlink      := is_symlink & grepl(tool_symlink_regex, dir_leaf)]
-         folder_dt[, is_reserved_name_dir := !is_symlink & grepl(tool_symlink_regex, dir_leaf)]
+         # - ignore case: on Windows and macOS a real folder `Best` sits in the
+         #   `best` link's slot, so it is a collision there and worth reporting everywhere
+         folder_dt[, is_reserved_name_dir := !is_symlink & grepl(tool_symlink_regex, dir_leaf, ignore.case = TRUE)]
 
-         # reporting requires logs to be in a consistent location
-         has_bare_log <- file.exists(clean_path(folder_dt$dir_name_resolved, basename(private$DICT$log_name)))
-         catch        <- lapply(folder_dt[has_bare_log, dir_name_resolved], private$move_log_to_subdir)
+         # reporting requires logs to be in a consistent location (a dangling link has no folder to look in)
+         live_paths   <- folder_dt[is_dangling == FALSE, dir_name_resolved]
+         has_bare_log <- file.exists(clean_path(live_paths, basename(private$DICT$log_name)))
+         catch        <- lapply(live_paths[has_bare_log], private$move_log_to_subdir)
 
          return(folder_dt)
       },
@@ -1526,8 +1790,8 @@ SLT <- R6::R6Class(
 
 
       query_all_symlink_type = function(root, symlink_type) {
-         checkmate::assert_choice(symlink_type, names(get_symlink_registry()))
-         symlink_reg <- get_symlink_registry_entry(symlink_type)
+         checkmate::assert_choice(symlink_type, names(self$get_symlink_registry()))
+         symlink_reg <- get_symlink_registry_entry(symlink_type, self$get_symlink_registry())
          folder_dt   <- private$query_root_folder_types(root)
          result_dt   <- unique(folder_dt[
             is_symlink == TRUE & grepl(symlink_reg$extract_regex, dir_leaf),
@@ -1543,6 +1807,47 @@ SLT <- R6::R6Class(
          marked_dirs   <- folder_dt[is_symlink == TRUE, dir_name_resolved]
          unmarked_dirs <- folder_dt[!dir_name_resolved %in% marked_dirs, dir_name_resolved]
          return(folder_dt[dir_name_resolved %in% unmarked_dirs, .(version_name, dir_name, dir_name_resolved)])
+      },
+
+      #  Query all dangling symlinks (shortcuts) in one root
+      #
+      #  Find symlinks that no longer point to a valid target
+      #  - Finds only tool-created symlinks by default
+      #  - `include_non_tool_symlinks = TRUE` also finds links whose name matches
+      #    no symlink type on this tool's roots' registry files, e.g. a
+      #    hand-made link
+      #
+      #  `version_name` follows the central-log rule for `remove_dangling_<type>`
+      #  rows: the target's leaf when it can be read, else the version parsed
+      #  from a per-version link's own name, else "unknown" for a singleton.
+      #  A non-tool link has no type to parse: `symlink_type` NA, version from
+      #  the target's leaf or NA.
+      #
+      #  @param root (chr) path to a root folder defined at instantiation
+      #  @param include_non_tool_symlinks (lgl) also list dangling non-tool links
+      #
+      #  @return (data.table) columns version_name, dir_name, dir_name_resolved, symlink_type
+      query_all_dangling = function(root, include_non_tool_symlinks = FALSE){
+         checkmate::assert_flag(include_non_tool_symlinks)
+         folder_dt <- private$query_root_folder_types(root, include_dangling = TRUE)
+         if (include_non_tool_symlinks) {
+            result_dt <- folder_dt[is_symlink == TRUE & is_dangling == TRUE, .(dir_leaf, dir_name, dir_name_resolved)]
+         } else {
+            result_dt <- folder_dt[is_tool_symlink == TRUE & is_dangling == TRUE, .(dir_leaf, dir_name, dir_name_resolved)]
+         }
+         result_dt[, symlink_type := vapply(dir_leaf, get_symlink_type_from_name, character(1), USE.NAMES = FALSE)]
+         # vapply, not mapply: on a root with no dangling links mapply() returns list(),
+         # which breaks ordering in combine_roundup_results() and the return_as vector
+         result_dt[
+            , version_name := vapply(
+               seq_len(.N), function(i) {
+                  if (is.na(symlink_type[i])) return(basename(dir_name_resolved[i]))   # non-tool link: nothing to parse from its name
+                  return(private$resolve_dangling_version_name(dir_leaf[i], symlink_type[i], dir_name_resolved[i]))
+               }
+               , character(1)
+            )
+         ]
+         return(result_dt[, .(version_name, dir_name, dir_name_resolved, symlink_type)])
       },
 
       #  Query all logs in one root by a date selector
@@ -1583,7 +1888,7 @@ SLT <- R6::R6Class(
          tryCatch({
             as.POSIXct(log_id_0_dt$timestamp2, format = private$DICT$datestamp_format, tz = private$DICT$TZ)
          }, warning = function(w) message("Some logs failed creation-date parsing (must be in %Y_%m_%d_%H%M%S format): \n  ",
-                                          paste(capture.output(dt_failed_parse), collapse = "\n"),
+                                          paste(utils::capture.output(dt_failed_parse), collapse = "\n"),
                                           "\n")
          )
 
@@ -1672,13 +1977,13 @@ SLT <- R6::R6Class(
       #
       # @param dt_report (data.table) the report
       # @param write_path (chr) full path with ext
-      # @param order_cols_tf (lgl) (default = TRUE) order columns by log_schema?
-      # @param schema (named_list) named list of column names and data types - used if `order_cols_tf` = TRUE
+      # @param order_cols (lgl) (default = TRUE) order columns by log_schema?
+      # @param schema (named_list) named list of column names and data types - used if `order_cols` = TRUE
       #
       # @return (none) write to disk
-      write_report = function(dt_report, write_path, order_cols_tf = TRUE, schema = private$DICT$log_schema){
+      write_report = function(dt_report, write_path, order_cols = TRUE, schema = private$DICT$log_schema){
 
-         if(order_cols_tf){
+         if(order_cols){
             assert_named_list(schema)
             sortable_colnames <- intersect(names(schema), names(dt_report))
             data.table::setcolorder(dt_report, sortable_colnames)
@@ -1833,8 +2138,15 @@ SLT <- R6::R6Class(
       #  @return none
       report_discrepancies = function(root, verbose = TRUE){
 
-         # find all folders in the `root` and their types
-         folder_dt <- private$query_root_folder_types(root)
+         # find all folders in the `root` and their types, dangling links included
+         folder_dt <- private$query_root_folder_types(root, include_dangling = TRUE)
+
+         # Tool symlinks whose target folder is gone (dir_name only) - a stale mark
+         dirs_dangling_dt       <- folder_dt[is_tool_symlink == TRUE & is_dangling == TRUE, .N, by = dir_name]
+         discrepant_dt_dangling <- private$make_report_schema_for_discrepant_paths(dirs_dangling_dt, "tool symlink (shortcut) points to a missing folder")
+
+         # every other check reads logs through the links, so only live rows from here on
+         folder_dt <- folder_dt[is_dangling == FALSE, ]
 
          # First and most important, tool-created symlinks with with no logs or malformed logs
 
@@ -1897,7 +2209,7 @@ SLT <- R6::R6Class(
          discrepant_dt_log_id_non_seq <- private$add_discrepancy_to_dt(discrepant_dt_log_id_non_seq, "non-sequential log_ids")
 
          # Invalid log actions
-         log_list_invalid_actions      <- lapply(log_list_all, function(x) x[!(action %in% get_valid_actions())])
+         log_list_invalid_actions      <- lapply(log_list_all, function(x) x[!is_valid_action(action)])
          discrepant_dt_invalid_actions <- data.table::rbindlist(log_list_invalid_actions, fill = TRUE)
          discrepant_dt_invalid_actions <- private$add_discrepancy_to_dt(discrepant_dt_invalid_actions, "invalid actions")
 
@@ -1905,6 +2217,7 @@ SLT <- R6::R6Class(
          discrepancy_report_dt <- rbindlist(
             list(
                discrepant_dt_tool_symlink_no_logs = discrepant_dt_tool_symlink_no_logs
+               , discrepant_dt_dangling           = discrepant_dt_dangling
                , discrepant_dt_non_tool_symlinks  = discrepant_dt_non_tool_symlinks
                , discrepant_dt_reserved_name      = discrepant_dt_reserved_name
                , discrepant_dt_mult_symlinks      = discrepant_dt_mult_symlinks
@@ -1944,6 +2257,12 @@ SLT <- R6::R6Class(
       # - before marking and/or folder creation
       # - after marking and/or folder deletion
       # - managing the DYNAMIC field list
+      #
+      # Handler pattern: a handler is a lifecycle step of a mark / create /
+      # delete operation that MIXES A CHECK WITH A STATE CHANGE (on disk, in a
+      # log, or in the DYNAMIC fields). Pure checks that only stop belong in
+      # `assert_*`; pure checks that only answer belong in `validate_*`; a
+      # handler calls those and then acts.
 
       #  Handle pre-mark operation validations and updates
       #
@@ -1966,6 +2285,8 @@ SLT <- R6::R6Class(
          assert_named_list(user_entry)
          private$assert_schema_vs_user_entry(user_entry)
          for(user_entry_item in user_entry) assert_scalar_not_empty(user_entry_item)
+
+         private$handler_reconcile_symlink_registry()
 
          # This is the 'state machine' of the Symlink Tool
          # enforce one symlink per version_name
@@ -2062,7 +2383,7 @@ SLT <- R6::R6Class(
       handler_reset_dynamic_fields = function(field_types){
 
          # validate inputs
-         valid_field_types <- c("log", "vers_paths")
+         valid_field_types <- c("log", "vers_paths", "symlink_registry")
          if(!is.character(field_types)) stop("field_types must be character")
          field_types <- tolower(field_types)
          if(!all(field_types %in% valid_field_types)) stop("field_types must be one of: ", toString(valid_field_types))
@@ -2077,6 +2398,84 @@ SLT <- R6::R6Class(
          if("vers_paths" %in% field_types){
             private$DYNAMIC$VERS_PATHS = list()
          }
+
+         if("symlink_registry" %in% field_types){
+            private$DYNAMIC$SYMLINK_REGISTRY <- list()
+         }
+      },
+
+      #  Read the tool's symlink registry from its roots' registry files
+      #
+      #  Never writes, so it is safe at construction, in roundups and on roots
+      #  the user cannot write to. Stops if two roots give one symlink type a
+      #  different `is_singleton` (see `read_disk_registries()`).
+      #
+      #  @return (named list) a symlink registry: the built-in types plus the
+      #    types on the roots' files, entries per `make_symlink_registry_entry()`
+      read_symlink_registry = function(){
+         disk_dt  <- read_disk_registries(private$DICT$ROOTS)
+         registry <- merge_symlink_registries(disk_dt)
+         return(registry)
+      },
+
+      #  Repair the roots' registry files, then hold the tool's symlink registry
+      #
+      #  The start of every operation that writes to the roots (`mark()`,
+      #  `unmark()`, `delete_version_folders()`):
+      #  - a root with no registry file gets one
+      #  - a row one root has and a sibling root lacks is copied to the sibling
+      #  - the registry is stored in `private$DYNAMIC$SYMLINK_REGISTRY`; the
+      #    public method that started the operation clears it on exit
+      #
+      #  Stops, before anything is written, if two roots give one symlink type
+      #  a different `is_singleton`.
+      #
+      #  @return (none) writes registry files; updates
+      #    `private$DYNAMIC$SYMLINK_REGISTRY`
+      handler_reconcile_symlink_registry = function(){
+         roots   <- private$DICT$ROOTS
+         disk_dt <- read_disk_registries(roots)
+         backfill_disk_registries(roots, disk_dt)
+         # backfilling copies rows between roots; it adds no symlink type
+         private$DYNAMIC$SYMLINK_REGISTRY <- merge_symlink_registries(disk_dt)
+      },
+
+
+      #  Prepare the slot a mark needs, before anything else is changed
+      #
+      #  `mark()` demotes the version's other links first (e.g. a `keep`), then
+      #  promotes. If the slot the new link needs is blocked, the promote fails
+      #  after the demote has already run and the version is left with no mark
+      #  at all. So the slot is prepared up front, once per root:
+      #  - a real folder in the slot stops the mark before anything changes
+      #    (e.g. the user created a real folder called 'best')
+      #  - a dangling link in the slot is removed and logged (auto comment only;
+      #    the user's comment goes on the promote row that follows)
+      #  - a live link is left alone for the normal mark path to handle
+      #
+      #  @param version_path (chr) version folder being marked
+      #  @param symlink_type (chr) registered type
+      #  @param user_entry (named list) the caller's log entry
+      #
+      #  @return (NULL) may remove a dangling link and write its central-log row
+      handler_prepare_symlink_slot = function(version_path, symlink_type, user_entry){
+         assert_scalar(version_path)
+         path_symlink <- private$make_symlink_path(version_path, symlink_type)
+         private$assert_symlink_slot_free(path_symlink, version_name = basename(version_path), symlink_type = symlink_type)
+
+         info <- link_resolve(path_symlink)
+         if (info$is_link && info$is_dangling) {
+            private$remove_dangling_symlink(
+               root                  = dirname(path_symlink)
+               , symlink_leaf        = basename(path_symlink)
+               , symlink_type        = symlink_type
+               , user_entry          = user_entry
+               , append_user_comment = FALSE
+            )
+            private$DYNAMIC$LOG$version_name <- basename(version_path)  # restore to the incoming version
+         }
+
+         return(invisible(NULL))
       },
 
 
@@ -2100,7 +2499,7 @@ SLT <- R6::R6Class(
          version_path
          , version_name
          , user_entry
-         , symlink_types = get_symlink_types()
+         , symlink_types = get_symlink_types(self$get_symlink_registry())
       ){
          assert_scalar(version_path)
          assert_scalar(version_name)
@@ -2126,14 +2525,14 @@ SLT <- R6::R6Class(
 
          if(length(symlink) > 0) {
             private$msg_sometimes("Demoting existing symlink: ", symlink)
-            symlink                    <- private$extract_symlink(symlink)
-            symlink                    <- file.path(root, symlink)
+            # don't normalize - we want the symlink path itself, not its target
+            symlink                    <- clean_path(root, symlink, normalize = FALSE)
             private$DYNAMIC$LOG$action <- sprintf("demote_%s", symlink_type)
             private$append_to_log(version_path = version_path, user_entry = user_entry)
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
 
             # only unlink if logging is successful
-            system(sprintf("unlink %s", symlink))
+            link_remove(symlink)
          } else {
             private$msg_sometimes("No existing symlinks found - moving on")
          }
@@ -2147,7 +2546,8 @@ SLT <- R6::R6Class(
          root         <- dirname(clean_path(version_path))
          path_symlink <- private$make_symlink_path(version_path, symlink_type)
 
-         if (dir.exists(path_symlink)) {
+         # a dangling link was already cleared by handler_prepare_symlink_slot(), so only a live link lands here
+         if (path_is_link(path_symlink)) {
             old_version_name <- basename(private$resolve_symlink(path_symlink))
             private$remove_one_symlink(root, old_version_name, symlink_type, user_entry)
             private$DYNAMIC$LOG$version_name <- version_name  # restore to the incoming version
@@ -2177,7 +2577,7 @@ SLT <- R6::R6Class(
       ){
          assert_dir_exists(version_path)
 
-         symlink_reg  <- get_symlink_registry_entry(symlink_type)
+         symlink_reg  <- get_symlink_registry_entry(symlink_type, self$get_symlink_registry())
          path_symlink <- private$make_symlink_path(version_path, symlink_type)
 
          # Singleton types need Highlander demotion of the previous symlink
@@ -2193,26 +2593,29 @@ SLT <- R6::R6Class(
          private$msg_sometimes("Promoting to '", symlink_type, "': ", path_symlink)
          private$DYNAMIC$LOG$action <- sprintf("promote_%s", symlink_type)
 
-         if(dir.exists(path_symlink)){
-            if(nzchar(Sys.readlink(path_symlink))){
-               private$msg_sometimes("  ", symlink_type, " symlink already exists - moving on: ", path_symlink)
-               return(invisible(NULL))
-            }
-            # A real directory, not a symlink, is using the name the symlink needs
-            stop(
-               "Cannot mark '", version_name, "' as '", symlink_type, "'.",
-               "\nThe tool needs to create a symlink (shortcut) named '", basename(path_symlink), "' here:\n  ", path_symlink,
-               "\nbut a real folder with that name already exists.",
-               "\nPlease move or rename that folder, then try again. Nothing has been changed."
-            )
+         # a real folder or dangling link in the slot was handled by handler_prepare_symlink_slot() before any demotion
+         if(path_is_link(path_symlink)){
+            private$msg_sometimes("  ", symlink_type, " symlink already exists - moving on: ", path_symlink)
+            return(invisible(NULL))
          }
 
          # Log only if the link succeeds (linux-style &&: act, then record the act)
-         if (file.symlink(version_path, path_symlink) == TRUE) {
+         link_created <- tryCatch(
+            {
+               link_create(version_path, path_symlink)
+               TRUE
+            }
+            , error = function(e) {
+               private$msg_sometimes(
+                  "   symlink creation failed for: ", path_symlink, "\n   ", conditionMessage(e)
+                  , always_message = TRUE
+               )
+               FALSE
+            }
+         )
+         if (link_created) {
             private$append_to_log(version_path = version_path, user_entry = user_entry)
             private$append_to_central_log(version_path = version_path, user_entry = user_entry)
-         } else {
-            private$msg_sometimes("   symlink creation failed for: ", path_symlink, always_message = TRUE)
          }
 
          return(invisible(NULL))
@@ -2248,17 +2651,35 @@ SLT <- R6::R6Class(
       #' @param root_list (list) Named list of root directories for
       #'   pipeline outputs. This is where `version_name` folders live - these
       #'   are iterative runs of an analysis pipeline.
+      #'   On Windows each root must be on a local disk (e.g. `C:`): the tool
+      #'   makes junctions there, and network drives refuse them. The tool
+      #'   checks every root when it is built and stops with a plain message
+      #'   if one cannot hold links. Run from Linux for roots on a network
+      #'   drive.
+      #'   SUNSET NOTICE: support for several roots on one tool will likely be
+      #'   sunset in a future version. Prefer one tool per root. Until then a
+      #'   tool with several roots runs every safety check, and `SLT$new()`
+      #'   sends a one-line message when `root_list` has more than one root.
       #' @param central_log_root (path) Root directory for the central log.
-      #'   If you have multiple roots in the `root_list`, you probably want
-      #'   the central log to live one level above those roots.
+      #'   Default: the first root in `root_list`. If you have multiple roots
+      #'   in the `root_list`, you probably want the central log to live one
+      #'   level above those roots.
       #' @param schema_repair (logical) Default `TRUE`.  If `TRUE`, the tool
       #'   will attempt to repair any schema mismatches it finds in the logs
       #'   when reading and writing e.g. add new columns if the tool schema has
       #'   columns that existing logs do not. If `FALSE`, the tool will stop and
       #'   throw an error if it finds a schema mismatch.
-      #' @param verbose (lgl: default TRUE) control message verbosity - if TRUE,
-      #'   standard message, if FALSE, warn only if something is irregular.
-      #' @param verbose_startup (lgl) see start up warnings, if relevant?
+      #' @param verbose (lgl: default FALSE) Narrate what the tool does? If
+      #'   `TRUE`, every step of an operation sends a message (which symlink is
+      #'   demoted or promoted, which log is written), reports say what they
+      #'   found, and `SLT$new()` lists the user-defined symlink types on its
+      #'   roots. If `FALSE`, the tool is silent except for a few irregular
+      #'   events, which are always reported: a dangling symlink, a folder that
+      #'   already exists, a deleted folder.
+      #' @param verbose_startup (lgl: default FALSE) Show the caution about the
+      #'   `csv_reader` when the tool is built? It applies to the `fread`
+      #'   readers: double quotation marks in log comments multiply. It
+      #'   controls nothing else.
       #' @param csv_reader (chr) The CSV reader to use (also assigns matching
       #'   CSV writer). CAUTION: DO NOT USE `data.table::fread` if you have any
       #'   quotation marks (") in log comments (these lead to exploding series
@@ -2282,11 +2703,12 @@ SLT <- R6::R6Class(
       #' @examples
       #'
       #' try(SLT$new()) # call with no arguments to see instructions
-      #' # Tool will not instantiate on Windows unless running with Admin permissions
-      #' # - requirement for symlink creation on Windows
+      #' # On Windows, roots must be on a local disk (e.g. C:) - the tool makes
+      #' # junctions there, and network drives refuse them. Run from Linux for
+      #' # roots on a network drive.
       initialize = function(
       root_list          = NULL
-      , central_log_root = NULL
+      , central_log_root = root_list[[1]]
       , schema_repair    = TRUE
       , verbose          = FALSE
       , verbose_startup  = FALSE
@@ -2301,32 +2723,13 @@ SLT <- R6::R6Class(
          assert_scalar(verbose_startup)
          assert_type(verbose_startup, "logical")
 
-         # allow lazy defaults
-         # - do this here to suppress startup messages
-         # - assertions are done below
-         if(!is.null(root_list) && is.null(central_log_root)){
-            if(length(root_list) == 1){
-               central_log_root <- data.table::copy(root_list)
-            }
-         }
-
-         # try to boost efficiency
-         try(n_cores <- data.table::setDTthreads(find_n_cores()))
-
-         if(tolower(.Platform$OS.type) == "windows") {
-            if(verbose_startup == TRUE) {
-               message("WARNING! you are running on Windows. \n",
-                       "  - symlinks may not function correctly on pre-NTFS file systems \n",
-                       "  - see ?file.symlink for more details.")
-            }
-            if(is_windows_admin() == FALSE){
-               stop("Symbolic links are not supported on Windows without admin privileges. \n",
-                       "  To enable SLT to work: Right click on Rstudio > Run as administrator > Yes")
-            }
-         }
-
          # Helpful start-up feedback
-         if(is.null(root_list)){
+         # - `central_log_root` defaults to `root_list[[1]]`, which R cannot
+         #   evaluate for an empty list, so only look at it when roots exist
+         is_root_list_missing    <- is.null(root_list) || length(root_list) < 1
+         is_central_root_missing <- is_root_list_missing || is.null(central_log_root)
+
+         if(is_root_list_missing){
             message("\n\nThis tool expects `root_list` to be a named list of root directories for pipeline outputs. \n\n  ",
 
                     "e.g.
@@ -2346,7 +2749,7 @@ SLT <- R6::R6Class(
             )
          }
 
-         if(is.null(central_log_root)){
+         if(is_central_root_missing){
             message("\n\nThis tool expects `central_log_root` to be a single directory for the central log. \n\n  ",
 
                     "e.g.
@@ -2358,7 +2761,7 @@ SLT <- R6::R6Class(
             )
          }
 
-         if(any(is.null(root_list) || is.null(central_log_root))){
+         if(is_root_list_missing || is_central_root_missing){
             stop("You must provide both root_list and central_log_root")
          }
 
@@ -2403,15 +2806,60 @@ SLT <- R6::R6Class(
 
          ## ROOTS
          # clean roots
-         root_list <- lapply(root_list, clean_path)
-         # validate inputs
          assert_named_list(root_list)
+         root_list <- lapply(root_list, clean_path)
+         assert_scalar_not_empty(central_log_root)
+         assert_type(central_log_root, "character")
+         central_log_root <- clean_path(central_log_root)
+         # validate inputs
          lapply(root_list, assert_dir_exists)
          assert_scalar(schema_repair)
          assert_type(schema_repair, "logical")
 
          # set roots
          private$DICT$ROOTS <- root_list
+
+         # Several roots on one tool will likely be sunset (shown even when
+         # `verbose = FALSE`, so nobody builds new work on it unawares)
+         if (length(root_list) > 1L) {
+            private$msg_sometimes(
+               "SUNSET NOTICE: several roots on one SLT will likely be sunset. "
+               , "Prefer one SLT per root."
+               , verbose        = verbose
+               , always_message = TRUE
+            )
+         }
+
+         # Do the roots' registry files agree on every symlink type?
+         # - read-only: construction never writes a registry file (many
+         #   parallel jobs may construct at once, and a root may not be
+         #   writable); the files are repaired at the next mark / unmark / delete
+         disk_dt  <- read_disk_registries(root_list)
+         types_dt <- unique(disk_dt[is_builtin == FALSE, .(symlink_type, is_singleton)])
+         if (verbose && nrow(types_dt) > 0L) {
+            message(
+               "User-defined symlink (shortcut) types on this tool's roots:\n"
+               , format_disk_registry_table(types_dt)
+            )
+         }
+
+         # Can the tool create symlinks (shortcuts) in each root?
+         # - probed once per root here and cached for the life of the tool
+         # - whether a failed probe stops the tool is the link backend's call:
+         #   Windows: yes - a network drive cannot even be read reliably
+         #   Linux/macOS: no - links stay readable, so read-only use of roots
+         #   you do not own (the SymlinkComposer case) still works; a mark
+         #   fails later with a plain message if the root refuses it
+         #   See `probe_failure_is_fatal` in R/links.R for the full reasoning.
+         private$DICT$ROOT_LINK_CAPABLE <- vapply(root_list, dir_supports_links, logical(1))
+         if (link_get_backend()$probe_failure_is_fatal && !all(private$DICT$ROOT_LINK_CAPABLE)) {
+            bad_root <- root_list[[which(!private$DICT$ROOT_LINK_CAPABLE)[1]]]
+            stop(
+               "The Symlink Tool cannot create symlinks (shortcuts) in this root folder:\n  ", bad_root,
+               "\n  - Reason: ", link_failure_reason(bad_root),
+               "\n  - Nothing has been changed."
+            )
+         }
 
          ## Timezone
          private$DICT$TZ <- timezone
@@ -2491,6 +2939,56 @@ SLT <- R6::R6Class(
          return(return_list)
       },
 
+      #' @description
+      #' The symlink types this tool works with: the built-in types plus the
+      #' types recorded in its roots' `.symlink_registry.csv` files. Read from
+      #' the files each time it is called, so a type a teammate adds to a root
+      #' is seen at the next call.
+      #'
+      #' @return (named list) one entry per symlink type, in the same form as
+      #'   `get_symlink_registry()`: `is_singleton`, `is_builtin`,
+      #'   `symlink_suffix_fn`, `extract_regex`
+      #'
+      get_symlink_registry = function(){
+         # during mark / unmark / delete the registry is read once and held, so
+         # every step of the operation works from the same symlink types
+         registry_held <- private$DYNAMIC$SYMLINK_REGISTRY
+         if (length(registry_held) > 0L) return(registry_held)
+         return(private$read_symlink_registry())
+      },
+
+      #' @description
+      #' Add, update or drop a symlink type in the `.symlink_registry.csv` file
+      #' of every root of this tool. A wrapper around
+      #' `update_symlink_disk_registry()`, called on the tool's own roots with
+      #' the tool's `verbose` setting, so the same rules and messages apply.
+      #'
+      #' @param symlink_type (chr) the type, in lowercase; built-in types (best,
+      #'   latest, keep, remove) are refused
+      #' @param is_singleton (lgl) required for `add` and `update`; ignored by
+      #'   `drop`
+      #' @param operation (chr) `"add"` a type not yet on file; `"update"` the
+      #'   `is_singleton` of a type on file; `"drop"` a type from the file
+      #'
+      #' @return (invisible NULL) called for the side effect of writing each
+      #'   root's registry file
+      #'
+      update_symlink_registry = function(
+            symlink_type
+            , is_singleton = NULL
+            , operation    = c("add", "update", "drop")
+      ){
+         operation <- match.arg(operation)
+         update_symlink_disk_registry(
+            root           = unlist(private$DICT$ROOTS, use.names = FALSE)
+            , symlink_type = symlink_type
+            , is_singleton = is_singleton
+            , operation    = operation
+            , verbose      = private$DICT$verbose
+         )
+         return(invisible(NULL))
+      },
+
       ## Marks and Symlinks ----------------------------------------------------
 
       #' @description Mark a version_name folder with a symlink of the specified
@@ -2500,8 +2998,9 @@ SLT <- R6::R6Class(
       #'   methods (`mark_best`, `mark_latest`, etc.) are superceded thin
       #'   wrappers around this.
       #'
-      #' @param symlink_type (chr) A registered symlink type, e.g. `"best"`,
-      #'   `"keep"`, or any type added via `new_symlink_type()`.
+      #' @param symlink_type (chr) One of this tool's symlink types, e.g.
+      #'   `"best"`, `"keep"`, or a type added with
+      #'   `$update_symlink_registry()`. See `$get_symlink_registry()`.
       #' @param version_name (chr) The version_name folder to mark.
       #'   You may also pass the name of an existing symlink (shortcut) such
       #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
@@ -2510,8 +3009,9 @@ SLT <- R6::R6Class(
       #'
       #' @return (std_err) Messages about actions taken.
       mark = function(symlink_type, version_name, user_entry) {
+         on.exit(private$handler_reset_dynamic_fields(field_types = "symlink_registry"), add = TRUE)
          version_name <- private$resolve_version_name(version_name)
-         checkmate::assert_choice(symlink_type, names(get_symlink_registry()))
+         checkmate::assert_choice(symlink_type, names(self$get_symlink_registry()))
 
          private$handler_pre_mark(
             version_name = version_name,
@@ -2526,6 +3026,13 @@ SLT <- R6::R6Class(
                private$msg_sometimes(version_path, " - already marked ", symlink_type, " - moving on.")
                next()
             }
+
+            # prepare the slot first so a blocked promote cannot leave the version unmarked
+            private$handler_prepare_symlink_slot(
+               version_path   = version_path,
+               symlink_type   = symlink_type,
+               user_entry     = user_entry
+            )
 
             private$demote_existing_symlinks(
                version_path = version_path,
@@ -2693,15 +3200,20 @@ SLT <- R6::R6Class(
       #' Remove all symlinks for a single `version_name` in all `roots`
       #'
       #' Writes:
-      #' - appends to a log file in the output folder with a date and time stamp
-      #' - does _not_ append to the central log file
+      #' - appends a `demote_<type>` row to the log file in the output folder
+      #' - appends the same row to the central log file
+      #'
+      #' A dangling symlink (shortcut), one whose version folder was deleted by
+      #' hand, is removed too, by version name or by its own name. That writes
+      #' a `remove_dangling_<type>` row to the central log only, with a comment
+      #' prefixed `[vmTools auto]`; the deleted folder is never re-created.
       #'
       #' @param version_name (chr) The directory name of the output folder that
       #'   lives directly under one of the `root`s you define when you
       #'   instantiate the tool.
       #'   You may also pass the name of an existing symlink (shortcut) such
       #'   as `"latest"` or `"keep_1990_01_01"`; it is resolved to the real
-      #'   version_name folder it points to.
+      #'   version_name folder it points to, or removed directly if dangling.
       #' @param user_entry (list) Named list of user-defined fields to append to
       #'   the log.  After making a tool called e.g. slt, call
       #'   `slt$return_dictionaries("log_fields_user")` to find which fields a
@@ -2714,6 +3226,13 @@ SLT <- R6::R6Class(
       #'
       #'
       unmark = function(version_name, user_entry){
+         on.exit(private$handler_reset_dynamic_fields(field_types = "symlink_registry"), add = TRUE)
+
+         private$handler_reconcile_symlink_registry()
+
+         # guard: edge case - a dangling link passed by its own name has no version to resolve to
+         if (private$remove_dangling_link_by_name(version_name, user_entry)) return(invisible(NULL))
+
          version_name <- private$resolve_version_name(version_name)
 
          # 1. remove all symlinks associated with a version_name
@@ -2739,7 +3258,8 @@ SLT <- R6::R6Class(
       #' methods (`roundup_best`, `roundup_keep`, etc.) are superceded thin
       #' wrappers.
       #'
-      #' @param symlink_type (chr) A registered symlink type.
+      #' @param symlink_type (chr) One of this tool's symlink types, e.g.
+      #'   `"best"`. See `$get_symlink_registry()`.
       #' @param return_as (chr: default `"table"`) or `"version_name"`.
       #'
       #' @return (data.table/chr) A single data.table with results from all
@@ -2754,7 +3274,7 @@ SLT <- R6::R6Class(
       #' ```
       roundup = function(symlink_type, return_as = c("table", "version_name")) {
          return_as <- match.arg(return_as)
-         checkmate::assert_choice(symlink_type, names(get_symlink_registry()))
+         checkmate::assert_choice(symlink_type, names(self$get_symlink_registry()))
          if (return_as == "table") {
             ret <- private$combine_roundup_results(query_function = private$query_all_symlink_type, symlink_type)
          } else if (return_as == "version_name") {
@@ -2888,6 +3408,45 @@ SLT <- R6::R6Class(
       },
 
       #' @description
+      #' Find all dangling tool symlinks (shortcuts) in all `roots`
+      #'
+      #' A dangling symlink points to a version folder that no longer exists
+      #' (deleted by hand, or by `delete_version_folders()` on a folder that
+      #' also carried another mark). The ordinary roundups never list these;
+      #' this one does, so they can be cleaned up with `unmark()`, by version
+      #' name or by the link's own name.
+      #'
+      #' @param include_non_tool_symlinks (lgl) Default `FALSE`. Also list
+      #'   dangling symlinks whose name matches no symlink type on this tool's
+      #'   roots' registry files, e.g. a hand-made link; `TRUE` lists those
+      #'   too, with `symlink_type` `NA`.
+      #' @param return_as (chr) Default `table`.  Whether to return a data.table with
+      #'   symlink and stored target paths (`table`) or just a vector of
+      #'   `version_name`s (`version_name`) for easier automated round-ups.
+      #'
+      #' @return (data.table/chr) A single data.table with results from all
+      #'   roots, with `root_name` as the first column, or a vector of
+      #'   `version_name`s if `return_as = version_name`. `dir_name_resolved`
+      #'   is the folder the link still points to, and is `NA` when it cannot
+      #'   be read; `version_name` is then parsed from a per-version link's own
+      #'   name, or `"unknown"` for a singleton such as `best`, or `NA` for a
+      #'   non-tool link.
+      #'
+      #' Table output schema
+      #'
+      #' ```r
+      #' root_name version_name dir_name dir_name_resolved symlink_type
+      #'    <char>       <char>   <char>            <char>       <char>
+      #' ```
+      #'
+      roundup_dangling = function(include_non_tool_symlinks = FALSE, return_as = c("table", "version_name")){
+         return_as <- match.arg(return_as)
+         ret <- private$combine_roundup_results(private$query_all_dangling, include_non_tool_symlinks = include_non_tool_symlinks)
+         if (return_as == "version_name") ret <- unique(ret$version_name)
+         return(ret)
+      },
+
+      #' @description
       #' Find all `version_name` folders by creation date
       #'
       #' Only finds folders that _have a log_, and reads creation date on first
@@ -2990,8 +3549,8 @@ SLT <- R6::R6Class(
       #'   Names used by the tool's own symlinks (shortcuts) are reserved and
       #'   refused: the name of any singleton type (e.g. `"best"`, `"latest"`)
       #'   and any name starting with a non-singleton type plus underscore
-      #'   (e.g. `"keep_"`, `"remove_"`). Types added with `new_symlink_type()`
-      #'   reserve their names the same way.
+      #'   (e.g. `"keep_"`, `"remove_"`). Types added with
+      #'   `$update_symlink_registry()` reserve their names the same way.
       #'
       #' @return (chr) new version_name (in YYYY_MM_DD.VV format if defaults are used)
       #'
@@ -3000,7 +3559,7 @@ SLT <- R6::R6Class(
       make_new_version_folder = function(version_name = self$get_common_new_version_name()){
 
          assert_scalar_not_empty(x = version_name)
-         assert_version_name_not_reserved(version_name)
+         assert_version_name_not_reserved(version_name, self$get_symlink_registry())
 
          private$handler_update_dynamic_fields(version_name = version_name)
 
@@ -3085,6 +3644,7 @@ SLT <- R6::R6Class(
       #'
       #'
       delete_version_folders = function(version_name, user_entry, require_user_input = TRUE){
+         on.exit(private$handler_reset_dynamic_fields(field_types = "symlink_registry"), add = TRUE)
          version_name <- private$resolve_version_name(version_name)
 
          private$handler_pre_mark(

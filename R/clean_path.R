@@ -4,7 +4,9 @@
 #' @param normalize (lgl) pass path to normalizePath()?
 #' @param mustWork (lgl) passed to normalizePath()
 #'
-#' @return (chr) full file paths with consistent platform-specific structure
+#' @return (chr) full file paths with consistent platform-specific structure:
+#'   forward slashes, no doubled slashes, no trailing slash (a bare root such
+#'   as `"/"` or `"C:/"` is kept)
 #'
 #' @export
 #'
@@ -23,7 +25,10 @@ clean_path <- function(..., normalize = TRUE, mustWork = FALSE){
             pths, function(pth) {
                pth <- gsub("\\\\", "/", pth)
                while (grepl("//", pth) == TRUE) pth <- gsub("//", "/", pth)
-               pth <- sub("/$", "/", pth)
+               # drop a trailing slash: "best/" means "the folder behind best"
+               # to the OS, so link checks would silently look through the
+               # link. Keep a bare root ("/" or Windows "C:/") intact.
+               if (!grepl("^(/|[A-Za-z]:/)$", pth)) pth <- sub("/$", "", pth)
                pth
             }
          )

@@ -4,10 +4,14 @@
 \alias{assert_dir_exists}
 \title{Assert a directory exists on disk}
 \usage{
-assert_dir_exists(x)
+assert_dir_exists(x, x_name = deparse(substitute(x)))
 }
 \arguments{
 \item{x}{(chr) A directory path}
+
+\item{x_name}{(chr) Name used in error messages. Defaults to the
+expression passed as \code{x}; wrappers forward their own so the caller's name
+survives the extra call frame.}
 }
 \value{
 (none) stop if assertion fails

@@ -4,10 +4,14 @@
 \alias{assert_scalar_not_empty}
 \title{Assert x is a scalar, and not empty in some way}
 \usage{
-assert_scalar_not_empty(x)
+assert_scalar_not_empty(x, x_name = deparse(substitute(x)))
 }
 \arguments{
 \item{x}{(any) some object to check}
+
+\item{x_name}{(chr) Name used in error messages. Defaults to the
+expression passed as \code{x}; wrappers forward their own so the caller's name
+survives the extra call frame.}
 }
 \value{
 (none) stop if assertion fails

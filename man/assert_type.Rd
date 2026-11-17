@@ -4,12 +4,16 @@
 \alias{assert_type}
 \title{Assert an object is a scalar of a certain type}
 \usage{
-assert_type(x, type)
+assert_type(x, type, x_name = deparse(substitute(x)))
 }
 \arguments{
 \item{x}{(any) Object to check}
 
 \item{type}{(chr) Type to check against}
+
+\item{x_name}{(chr) Name used in error messages. Defaults to the
+expression passed as \code{x}; wrappers forward their own so the caller's name
+survives the extra call frame.}
 }
 \value{
 (none) stop if assertion fails
