@@ -500,11 +500,12 @@ sidestep both problems.
   a plain folder, depending on the mount. Roundups run from Windows against such
   a root would be silently wrong, which is why the probe is fatal on Windows and
   merely informative on Linux/macOS.
-- **Dangling junctions are invisible.** On Linux the tool can tell that a
-  `best/` link still exists but its target folder was deleted by hand, and warns
-  you. Windows has no such view: a junction whose target is gone looks like
-  nothing at all. Delete version folders through the tool
-  (`delete_version_folders()`), which unmarks first.
+- **Dangling junctions are found and can be cleared.** A dangling link is one
+  that still exists after its target folder was deleted by hand. The tool
+  detects these on Windows as it does on Linux and macOS: `roundup_dangling()`
+  lists them, the discrepancy report shows them, and `unmark()` removes them.
+  Deleting version folders through the tool (`delete_version_folders()`) avoids
+  the situation, since it unmarks first.
 - **Symlinks made by other programs are reported, never removed.** If someone
   creates a true Windows symlink inside a root by hand, the tool lists it in
   roundups and discrepancy reports, but base R cannot delete it. Remove it in a

@@ -56,7 +56,7 @@
 #   receives a cleaned path and performs only the OS-specific task.
 #
 # Link primitives (internal-public contract for the rest of the package):
-#   link_resolve(path)          list(is_link, target, dangling)
+#   link_resolve(path)          list(is_link, target, is_dangling)
 #   link_create(target, link)   never overwrites; cleans up after a failed attempt
 #   link_remove(link)           refuses anything that is not a link; never touches the target
 #
