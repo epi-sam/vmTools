@@ -2656,6 +2656,10 @@ SLT <- R6::R6Class(
       #'   checks every root when it is built and stops with a plain message
       #'   if one cannot hold links. Run from Linux for roots on a network
       #'   drive.
+      #'   SUNSET NOTICE: support for several roots on one tool will likely be
+      #'   sunset in a future version. Prefer one tool per root. Until then a
+      #'   tool with several roots runs every safety check, and `SLT$new()`
+      #'   sends a one-line message when `root_list` has more than one root.
       #' @param central_log_root (path) Root directory for the central log.
       #'   Default: the first root in `root_list`. If you have multiple roots
       #'   in the `root_list`, you probably want the central log to live one
@@ -2814,6 +2818,17 @@ SLT <- R6::R6Class(
 
          # set roots
          private$DICT$ROOTS <- root_list
+
+         # Several roots on one tool will likely be sunset (shown even when
+         # `verbose = FALSE`, so nobody builds new work on it unawares)
+         if (length(root_list) > 1L) {
+            private$msg_sometimes(
+               "SUNSET NOTICE: several roots on one SLT will likely be sunset. "
+               , "Prefer one SLT per root."
+               , verbose        = verbose
+               , always_message = TRUE
+            )
+         }
 
          # Do the roots' registry files agree on every symlink type?
          # - read-only: construction never writes a registry file (many

@@ -4,6 +4,13 @@
 
 - `make_new_version_folder()` returns the `version_name`
 
+## Sunset notice
+
+- Support for several roots on one `SLT` will likely be sunset in a future
+  version. Prefer one tool per root. Until then a tool with several roots runs
+  every safety check, and `SLT$new()` sends a one-line message when `root_list`
+  has more than one root.
+
 ## User-defined symlink types are recorded in the root
 
 - A symlink type you add is now stored in each root, in `.symlink_registry.csv`,

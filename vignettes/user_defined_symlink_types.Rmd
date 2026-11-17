@@ -251,7 +251,7 @@ other_root <- file.path(demo_base, "other_root")
 dir.create(other_root)
 
 update_symlink_disk_registry(
-   root          = other_root
+   root           = other_root
    , symlink_type = "stalled"
    , is_singleton = TRUE
    , operation    = "add"

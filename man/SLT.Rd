@@ -80,7 +80,11 @@ On Windows each root must be on a local disk (e.g. \verb{C:}): the tool
 makes junctions there, and network drives refuse them. The tool
 checks every root when it is built and stops with a plain message
 if one cannot hold links. Run from Linux for roots on a network
-drive.}
+drive.
+SUNSET NOTICE: support for several roots on one tool will likely be
+sunset in a future version. Prefer one tool per root. Until then a
+tool with several roots runs every safety check, and \code{SLT$new()}
+sends a one-line message when \code{root_list} has more than one root.}
 
 \item{\code{central_log_root}}{(path) Root directory for the central log.
 Default: the first root in \code{root_list}. If you have multiple roots

@@ -28,6 +28,7 @@ install.packages("vmTools")
 ## How does it work?
 
 - See the vignettes folder for examples of how to use the package.
+- One tool manages one root folder. **Sunset notice:** support for several roots on one tool will likely be sunset in a future version; prefer one tool per root.
 
 
 
