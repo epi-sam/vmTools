@@ -519,7 +519,8 @@ wrappers.
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{symlink_type}}{(chr) A registered symlink type.}
+\item{\code{symlink_type}}{(chr) One of this tool's symlink types, e.g.
+\code{"best"}. See \verb{$get_symlink_registry()}.}
 
 \item{\code{return_as}}{(chr: default \code{"table"}) or \code{"version_name"}.}
 }

@@ -1,4 +1,4 @@
-# vmTools 2.0.3
+# vmTools 2.1.0
 
 ## QOL Updates
 
@@ -65,9 +65,13 @@
 
 # vmTools 2.0.1
 
-Introduces a plugin architecture for symlink types: register a new type once with
-`new_symlink_type()` and it works immediately across all Symlink Tool and 
-Symlink Composer instances via the type-generic `mark()` and `roundup()` methods.
+Introduces user-defined symlink types: add a type of your own and use it through
+the type-generic `mark()` and `roundup()` methods of the Symlink Tool and
+Symlink Composer.
+
+This section describes the feature as it works from 2.1.0 on. 2.0.1 added types
+with `new_symlink_type()`, for one R session only; that function was removed in
+2.1.0 (see above).
 
 ## Breaking from 1.0.0 to 2.0.0
 
@@ -82,10 +86,10 @@ Symlink Registry related changes
 
 - `SLT$return_dictionaries()` no longer `returns DICT$symlink_types`, 
   `DICT$symlink_regex_extract`, or `DICT$symlink_registry`. The symlink type 
-  registry (the package's central record of all known types and their behaviour) 
-  is now managed at the package level 
-  - extend it with `new_symlink_type()`.
-  - read it with `get_symlink_registry()`
+  registry (the record of all known types and their behaviour) is now read
+  from the tool's roots
+  - extend it with `slt$update_symlink_registry()`
+  - read it with `slt$get_symlink_registry()`
 
 ## New Features
 
@@ -97,18 +101,18 @@ See new, simplified vignette documents.
 **Extensible symlink type registry**
 
 ```r
-new_symlink_type("production", is_singleton = TRUE)
+slt$update_symlink_registry("production", is_singleton = TRUE, operation = "add")
 # One per root - promoting a new version demotes the previous one
-new_symlink_type("flagged", is_singleton = FALSE)
+slt$update_symlink_registry("flagged", is_singleton = FALSE, operation = "add")
 # Many per root - flag several versions for QA review at once.
 ```
 
-- Type definitions now live in a package-level environment shared across all
-  SLT/SLC instances in your R session. Adding a type with
-  `new_symlink_type()` takes effect immediately - no restart or object
-  re-creation needed.
-- `new_symlink_type(symlink_type, is_singleton)` - the `is_singleton` flag
-  controls the type's behaviour:
+- Type definitions are stored in the root folder, in `.symlink_registry.csv`,
+  so every R session and every user of the root works with the same types. A
+  type added with `slt$update_symlink_registry()` takes effect at the tool's
+  next call - no restart or object re-creation needed.
+- `slt$update_symlink_registry(symlink_type, is_singleton, operation)` - the
+  `is_singleton` flag controls the type's behaviour:
    - `TRUE` - one folder per root ("Highlander rule"). Promoting a new folder
      automatically demotes the previous holder. For superlatives like `"best"`
      or `"latest"`.
@@ -120,16 +124,17 @@ new_symlink_type("flagged", is_singleton = FALSE)
 **Type-generic `mark()` and `roundup()` on SLT**
 
 - `slt$mark(symlink_type, version_name, user_entry)` - marks a version with any
-  built-in or custom type registered via `new_symlink_type()`.
-- `slt$roundup(symlink_type, type)` - lists all symlinks of a given type across
-  roots. Accepts any registered type.
+  built-in or user-defined type.
+- `slt$roundup(symlink_type, return_as)` - lists all symlinks of a given type
+  across roots. Accepts any of the tool's types.
 - Per-type methods (`mark_best()`, `roundup_keep()`, etc.) still work and are
   maintained indefinitely (see Superseded below).
 
 **Type-generic `roundup_all()` on SLC**
 
 - `slc$roundup_all(symlink_type)` - combines results across all Symlink 
-  Composer tools for any registered type. Replaces `roundup_all_symlinks()`.
+  Composer tools for any type one of them holds. Replaces
+  `roundup_all_symlinks()`.
 
 **`return_as` pass-through on SLC aggregates**
 
@@ -140,7 +145,7 @@ new_symlink_type("flagged", is_singleton = FALSE)
 
 The per-type methods below remain fully functional and are maintained
 indefinitely. The type-generic equivalents are preferred for new code,
-especially with custom types from `new_symlink_type()`.
+especially with user-defined types.
 
 | Superseded | Replacement |
 |---|---|
@@ -148,10 +153,10 @@ especially with custom types from `new_symlink_type()`.
 | `slt$mark_latest()` | `slt$mark("latest", ...)` |
 | `slt$mark_keep()` | `slt$mark("keep", ...)` |
 | `slt$mark_remove()` | `slt$mark("remove", ...)` |
-| `slt$roundup_best()` | `slt$roundup("best", type)` |
-| `slt$roundup_latest()` | `slt$roundup("latest", type)` |
-| `slt$roundup_keep()` | `slt$roundup("keep", type)` |
-| `slt$roundup_remove()` | `slt$roundup("remove", type)` |
+| `slt$roundup_best()` | `slt$roundup("best", return_as)` |
+| `slt$roundup_latest()` | `slt$roundup("latest", return_as)` |
+| `slt$roundup_keep()` | `slt$roundup("keep", return_as)` |
+| `slt$roundup_remove()` | `slt$roundup("remove", return_as)` |
 
 
 # vmTools 1.3.1

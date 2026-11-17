@@ -3258,7 +3258,8 @@ SLT <- R6::R6Class(
       #' methods (`roundup_best`, `roundup_keep`, etc.) are superceded thin
       #' wrappers.
       #'
-      #' @param symlink_type (chr) A registered symlink type.
+      #' @param symlink_type (chr) One of this tool's symlink types, e.g.
+      #'   `"best"`. See `$get_symlink_registry()`.
       #' @param return_as (chr: default `"table"`) or `"version_name"`.
       #'
       #' @return (data.table/chr) A single data.table with results from all
